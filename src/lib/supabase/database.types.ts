@@ -39,6 +39,116 @@ export type Database = {
   }
   public: {
     Tables: {
+      klienti: {
+        Row: {
+          adresa: string
+          created_at: string
+          deleted_at: string | null
+          dic: string | null
+          dph_sazba: number
+          email: string | null
+          ico: string | null
+          id: string
+          individualni_sleva_procent: number
+          jmeno: string
+          nazev: string
+          platba_predem: boolean
+          poznamka: string | null
+          prijmeni: string
+          telefon: string | null
+          typ: Database["public"]["Enums"]["typ_klienta"]
+          updated_at: string
+        }
+        Insert: {
+          adresa?: string
+          created_at?: string
+          deleted_at?: string | null
+          dic?: string | null
+          dph_sazba?: number
+          email?: string | null
+          ico?: string | null
+          id?: string
+          individualni_sleva_procent?: number
+          jmeno?: string
+          nazev?: string
+          platba_predem?: boolean
+          poznamka?: string | null
+          prijmeni?: string
+          telefon?: string | null
+          typ?: Database["public"]["Enums"]["typ_klienta"]
+          updated_at?: string
+        }
+        Update: {
+          adresa?: string
+          created_at?: string
+          deleted_at?: string | null
+          dic?: string | null
+          dph_sazba?: number
+          email?: string | null
+          ico?: string | null
+          id?: string
+          individualni_sleva_procent?: number
+          jmeno?: string
+          nazev?: string
+          platba_predem?: boolean
+          poznamka?: string | null
+          prijmeni?: string
+          telefon?: string | null
+          typ?: Database["public"]["Enums"]["typ_klienta"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      kontaktni_osoby: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          email: string | null
+          funkce: string | null
+          id: string
+          je_primarni: boolean
+          jmeno: string
+          klient_id: string
+          poznamka: string | null
+          telefon: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          email?: string | null
+          funkce?: string | null
+          id?: string
+          je_primarni?: boolean
+          jmeno?: string
+          klient_id: string
+          poznamka?: string | null
+          telefon?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          email?: string | null
+          funkce?: string | null
+          id?: string
+          je_primarni?: boolean
+          jmeno?: string
+          klient_id?: string
+          poznamka?: string | null
+          telefon?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kontaktni_osoby_klient_id_fkey"
+            columns: ["klient_id"]
+            isOneToOne: false
+            referencedRelation: "klienti"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           aktivni_role: Database["public"]["Enums"]["app_role"]
@@ -86,10 +196,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin_or_super_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "super_admin" | "admin" | "technik" | "klient"
+      typ_klienta: "firma" | "fyzicka_osoba"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -221,6 +332,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["super_admin", "admin", "technik", "klient"],
+      typ_klienta: ["firma", "fyzicka_osoba"],
     },
   },
 } as const

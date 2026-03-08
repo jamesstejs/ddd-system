@@ -40,7 +40,7 @@ export function BottomSheet({
           <SheetTitle>{title}</SheetTitle>
           {description && <SheetDescription>{description}</SheetDescription>}
         </SheetHeader>
-        <div className="mt-4 pb-[env(safe-area-inset-bottom,0px)]">
+        <div className="mt-4 px-4 pb-[env(safe-area-inset-bottom,0px)]">
           {children}
         </div>
       </SheetContent>

@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       klienti: {
@@ -149,6 +124,91 @@ export type Database = {
           },
         ]
       }
+      objekty: {
+        Row: {
+          adresa: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          klient_id: string
+          nazev: string
+          planek_url: string | null
+          plocha_m2: number | null
+          poznamka: string | null
+          typ_objektu: Database["public"]["Enums"]["typ_objektu"]
+          updated_at: string
+        }
+        Insert: {
+          adresa?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          klient_id: string
+          nazev?: string
+          planek_url?: string | null
+          plocha_m2?: number | null
+          poznamka?: string | null
+          typ_objektu?: Database["public"]["Enums"]["typ_objektu"]
+          updated_at?: string
+        }
+        Update: {
+          adresa?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          klient_id?: string
+          nazev?: string
+          planek_url?: string | null
+          plocha_m2?: number | null
+          poznamka?: string | null
+          typ_objektu?: Database["public"]["Enums"]["typ_objektu"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objekty_klient_id_fkey"
+            columns: ["klient_id"]
+            isOneToOne: false
+            referencedRelation: "klienti"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      okruhy: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          nazev: string
+          objekt_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          nazev?: string
+          objekt_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          nazev?: string
+          objekt_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "okruhy_objekt_id_fkey"
+            columns: ["objekt_id"]
+            isOneToOne: false
+            referencedRelation: "objekty"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           aktivni_role: Database["public"]["Enums"]["app_role"]
@@ -201,6 +261,18 @@ export type Database = {
     Enums: {
       app_role: "super_admin" | "admin" | "technik" | "klient"
       typ_klienta: "firma" | "fyzicka_osoba"
+      typ_objektu:
+        | "gastro"
+        | "sklad_nevyzivocisna"
+        | "sklad_zivocisna"
+        | "domacnost"
+        | "kancelar"
+        | "skola"
+        | "hotel"
+        | "nemocnice"
+        | "ubytovna"
+        | "vyrobni_hala"
+        | "jiny"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -326,13 +398,23 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: ["super_admin", "admin", "technik", "klient"],
       typ_klienta: ["firma", "fyzicka_osoba"],
+      typ_objektu: [
+        "gastro",
+        "sklad_nevyzivocisna",
+        "sklad_zivocisna",
+        "domacnost",
+        "kancelar",
+        "skola",
+        "hotel",
+        "nemocnice",
+        "ubytovna",
+        "vyrobni_hala",
+        "jiny",
+      ],
     },
   },
 } as const

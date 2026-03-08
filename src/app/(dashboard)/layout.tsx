@@ -30,7 +30,7 @@ export default async function DashboardLayout({
   return (
     <div className="flex min-h-screen flex-col">
       <TopBarWrapper profile={profile} />
-      <main className="flex-1 px-4 pb-20 pt-4">{children}</main>
+      <main className="mx-auto w-full max-w-2xl flex-1 px-4 pb-20 pt-4">{children}</main>
       <BottomNav aktivniRole={profile.aktivni_role} />
     </div>
   );

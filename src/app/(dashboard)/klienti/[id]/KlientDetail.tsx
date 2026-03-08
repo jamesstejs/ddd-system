@@ -32,6 +32,8 @@ import {
   Star,
   Phone,
   Mail,
+  MapPin,
+  Image as ImageIcon,
 } from "lucide-react";
 import {
   updateKlientAction,
@@ -40,12 +42,33 @@ import {
   updateKontaktniOsobaAction,
   deleteKontaktniOsobaAction,
 } from "../actions";
+import {
+  createObjektAction,
+  updateObjektAction,
+  deleteObjektAction,
+} from "./objekty/actions";
 import type { Tables } from "@/lib/supabase/database.types";
 import type { Database } from "@/lib/supabase/database.types";
 
 type Klient = Tables<"klienti">;
 type KontaktniOsoba = Tables<"kontaktni_osoby">;
+type Objekt = Tables<"objekty">;
 type TypKlienta = Database["public"]["Enums"]["typ_klienta"];
+type TypObjektu = Database["public"]["Enums"]["typ_objektu"];
+
+const TYP_OBJEKTU_LABELS: Record<TypObjektu, string> = {
+  gastro: "Gastro",
+  sklad_nevyzivocisna: "Sklad (neživočišný)",
+  sklad_zivocisna: "Sklad (živočišný)",
+  domacnost: "Domácnost",
+  kancelar: "Kancelář",
+  skola: "Škola",
+  hotel: "Hotel",
+  nemocnice: "Nemocnice",
+  ubytovna: "Ubytovna",
+  vyrobni_hala: "Výrobní hala",
+  jiny: "Jiný",
+};
 
 function getDisplayName(k: Klient): string {
   if (k.typ === "firma") return k.nazev || "Bez názvu";
@@ -55,9 +78,11 @@ function getDisplayName(k: Klient): string {
 export function KlientDetail({
   klient,
   kontaktniOsoby,
+  objekty,
 }: {
   klient: Klient;
   kontaktniOsoby: KontaktniOsoba[];
+  objekty: Objekt[];
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -71,6 +96,11 @@ export function KlientDetail({
   const [showCreateOsoba, setShowCreateOsoba] = useState(false);
   const [editOsoba, setEditOsoba] = useState<KontaktniOsoba | null>(null);
   const [deleteOsoba, setDeleteOsoba] = useState<KontaktniOsoba | null>(null);
+
+  // Objekty
+  const [showCreateObjekt, setShowCreateObjekt] = useState(false);
+  const [editObjekt, setEditObjekt] = useState<Objekt | null>(null);
+  const [deleteObjektState, setDeleteObjektState] = useState<Objekt | null>(null);
 
   function handleEditKlient(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -174,6 +204,67 @@ export function KlientDetail({
     });
   }
 
+  // --- Objekty handlers ---
+
+  function handleCreateObjekt(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    const form = new FormData(e.currentTarget);
+
+    startTransition(async () => {
+      try {
+        await createObjektAction({
+          klient_id: klient.id,
+          nazev: (form.get("nazev") as string) || "",
+          adresa: (form.get("adresa") as string) || "",
+          typ_objektu: (form.get("typ_objektu") as TypObjektu) || "jiny",
+          plocha_m2: form.get("plocha_m2") ? Number(form.get("plocha_m2")) : null,
+          poznamka: (form.get("poznamka") as string) || null,
+        });
+        setShowCreateObjekt(false);
+        router.refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Chyba");
+      }
+    });
+  }
+
+  function handleEditObjekt(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!editObjekt) return;
+    setError(null);
+    const form = new FormData(e.currentTarget);
+
+    startTransition(async () => {
+      try {
+        await updateObjektAction(editObjekt.id, klient.id, {
+          nazev: (form.get("nazev") as string) || "",
+          adresa: (form.get("adresa") as string) || "",
+          typ_objektu: (form.get("typ_objektu") as TypObjektu) || "jiny",
+          plocha_m2: form.get("plocha_m2") ? Number(form.get("plocha_m2")) : null,
+          poznamka: (form.get("poznamka") as string) || null,
+        });
+        setEditObjekt(null);
+        router.refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Chyba");
+      }
+    });
+  }
+
+  function handleDeleteObjekt() {
+    if (!deleteObjektState) return;
+    startTransition(async () => {
+      try {
+        await deleteObjektAction(deleteObjektState.id, klient.id);
+        setDeleteObjektState(null);
+        router.refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Chyba");
+      }
+    });
+  }
+
   function renderOsobaForm(defaults?: KontaktniOsoba) {
     return (
       <div className="space-y-4">
@@ -212,6 +303,58 @@ export function KlientDetail({
           />
           <span className="text-sm">Primární kontakt</span>
         </label>
+      </div>
+    );
+  }
+
+  function renderObjektForm(defaults?: Objekt) {
+    return (
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="objekt-nazev">Název objektu *</Label>
+          <Input id="objekt-nazev" name="nazev" required defaultValue={defaults?.nazev || ""} placeholder="např. Provozovna Praha" />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="objekt-adresa">Adresa *</Label>
+          <Input id="objekt-adresa" name="adresa" required defaultValue={defaults?.adresa || ""} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="objekt-typ">Typ objektu</Label>
+          <select
+            id="objekt-typ"
+            name="typ_objektu"
+            defaultValue={defaults?.typ_objektu || "jiny"}
+            className="flex min-h-[44px] w-full rounded-md border border-input bg-background px-3 py-2 text-base"
+          >
+            {Object.entries(TYP_OBJEKTU_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="objekt-plocha">Plocha (m²)</Label>
+          <Input
+            id="objekt-plocha"
+            name="plocha_m2"
+            type="number"
+            step="0.01"
+            min="0"
+            defaultValue={defaults?.plocha_m2 ?? ""}
+            placeholder="např. 150"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="objekt-poznamka">Poznámka</Label>
+          <textarea
+            id="objekt-poznamka"
+            name="poznamka"
+            rows={2}
+            defaultValue={defaults?.poznamka || ""}
+            className="flex min-h-[44px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          />
+        </div>
       </div>
     );
   }
@@ -356,6 +499,79 @@ export function KlientDetail({
                     </button>
                     <button
                       onClick={() => setDeleteOsoba(o)}
+                      className="flex min-h-[44px] min-w-[44px] items-center justify-center text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Objekty */}
+      <Card>
+        <CardHeader className="flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-base">Objekty</CardTitle>
+          <Button
+            size="sm"
+            className="min-h-[44px] gap-2"
+            onClick={() => { setShowCreateObjekt(true); setError(null); }}
+          >
+            <Plus className="size-4" />
+            Přidat
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {objekty.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              Žádné objekty
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {objekty.map((obj) => (
+                <div
+                  key={obj.id}
+                  className="rounded-lg border"
+                >
+                  <Link
+                    href={`/klienti/${klient.id}/objekty/${obj.id}`}
+                    className="block p-3"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="size-4 text-muted-foreground shrink-0" />
+                          <p className="font-medium text-sm truncate">{obj.nazev || "Bez názvu"}</p>
+                        </div>
+                        {obj.adresa && (
+                          <p className="mt-1 text-xs text-muted-foreground ml-6">{obj.adresa}</p>
+                        )}
+                        <div className="mt-2 ml-6 flex flex-wrap gap-2">
+                          <Badge variant="secondary" className="text-xs">
+                            {TYP_OBJEKTU_LABELS[obj.typ_objektu as TypObjektu] || obj.typ_objektu}
+                          </Badge>
+                          {obj.plocha_m2 && (
+                            <Badge variant="outline" className="text-xs">{obj.plocha_m2} m²</Badge>
+                          )}
+                          {obj.planek_url && (
+                            <ImageIcon className="size-4 text-muted-foreground" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                  <div className="flex justify-end gap-1 border-t px-2 py-1">
+                    <button
+                      onClick={(e) => { e.preventDefault(); setEditObjekt(obj); setError(null); }}
+                      className="flex min-h-[44px] min-w-[44px] items-center justify-center text-muted-foreground hover:text-foreground"
+                    >
+                      <Pencil className="size-4" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.preventDefault(); setDeleteObjektState(obj); }}
                       className="flex min-h-[44px] min-w-[44px] items-center justify-center text-muted-foreground hover:text-destructive"
                     >
                       <Trash2 className="size-4" />
@@ -526,6 +742,61 @@ export function KlientDetail({
               Zrušit
             </Button>
             <Button variant="destructive" onClick={handleDeleteOsoba} disabled={isPending} className="min-h-[44px]">
+              {isPending ? "Mažu..." : "Smazat"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Objekt BottomSheet */}
+      <BottomSheet
+        open={showCreateObjekt}
+        onOpenChange={setShowCreateObjekt}
+        title="Nový objekt"
+        description="Přidejte objekt ke klientovi"
+      >
+        <form onSubmit={handleCreateObjekt} className="space-y-4">
+          {renderObjektForm()}
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <Button type="submit" className="w-full min-h-[44px]" disabled={isPending}>
+            {isPending ? "Vytvářím..." : "Přidat objekt"}
+          </Button>
+        </form>
+      </BottomSheet>
+
+      {/* Edit Objekt BottomSheet */}
+      <BottomSheet
+        open={!!editObjekt}
+        onOpenChange={(open) => !open && setEditObjekt(null)}
+        title="Upravit objekt"
+        description={editObjekt?.nazev || ""}
+      >
+        {editObjekt && (
+          <form onSubmit={handleEditObjekt} className="space-y-4">
+            {renderObjektForm(editObjekt)}
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            <Button type="submit" className="w-full min-h-[44px]" disabled={isPending}>
+              {isPending ? "Ukládám..." : "Uložit změny"}
+            </Button>
+          </form>
+        )}
+      </BottomSheet>
+
+      {/* Delete Objekt Dialog */}
+      <Dialog open={!!deleteObjektState} onOpenChange={(open) => !open && setDeleteObjektState(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Smazat objekt?</DialogTitle>
+            <DialogDescription>
+              Opravdu chcete smazat objekt <strong>{deleteObjektState?.nazev}</strong>?
+              Objekt bude deaktivován.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDeleteObjektState(null)} className="min-h-[44px]">
+              Zrušit
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteObjekt} disabled={isPending} className="min-h-[44px]">
               {isPending ? "Mažu..." : "Smazat"}
             </Button>
           </DialogFooter>

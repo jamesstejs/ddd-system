@@ -1,33 +1,12 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
-import { getProfile } from "@/lib/supabase/queries/profiles";
+import { requireAdmin } from "@/lib/auth/requireAdmin";
 import { fetchAres } from "@/lib/ares";
 import { revalidatePath } from "next/cache";
-import type { AppRole } from "@/lib/auth";
 import type { Database } from "@/lib/supabase/database.types";
 
 type KlientInsert = Database["public"]["Tables"]["klienti"]["Insert"];
 type KontaktniOsobaInsert = Database["public"]["Tables"]["kontaktni_osoby"]["Insert"];
-
-async function requireAdmin() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Nepřihlášen");
-
-  const { data: profile } = await getProfile(supabase, user.id);
-  if (
-    !profile ||
-    !["admin", "super_admin"].some((r) =>
-      profile.role.includes(r as AppRole)
-    )
-  ) {
-    throw new Error("Nemáte oprávnění");
-  }
-  return { supabase, user, profile };
-}
 
 // --- Klienti CRUD ---
 

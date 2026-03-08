@@ -96,7 +96,8 @@ describe("ObjektDetail", () => {
     const names = screen.getAllByText("Provozovna Praha");
     expect(names.length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("Hlavní 1, Praha")).toBeInTheDocument();
-    expect(screen.getByText("Gastro")).toBeInTheDocument();
+    // "Gastro" appears in objekt badge + kalkulačka badge
+    expect(screen.getAllByText("Gastro").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("150 m²")).toBeInTheDocument();
     expect(screen.getByText("Testovací poznámka objektu")).toBeInTheDocument();
   });

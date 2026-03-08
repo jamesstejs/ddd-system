@@ -251,6 +251,57 @@ export type Database = {
         }
         Relationships: []
       }
+      sablony_bodu: {
+        Row: {
+          bod_l_potkan: number
+          bod_s_mys: number
+          created_at: string
+          deleted_at: string | null
+          id: string
+          letajici: number
+          lezouci: number
+          rozsah_m2_do: number | null
+          rozsah_m2_od: number
+          typ_objektu: Database["public"]["Enums"]["typ_objektu"]
+          typ_zasahu: Database["public"]["Enums"]["typ_zasahu_kalkulacka"]
+          updated_at: string
+          vzorec_nad_max: Json | null
+          zivolovna: number
+        }
+        Insert: {
+          bod_l_potkan?: number
+          bod_s_mys?: number
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          letajici?: number
+          lezouci?: number
+          rozsah_m2_do?: number | null
+          rozsah_m2_od?: number
+          typ_objektu: Database["public"]["Enums"]["typ_objektu"]
+          typ_zasahu: Database["public"]["Enums"]["typ_zasahu_kalkulacka"]
+          updated_at?: string
+          vzorec_nad_max?: Json | null
+          zivolovna?: number
+        }
+        Update: {
+          bod_l_potkan?: number
+          bod_s_mys?: number
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          letajici?: number
+          lezouci?: number
+          rozsah_m2_do?: number | null
+          rozsah_m2_od?: number
+          typ_objektu?: Database["public"]["Enums"]["typ_objektu"]
+          typ_zasahu?: Database["public"]["Enums"]["typ_zasahu_kalkulacka"]
+          updated_at?: string
+          vzorec_nad_max?: Json | null
+          zivolovna?: number
+        }
+        Relationships: []
+      }
       skudce_pripravky: {
         Row: {
           created_at: string
@@ -361,6 +412,11 @@ export type Database = {
         | "zemedelsky"
         | "chov_zvirat"
       typ_skudce: "hlodavec" | "lezouci_hmyz" | "letajici_hmyz" | "ostatni"
+      typ_zasahu_kalkulacka:
+        | "vnitrni_deratizace"
+        | "vnejsi_deratizace"
+        | "vnitrni_dezinsekce"
+        | "postrik"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -512,6 +568,12 @@ export const Constants = {
         "chov_zvirat",
       ],
       typ_skudce: ["hlodavec", "lezouci_hmyz", "letajici_hmyz", "ostatni"],
+      typ_zasahu_kalkulacka: [
+        "vnitrni_deratizace",
+        "vnejsi_deratizace",
+        "vnitrni_dezinsekce",
+        "postrik",
+      ],
     },
   },
 } as const

@@ -71,12 +71,18 @@ export default async function VicePage() {
 
       {isAdmin && (
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="space-y-1 pt-6">
             <Link
               href="/uzivatele"
               className="flex min-h-[44px] items-center text-sm font-medium hover:underline"
             >
               Správa uživatelů
+            </Link>
+            <Link
+              href="/skudci"
+              className="flex min-h-[44px] items-center text-sm font-medium hover:underline"
+            >
+              Škůdci
             </Link>
           </CardContent>
         </Card>

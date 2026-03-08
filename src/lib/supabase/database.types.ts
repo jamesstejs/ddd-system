@@ -251,6 +251,86 @@ export type Database = {
         }
         Relationships: []
       }
+      skudce_pripravky: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          pripravek_nazev: string
+          skudce_id: string
+          typ_prostoru: Database["public"]["Enums"]["typ_prostoru"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          pripravek_nazev: string
+          skudce_id: string
+          typ_prostoru: Database["public"]["Enums"]["typ_prostoru"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          pripravek_nazev?: string
+          skudce_id?: string
+          typ_prostoru?: Database["public"]["Enums"]["typ_prostoru"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skudce_pripravky_skudce_id_fkey"
+            columns: ["skudce_id"]
+            isOneToOne: false
+            referencedRelation: "skudci"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      skudci: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          doporucena_cetnost_dny: number | null
+          id: string
+          kategorie: string | null
+          latinsky_nazev: string | null
+          nazev: string
+          pocet_zasahu: string | null
+          poznamka: string | null
+          typ: Database["public"]["Enums"]["typ_skudce"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          doporucena_cetnost_dny?: number | null
+          id?: string
+          kategorie?: string | null
+          latinsky_nazev?: string | null
+          nazev: string
+          pocet_zasahu?: string | null
+          poznamka?: string | null
+          typ: Database["public"]["Enums"]["typ_skudce"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          doporucena_cetnost_dny?: number | null
+          id?: string
+          kategorie?: string | null
+          latinsky_nazev?: string | null
+          nazev?: string
+          pocet_zasahu?: string | null
+          poznamka?: string | null
+          typ?: Database["public"]["Enums"]["typ_skudce"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -273,6 +353,14 @@ export type Database = {
         | "ubytovna"
         | "vyrobni_hala"
         | "jiny"
+      typ_prostoru:
+        | "potravinarsky"
+        | "domacnost"
+        | "prumysl"
+        | "venkovni"
+        | "zemedelsky"
+        | "chov_zvirat"
+      typ_skudce: "hlodavec" | "lezouci_hmyz" | "letajici_hmyz" | "ostatni"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -415,6 +503,15 @@ export const Constants = {
         "vyrobni_hala",
         "jiny",
       ],
+      typ_prostoru: [
+        "potravinarsky",
+        "domacnost",
+        "prumysl",
+        "venkovni",
+        "zemedelsky",
+        "chov_zvirat",
+      ],
+      typ_skudce: ["hlodavec", "lezouci_hmyz", "letajici_hmyz", "ostatni"],
     },
   },
 } as const

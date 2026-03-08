@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { BottomNav } from "@/components/layout/BottomNav";
-import { TopBar } from "@/components/layout/TopBar";
+import { TopBarWrapper } from "@/components/layout/TopBarWrapper";
 
 export default async function DashboardLayout({
   children,
@@ -29,7 +29,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <TopBar profile={profile} />
+      <TopBarWrapper profile={profile} />
       <main className="flex-1 px-4 pb-20 pt-4">{children}</main>
       <BottomNav aktivniRole={profile.aktivni_role} />
     </div>

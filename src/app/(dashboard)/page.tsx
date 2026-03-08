@@ -150,6 +150,7 @@ export default async function DashboardPage() {
     .from("profiles")
     .select("aktivni_role")
     .eq("id", user.id)
+    .is("deleted_at", null)
     .single();
 
   const role: AppRole = profile?.aktivni_role || "technik";

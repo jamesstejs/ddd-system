@@ -16,6 +16,7 @@ export async function switchRoleAction(newRole: AppRole) {
     .from("profiles")
     .select("role")
     .eq("id", user.id)
+    .is("deleted_at", null)
     .single();
 
   if (!profile || !profile.role.includes(newRole)) {

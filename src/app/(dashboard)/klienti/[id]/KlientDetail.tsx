@@ -384,7 +384,7 @@ export function KlientDetail({
               <>
                 <div className="space-y-2">
                   <Label htmlFor="edit-nazev">Název firmy *</Label>
-                  <Input id="edit-nazev" name="nazev" required defaultValue={klient.nazev} />
+                  <Input id="edit-nazev" name="nazev" required defaultValue={klient.nazev || ""} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-ico">IČO</Label>
@@ -401,11 +401,11 @@ export function KlientDetail({
               <>
                 <div className="space-y-2">
                   <Label htmlFor="edit-jmeno">Jméno *</Label>
-                  <Input id="edit-jmeno" name="jmeno" required defaultValue={klient.jmeno} />
+                  <Input id="edit-jmeno" name="jmeno" required defaultValue={klient.jmeno || ""} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-prijmeni">Příjmení *</Label>
-                  <Input id="edit-prijmeni" name="prijmeni" required defaultValue={klient.prijmeni} />
+                  <Input id="edit-prijmeni" name="prijmeni" required defaultValue={klient.prijmeni || ""} />
                 </div>
                 <input type="hidden" name="nazev" value="" />
                 <input type="hidden" name="ico" value="" />
@@ -483,6 +483,7 @@ export function KlientDetail({
         open={showCreateOsoba}
         onOpenChange={setShowCreateOsoba}
         title="Nová kontaktní osoba"
+        description="Přidejte kontaktní osobu ke klientovi"
       >
         <form onSubmit={handleCreateOsoba} className="space-y-4">
           {renderOsobaForm()}

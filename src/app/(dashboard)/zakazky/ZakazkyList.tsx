@@ -164,9 +164,10 @@ interface ZakazkyListProps {
   zakazky: Zakazka[];
   klienti: Klient[];
   skudci: Skudce[];
+  isAdmin?: boolean;
 }
 
-export function ZakazkyList({ zakazky, klienti, skudci }: ZakazkyListProps) {
+export function ZakazkyList({ zakazky, klienti, skudci, isAdmin = true }: ZakazkyListProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -357,20 +358,22 @@ export function ZakazkyList({ zakazky, klienti, skudci }: ZakazkyListProps) {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div />
-        <Button
-          onClick={() => {
-            resetCreateForm();
-            setShowCreate(true);
-          }}
-          size="sm"
-          className="min-h-[44px] gap-2"
-        >
-          <Plus className="size-4" />
-          Nová zakázka
-        </Button>
-      </div>
+      {isAdmin && (
+        <div className="flex items-center justify-between">
+          <div />
+          <Button
+            onClick={() => {
+              resetCreateForm();
+              setShowCreate(true);
+            }}
+            size="sm"
+            className="min-h-[44px] gap-2"
+          >
+            <Plus className="size-4" />
+            Nová zakázka
+          </Button>
+        </div>
+      )}
 
       {/* Search */}
       <div className="relative">
@@ -479,30 +482,32 @@ export function ZakazkyList({ zakazky, klienti, skudci }: ZakazkyListProps) {
                     </div>
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-1 ml-2">
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setEditZakazka(z);
-                        setError(null);
-                      }}
-                      className="flex min-h-[44px] min-w-[44px] items-center justify-center text-muted-foreground hover:text-foreground"
-                    >
-                      <Pencil className="size-4" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setDeleteConfirm(z);
-                      }}
-                      className="flex min-h-[44px] min-w-[44px] items-center justify-center text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
-                  </div>
+                  {/* Actions (admin only) */}
+                  {isAdmin && (
+                    <div className="flex items-center gap-1 ml-2">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setEditZakazka(z);
+                          setError(null);
+                        }}
+                        className="flex min-h-[44px] min-w-[44px] items-center justify-center text-muted-foreground hover:text-foreground"
+                      >
+                        <Pencil className="size-4" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setDeleteConfirm(z);
+                        }}
+                        className="flex min-h-[44px] min-w-[44px] items-center justify-center text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </Link>

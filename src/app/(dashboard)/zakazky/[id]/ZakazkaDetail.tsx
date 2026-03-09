@@ -127,9 +127,10 @@ function formatSkudci(skudci: unknown): string[] {
 
 interface ZakazkaDetailProps {
   zakazka: ZakazkaWithRelations;
+  isAdmin?: boolean;
 }
 
-export function ZakazkaDetail({ zakazka }: ZakazkaDetailProps) {
+export function ZakazkaDetail({ zakazka, isAdmin = true }: ZakazkaDetailProps) {
   const router = useRouter();
   const [showEdit, setShowEdit] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -193,28 +194,30 @@ export function ZakazkaDetail({ zakazka }: ZakazkaDetailProps) {
         >
           <ArrowLeft className="size-5" />
         </Link>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="min-h-[44px] gap-2"
-            onClick={() => {
-              setShowEdit(true);
-              setError(null);
-            }}
-          >
-            <Pencil className="size-4" />
-            Upravit
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="min-h-[44px] gap-2 text-destructive hover:text-destructive"
-            onClick={() => setDeleteConfirm(true)}
-          >
-            <Trash2 className="size-4" />
-          </Button>
-        </div>
+        {isAdmin && (
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="min-h-[44px] gap-2"
+              onClick={() => {
+                setShowEdit(true);
+                setError(null);
+              }}
+            >
+              <Pencil className="size-4" />
+              Upravit
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="min-h-[44px] gap-2 text-destructive hover:text-destructive"
+              onClick={() => setDeleteConfirm(true)}
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Status + type badges */}

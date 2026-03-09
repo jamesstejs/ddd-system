@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { getZakazka } from "@/lib/supabase/queries/zakazky";
+import { getProfile } from "@/lib/supabase/queries/profiles";
 import { ZakazkaDetail } from "./ZakazkaDetail";
 
 interface Props {
@@ -16,11 +17,18 @@ export default async function ZakazkaDetailPage({ params }: Props) {
 
   if (!user) redirect("/login");
 
-  const { data: zakazka, error } = await getZakazka(supabase, id);
+  const [zakazkaRes, profileRes] = await Promise.all([
+    getZakazka(supabase, id),
+    getProfile(supabase, user.id),
+  ]);
 
-  if (error || !zakazka) {
+  if (zakazkaRes.error || !zakazkaRes.data) {
     redirect("/zakazky");
   }
 
-  return <ZakazkaDetail zakazka={zakazka} />;
+  const isAdmin = ["admin", "super_admin"].includes(
+    profileRes.data?.aktivni_role as string,
+  );
+
+  return <ZakazkaDetail zakazka={zakazkaRes.data} isAdmin={isAdmin} />;
 }

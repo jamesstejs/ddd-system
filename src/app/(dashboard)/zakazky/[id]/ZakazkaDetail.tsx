@@ -457,7 +457,7 @@ export function ZakazkaDetail({
               id="detail_edit_status"
               name="status"
               defaultValue={zakazka.status}
-              className="flex min-h-[44px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              className="flex min-h-[44px] w-full rounded-md border border-input bg-background px-3 py-2 text-base md:text-sm"
             >
               {(
                 Object.entries(STATUS_LABELS) as [StatusZakazky, string][]
@@ -511,7 +511,7 @@ export function ZakazkaDetail({
               name="poznamka"
               rows={2}
               defaultValue={zakazka.poznamka || ""}
-              className="flex min-h-[44px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              className="flex min-h-[44px] w-full rounded-md border border-input bg-background px-3 py-2 text-base md:text-sm"
             />
           </div>
 

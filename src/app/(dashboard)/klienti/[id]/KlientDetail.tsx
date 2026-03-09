@@ -284,7 +284,7 @@ export function KlientDetail({
             name="poznamka"
             rows={2}
             defaultValue={defaults?.poznamka || ""}
-            className="flex min-h-[44px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            className="flex min-h-[44px] w-full rounded-md border border-input bg-background px-3 py-2 text-base md:text-sm"
           />
         </div>
         <label className="flex min-h-[44px] items-center gap-3">
@@ -345,7 +345,7 @@ export function KlientDetail({
             name="poznamka"
             rows={2}
             defaultValue={defaults?.poznamka || ""}
-            className="flex min-h-[44px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            className="flex min-h-[44px] w-full rounded-md border border-input bg-background px-3 py-2 text-base md:text-sm"
           />
         </div>
       </div>
@@ -641,10 +641,10 @@ export function KlientDetail({
                 name="poznamka"
                 rows={2}
                 defaultValue={klient.poznamka || ""}
-                className="flex min-h-[44px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                className="flex min-h-[44px] w-full rounded-md border border-input bg-background px-3 py-2 text-base md:text-sm"
               />
             </div>
-            <div className="flex gap-4">
+            <div className="flex flex-col gap-4 md:flex-row">
               <div className="flex-1 space-y-2">
                 <Label htmlFor="edit-dph">DPH %</Label>
                 <Input id="edit-dph" name="dph_sazba" type="number" step="0.01" defaultValue={klient.dph_sazba} />

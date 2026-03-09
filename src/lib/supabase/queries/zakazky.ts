@@ -101,7 +101,7 @@ export async function updateZakazka(
   id: string,
   data: Database["public"]["Tables"]["zakazky"]["Update"],
 ) {
-  return supabase.from("zakazky").update(data).eq("id", id).select().single();
+  return supabase.from("zakazky").update(data).eq("id", id).is("deleted_at", null).select().single();
 }
 
 /**

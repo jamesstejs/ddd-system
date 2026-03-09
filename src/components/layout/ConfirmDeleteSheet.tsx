@@ -27,7 +27,7 @@ export function ConfirmDeleteSheet({
         <div className="flex gap-3">
           <Button
             variant="outline"
-            className="flex-1"
+            className="flex-1 min-h-[44px]"
             onClick={() => onOpenChange(false)}
             disabled={isPending}
           >
@@ -35,7 +35,7 @@ export function ConfirmDeleteSheet({
           </Button>
           <Button
             variant="destructive"
-            className="flex-1"
+            className="flex-1 min-h-[44px]"
             onClick={onConfirm}
             disabled={isPending}
           >

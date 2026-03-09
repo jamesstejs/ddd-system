@@ -1,11 +1,9 @@
 "use server";
 
 import { requireAdmin } from "@/lib/auth/requireAdmin";
-import { requireAuth } from "@/lib/auth/requireAuth";
 import { revalidatePath } from "next/cache";
 import {
   getZasahy,
-  getZasahyForTechnik,
   createZasah,
   updateZasah,
   softDeleteZasah,
@@ -13,7 +11,6 @@ import {
 } from "@/lib/supabase/queries/zasahy";
 import { getAllDostupnost } from "@/lib/supabase/queries/dostupnost";
 import { getZakazky } from "@/lib/supabase/queries/zakazky";
-import { odhadDelkyZasahu } from "@/lib/utils/zasahUtils";
 import type { Database } from "@/lib/supabase/database.types";
 
 const REVALIDATE_PATH = "/kalendar";
@@ -145,21 +142,4 @@ export async function deleteZasahAction(id: string) {
 
   revalidatePath(REVALIDATE_PATH);
   revalidatePath("/");
-}
-
-/**
- * Spočítá odhadovanou délku zásahu.
- */
-export async function odhadDelkyAction(input: {
-  typy_zasahu: string[];
-  pocet_bodu?: number;
-  plocha_m2?: number;
-  koeficient_rychlosti?: number;
-}) {
-  return odhadDelkyZasahu(
-    input.typy_zasahu,
-    input.pocet_bodu,
-    input.plocha_m2,
-    input.koeficient_rychlosti,
-  );
 }

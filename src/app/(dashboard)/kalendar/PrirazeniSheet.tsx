@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,6 +50,18 @@ export function PrirazeniSheet({
   const [poznamka, setPoznamka] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Reset form when sheet opens or datum changes
+  useEffect(() => {
+    if (open) {
+      setZakazkaId("");
+      setTechnikId("");
+      setCasOd("08:00");
+      setCasDo("10:00");
+      setPoznamka("");
+      setError(null);
+    }
+  }, [open, datum]);
 
   // Dostupnost for selected date
   const dostupnostDen = dostupnostByDate.get(datum) || [];
@@ -195,7 +207,7 @@ export function PrirazeniSheet({
             Zakázka
           </Label>
           <Select value={zakazkaId} onValueChange={setZakazkaId}>
-            <SelectTrigger className="mt-1 w-full">
+            <SelectTrigger className="mt-1 w-full min-h-[44px]">
               <SelectValue placeholder="Vyberte zakázku..." />
             </SelectTrigger>
             <SelectContent>
@@ -215,7 +227,7 @@ export function PrirazeniSheet({
             Technik
           </Label>
           <Select value={technikId} onValueChange={setTechnikId}>
-            <SelectTrigger className="mt-1 w-full">
+            <SelectTrigger className="mt-1 w-full min-h-[44px]">
               <SelectValue placeholder="Vyberte technika..." />
             </SelectTrigger>
             <SelectContent>
@@ -256,7 +268,7 @@ export function PrirazeniSheet({
               type="time"
               value={casOd}
               onChange={(e) => setCasOd(e.target.value)}
-              className="mt-1 text-base"
+              className="mt-1 min-h-[44px] text-base"
             />
           </div>
           <div>
@@ -268,7 +280,7 @@ export function PrirazeniSheet({
               type="time"
               value={casDo}
               onChange={(e) => setCasDo(e.target.value)}
-              className="mt-1 text-base"
+              className="mt-1 min-h-[44px] text-base"
             />
           </div>
         </div>

@@ -194,6 +194,7 @@ export function ZasahDetailSheet({
                       size="sm"
                       className={`min-h-[44px] ${sInfo?.bgColor} ${sInfo?.color} border-transparent`}
                       disabled={isPending}
+                      aria-label={`Změnit status na ${sInfo?.label}`}
                       onClick={() =>
                         handleStatusChange(
                           s as Database["public"]["Enums"]["status_zasahu"],

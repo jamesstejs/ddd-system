@@ -391,7 +391,7 @@ export function KalendarView({
                   key={t.id}
                   variant={isActive ? "default" : "outline"}
                   size="sm"
-                  className={`min-h-[44px] text-sm ${!isActive ? `${color.bg} ${color.text} border-transparent hover:opacity-80` : ""}`}
+                  className={`min-h-[44px] text-sm ${!isActive ? `${color.bg} ${color.text} border-transparent hover:opacity-80 active:opacity-70` : ""}`}
                   onClick={() =>
                     setSelectedTechnikFilter(isActive ? null : t.id)
                   }
@@ -557,19 +557,19 @@ function MonthView({
                       return (
                         <button
                           key={z.id}
-                          className="flex items-center justify-center p-1.5"
+                          className="flex min-h-[28px] min-w-[28px] items-center justify-center rounded-md p-1 active:bg-muted/50"
                           onClick={(e) => {
                             e.stopPropagation();
                             onZasahClick(z);
                           }}
                           aria-label={`Zásah ${getKlientName(z)}`}
                         >
-                          <span className={`size-2 rounded-full ${color.dot}`} />
+                          <span className={`size-2.5 rounded-full ${color.dot}`} />
                         </button>
                       );
                     })}
                     {zasahy.length > 3 && (
-                      <span className="text-[9px] text-muted-foreground">
+                      <span className="text-[11px] text-muted-foreground">
                         +{zasahy.length - 3}
                       </span>
                     )}
@@ -578,7 +578,7 @@ function MonthView({
 
                 {/* Dostupnost indicator */}
                 {!hasDostupnost && isCurrentMonth && (
-                  <span className="mt-auto text-[9px] text-muted-foreground/50">
+                  <span className="mt-auto text-[11px] text-muted-foreground/50">
                     —
                   </span>
                 )}
@@ -668,7 +668,7 @@ function WeekView({
                     return (
                       <button
                         key={z.id}
-                        className={`flex w-full items-start gap-2 rounded-lg border-l-4 ${color.border} ${color.bg} p-2 text-left transition-colors hover:opacity-80`}
+                        className={`flex w-full items-start gap-2 rounded-lg border-l-4 ${color.border} ${color.bg} p-2 text-left transition-colors hover:opacity-80 active:opacity-70`}
                         onClick={() => onZasahClick(z)}
                       >
                         <div className="flex-1 min-w-0">
@@ -777,8 +777,17 @@ function DayView({
             return (
               <Card
                 key={z.id}
+                role="button"
+                tabIndex={0}
+                aria-label={`Zásah ${getKlientName(z)} — ${formatCasCz(z.cas_od.substring(0, 5))}–${formatCasCz(z.cas_do.substring(0, 5))}`}
                 className={`border-l-4 ${color.border} cursor-pointer transition-colors hover:bg-muted/30 active:bg-muted/40`}
                 onClick={() => onZasahClick(z)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onZasahClick(z);
+                  }
+                }}
               >
                 <CardContent className="p-3">
                   <div className="flex items-start justify-between gap-2">

@@ -32,7 +32,9 @@ import {
   Loader2,
 } from "lucide-react";
 import { updateZakazkaAction, deleteZakazkaAction } from "../actions";
+import { CenovaKalkulace } from "./CenovaKalkulace";
 import type { Database } from "@/lib/supabase/database.types";
+import type { CenikData, Polozka } from "@/lib/kalkulacka/vypocetCeny";
 
 // ----- Types -----
 
@@ -128,9 +130,16 @@ function formatSkudci(skudci: unknown): string[] {
 interface ZakazkaDetailProps {
   zakazka: ZakazkaWithRelations;
   isAdmin?: boolean;
+  cenikData?: CenikData;
+  existujiciPolozky?: Polozka[] | null;
 }
 
-export function ZakazkaDetail({ zakazka, isAdmin = true }: ZakazkaDetailProps) {
+export function ZakazkaDetail({
+  zakazka,
+  isAdmin = true,
+  cenikData,
+  existujiciPolozky,
+}: ZakazkaDetailProps) {
   const router = useRouter();
   const [showEdit, setShowEdit] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -400,6 +409,16 @@ export function ZakazkaDetail({ zakazka, isAdmin = true }: ZakazkaDetailProps) {
           )}
         </CardContent>
       </Card>
+
+      {/* ========== CENOVÁ KALKULACE ========== */}
+      {cenikData && (
+        <CenovaKalkulace
+          zakazka={zakazka}
+          isAdmin={isAdmin}
+          cenikData={cenikData}
+          existujiciPolozky={existujiciPolozky ?? null}
+        />
+      )}
 
       {/* ========== EDIT BOTTOMSHEET ========== */}
       <BottomSheet

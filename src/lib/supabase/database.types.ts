@@ -571,50 +571,133 @@ export type Database = {
         }
         Relationships: []
       }
-      zakazky: {
+      zakazka_polozky: {
         Row: {
-          cetnost_dny: number | null
+          cena_celkem: number
+          cena_za_kus: number
           created_at: string
           deleted_at: string | null
           id: string
+          nazev: string
+          pocet: number
+          poradi: number
+          updated_at: string
+          zakazka_id: string
+        }
+        Insert: {
+          cena_celkem: number
+          cena_za_kus: number
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          nazev: string
+          pocet?: number
+          poradi?: number
+          updated_at?: string
+          zakazka_id: string
+        }
+        Update: {
+          cena_celkem?: number
+          cena_za_kus?: number
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          nazev?: string
+          pocet?: number
+          poradi?: number
+          updated_at?: string
+          zakazka_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zakazka_polozky_zakazka_id_fkey"
+            columns: ["zakazka_id"]
+            isOneToOne: false
+            referencedRelation: "zakazky"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zakazky: {
+        Row: {
+          cena_po_sleve: number | null
+          cena_s_dph: number | null
+          cena_zaklad: number | null
+          cetnost_dny: number | null
+          created_at: string
+          deleted_at: string | null
+          doprava_km: number | null
+          dph_sazba_snapshot: number | null
+          id: string
+          je_nocni: boolean | null
+          je_prvni_navsteva: boolean | null
+          je_vikend: boolean | null
           objekt_id: string
           platba_predem: boolean
           platnost_do: string | null
+          pocet_bytu: number | null
           pocet_navstev_rocne: number | null
           poznamka: string | null
           skudci: Json
+          sleva_hodnota: number | null
+          sleva_typ: string | null
+          sleva_zadal: string | null
           status: Database["public"]["Enums"]["status_zakazky"]
           typ: Database["public"]["Enums"]["typ_zakazky"]
           typy_zasahu: Json
           updated_at: string
         }
         Insert: {
+          cena_po_sleve?: number | null
+          cena_s_dph?: number | null
+          cena_zaklad?: number | null
           cetnost_dny?: number | null
           created_at?: string
           deleted_at?: string | null
+          doprava_km?: number | null
+          dph_sazba_snapshot?: number | null
           id?: string
+          je_nocni?: boolean | null
+          je_prvni_navsteva?: boolean | null
+          je_vikend?: boolean | null
           objekt_id: string
           platba_predem?: boolean
           platnost_do?: string | null
+          pocet_bytu?: number | null
           pocet_navstev_rocne?: number | null
           poznamka?: string | null
           skudci?: Json
+          sleva_hodnota?: number | null
+          sleva_typ?: string | null
+          sleva_zadal?: string | null
           status?: Database["public"]["Enums"]["status_zakazky"]
           typ?: Database["public"]["Enums"]["typ_zakazky"]
           typy_zasahu?: Json
           updated_at?: string
         }
         Update: {
+          cena_po_sleve?: number | null
+          cena_s_dph?: number | null
+          cena_zaklad?: number | null
           cetnost_dny?: number | null
           created_at?: string
           deleted_at?: string | null
+          doprava_km?: number | null
+          dph_sazba_snapshot?: number | null
           id?: string
+          je_nocni?: boolean | null
+          je_prvni_navsteva?: boolean | null
+          je_vikend?: boolean | null
           objekt_id?: string
           platba_predem?: boolean
           platnost_do?: string | null
+          pocet_bytu?: number | null
           pocet_navstev_rocne?: number | null
           poznamka?: string | null
           skudci?: Json
+          sleva_hodnota?: number | null
+          sleva_typ?: string | null
+          sleva_zadal?: string | null
           status?: Database["public"]["Enums"]["status_zakazky"]
           typ?: Database["public"]["Enums"]["typ_zakazky"]
           typy_zasahu?: Json

@@ -5,15 +5,19 @@
 > Každý sprint = jeden Claude Code session. Nepřeskakuj.
 
 ## PRAVIDLO: Každý sprint MUSÍ končit kontrolním blokem (viz CLAUDE.md sekce "Testování & Kontrola")
-```
+
 Po implementaci vždy:
 1. npx tsc --noEmit (TypeScript)
-2. npx vitest run (testy — každý sprint přidá testy pro novou funkcionalitu)
-3. npm run build (build musí projít)
-4. Mobile audit kódu (pokud sprint obsahuje UI)
-5. Supabase lint (pokud sprint obsahuje migrace)
-6. Wiring kontrola (5 vrstev)
-```
+2. npx vitest run (Jednotkové testy business logiky)
+3. npm run build (Build musí projít bez chyb)
+4. Mobile audit kódu (Vizuální a strukturální kontrola mobilního zobrazení)
+5. Supabase lint (Kontrola RLS a migrací)
+6. Wiring kontrola (5 vrstev: DB, Typy, Query, Action, UI)
+7. npx playwright test (E2E testy — automatické proklikání flow za super_admin, admin, technik, klient)
+8. AI REVIEW: Vykonej příkaz níže ↓
+
+**Příkaz pro Claude Code po dokončení bodů 1-7:**
+"Claude, zkontroluj logy z `playwright test` a `vitest`. Pokud testy odhalily bugy nebo chybové stavy, autonomně je oprav a testy spusť znovu, dokud neprojdou. Následně proveď hloubkovou revizi kódu UI/UX u komponent z tohoto sprintu: zkontroluj tap targety, čitelnost, flow formulářů a navrhni případná vylepšení pro lepší uživatelský zážitek na mobilu i desktopu. Pokud najdeš prostor pro zlepšení, rovnou ho aplikuj."
 
 ---
 

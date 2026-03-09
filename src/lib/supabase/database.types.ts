@@ -662,6 +662,66 @@ export type Database = {
           },
         ]
       }
+      zasahy: {
+        Row: {
+          cas_do: string
+          cas_od: string
+          created_at: string
+          datum: string
+          deleted_at: string | null
+          id: string
+          odhadovana_delka_min: number | null
+          poznamka: string | null
+          status: Database["public"]["Enums"]["status_zasahu"]
+          technik_id: string
+          updated_at: string
+          zakazka_id: string
+        }
+        Insert: {
+          cas_do: string
+          cas_od: string
+          created_at?: string
+          datum: string
+          deleted_at?: string | null
+          id?: string
+          odhadovana_delka_min?: number | null
+          poznamka?: string | null
+          status?: Database["public"]["Enums"]["status_zasahu"]
+          technik_id: string
+          updated_at?: string
+          zakazka_id: string
+        }
+        Update: {
+          cas_do?: string
+          cas_od?: string
+          created_at?: string
+          datum?: string
+          deleted_at?: string | null
+          id?: string
+          odhadovana_delka_min?: number | null
+          poznamka?: string | null
+          status?: Database["public"]["Enums"]["status_zasahu"]
+          technik_id?: string
+          updated_at?: string
+          zakazka_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zasahy_zakazka_id_fkey"
+            columns: ["zakazka_id"]
+            isOneToOne: false
+            referencedRelation: "zakazky"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "zasahy_technik_id_fkey"
+            columns: ["technik_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       zakazky: {
         Row: {
           cena_po_sleve: number | null
@@ -767,6 +827,7 @@ export type Database = {
     Enums: {
       app_role: "super_admin" | "admin" | "technik" | "klient"
       status_zakazky: "nova" | "aktivni" | "pozastavena" | "ukoncena"
+      status_zasahu: "naplanovano" | "potvrzeny" | "probiha" | "hotovo" | "zruseno"
       typ_klienta: "firma" | "fyzicka_osoba"
       typ_objektu:
         | "gastro"
@@ -923,6 +984,7 @@ export const Constants = {
     Enums: {
       app_role: ["super_admin", "admin", "technik", "klient"],
       status_zakazky: ["nova", "aktivni", "pozastavena", "ukoncena"],
+      status_zasahu: ["naplanovano", "potvrzeny", "probiha", "hotovo", "zruseno"],
       typ_klienta: ["firma", "fyzicka_osoba"],
       typ_objektu: [
         "gastro",

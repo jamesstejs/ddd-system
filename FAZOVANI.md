@@ -21,7 +21,7 @@ Po implementaci vždy:
 
 ---
 
-## Aktuální sprint: SPRINT 0
+## Aktuální sprint: SPRINT 11
 
 ---
 
@@ -184,13 +184,13 @@ Po implementaci vždy:
 ## Sprint 11 — Kalendář: admin view
 **Cíl:** Admin vidí kalendář se všemi techniky
 
-- [ ] DB: `zasahy` (zakazka_id, technik_id, datum, cas_od, cas_do, status: naplanovano/potvrzeny/probiha/hotovo/zruseno, odhadovana_delka_min, poznamka, created_at, updated_at, deleted_at)
-- [ ] RLS policy
-- [ ] UI: kalendář měsíc/týden/den (admin — všichni technici, color-coded)
-- [ ] Zobrazení dostupnosti techniků v kalendáři (šedé = nedostupný)
-- [ ] Přiřazení zásahu: Bottom Sheet (zakázka + technik + datum + čas)
-- [ ] Odhad délky zásahu: dle typu + počtu bodů × koeficient technika
-- [ ] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
+- [x] DB: `zasahy` (zakazka_id, technik_id, datum, cas_od, cas_do, status: naplanovano/potvrzeny/probiha/hotovo/zruseno, odhadovana_delka_min, poznamka, created_at, updated_at, deleted_at)
+- [x] RLS policy
+- [x] UI: kalendář měsíc/týden/den (admin — všichni technici, color-coded)
+- [x] Zobrazení dostupnosti techniků v kalendáři (šedé = nedostupný)
+- [x] Přiřazení zásahu: Bottom Sheet (zakázka + technik + datum + čas)
+- [x] Odhad délky zásahu: dle typu + počtu bodů × koeficient technika
+- [x] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
 
 ---
 

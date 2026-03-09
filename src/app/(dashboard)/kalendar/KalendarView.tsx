@@ -520,9 +520,12 @@ function MonthView({
             const hasDostupnost = dostupnost.length > 0;
 
             return (
-              <button
+              <div
                 key={idx}
-                className={`flex min-h-[60px] flex-col items-start rounded-lg p-1 text-left transition-colors ${
+                role="button"
+                tabIndex={0}
+                aria-label={`${date.getDate()}. ${MONTH_NAMES[date.getMonth()]} — přidat zásah`}
+                className={`flex min-h-[60px] cursor-pointer flex-col items-start rounded-lg p-1 text-left transition-colors ${
                   !isCurrentMonth
                     ? "bg-muted/20 text-muted-foreground/40"
                     : isToday
@@ -532,6 +535,12 @@ function MonthView({
                         : "bg-muted/30 hover:bg-muted/50"
                 }`}
                 onClick={() => onAddZasah(dateStr)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onAddZasah(dateStr);
+                  }
+                }}
               >
                 <span
                   className={`text-xs font-semibold ${isToday ? "text-blue-600" : ""}`}
@@ -573,7 +582,7 @@ function MonthView({
                     —
                   </span>
                 )}
-              </button>
+              </div>
             );
           })}
         </div>
@@ -626,7 +635,7 @@ function WeekView({
                         <Badge
                           key={d.id}
                           variant="outline"
-                          className="text-[10px] px-1 py-0"
+                          className="text-xs px-1 py-0"
                         >
                           {d.profiles?.jmeno?.charAt(0)}.{d.profiles?.prijmeni?.charAt(0)}. {formatCasCz(d.cas_od.substring(0, 5))}–{formatCasCz(d.cas_do.substring(0, 5))}
                         </Badge>
@@ -669,7 +678,7 @@ function WeekView({
                               {formatCasCz(z.cas_do.substring(0, 5))}
                             </span>
                             <Badge
-                              className={`${statusInfo?.bgColor} ${statusInfo?.color} text-[10px] px-1 py-0`}
+                              className={`${statusInfo?.bgColor} ${statusInfo?.color} text-xs px-1 py-0`}
                             >
                               {statusInfo?.label}
                             </Badge>
@@ -678,7 +687,7 @@ function WeekView({
                             {getKlientName(z)}
                           </p>
                           <p className="truncate text-xs text-muted-foreground">
-                            {z.zakazky?.objekty?.nazev} · {z.zakazky?.objekty?.adresa}
+                            {z.zakazky?.objekty?.nazev || "—"} · {z.zakazky?.objekty?.adresa || "—"}
                           </p>
                           <p className={`text-xs ${color.text}`}>
                             {z.profiles?.jmeno} {z.profiles?.prijmeni}
@@ -768,7 +777,7 @@ function DayView({
             return (
               <Card
                 key={z.id}
-                className={`border-l-4 ${color.border} cursor-pointer transition-colors hover:bg-muted/30`}
+                className={`border-l-4 ${color.border} cursor-pointer transition-colors hover:bg-muted/30 active:bg-muted/40`}
                 onClick={() => onZasahClick(z)}
               >
                 <CardContent className="p-3">
@@ -789,7 +798,7 @@ function DayView({
                         {getKlientName(z)}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {z.zakazky?.objekty?.nazev} · {z.zakazky?.objekty?.adresa}
+                        {z.zakazky?.objekty?.nazev || "—"} · {z.zakazky?.objekty?.adresa || "—"}
                       </p>
                       <div className="mt-1 flex items-center gap-2">
                         <span className={`text-sm font-medium ${color.text}`}>

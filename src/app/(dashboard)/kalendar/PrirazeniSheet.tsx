@@ -95,10 +95,16 @@ export function PrirazeniSheet({
     if (odhadDelky && casOd) {
       const [h, m] = casOd.split(":").map(Number);
       const endMinutes = h * 60 + m + odhadDelky;
+
+      if (endMinutes >= 24 * 60) {
+        setError("Zásah by přesáhl konec dne (24:00). Upravte čas od.");
+        return;
+      }
+
       const endH = Math.floor(endMinutes / 60);
       const endM = endMinutes % 60;
       setCasDo(
-        `${String(Math.min(endH, 23)).padStart(2, "0")}:${String(endM).padStart(2, "0")}`,
+        `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`,
       );
     }
   }
@@ -223,11 +229,11 @@ export function PrirazeniSheet({
                       />
                       {t.jmeno} {t.prijmeni}
                       {t.jeDostupny ? (
-                        <Badge variant="outline" className="ml-1 text-[10px] px-1 py-0 text-green-700">
+                        <Badge variant="outline" className="ml-1 text-xs px-1 py-0 text-green-700">
                           dostupný
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="ml-1 text-[10px] px-1 py-0 text-red-500">
+                        <Badge variant="outline" className="ml-1 text-xs px-1 py-0 text-red-500">
                           bez směny
                         </Badge>
                       )}

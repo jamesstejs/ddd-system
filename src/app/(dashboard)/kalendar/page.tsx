@@ -6,6 +6,7 @@ import { getAllDostupnost } from "@/lib/supabase/queries/dostupnost";
 import { getZakazky } from "@/lib/supabase/queries/zakazky";
 import { toDateString } from "@/lib/utils/dateUtils";
 import { KalendarView } from "./KalendarView";
+import type { ZasahRow, DostupnostRow, TechnikRow, ZakazkaOption } from "./KalendarView";
 
 export default async function KalendarPage() {
   const supabase = await createClient();
@@ -53,10 +54,10 @@ export default async function KalendarPage() {
 
   return (
     <KalendarView
-      initialZasahy={zasahy as never[]}
-      initialDostupnost={dostupnost as never[]}
-      technici={technici as never[]}
-      zakazky={zakazky as never[]}
+      initialZasahy={zasahy as ZasahRow[]}
+      initialDostupnost={dostupnost as DostupnostRow[]}
+      technici={technici as TechnikRow[]}
+      zakazky={zakazky as ZakazkaOption[]}
       initialDate={toDateString(today)}
     />
   );

@@ -12,6 +12,7 @@ import {
 import { getAllDostupnost } from "@/lib/supabase/queries/dostupnost";
 import { getZakazky } from "@/lib/supabase/queries/zakazky";
 import type { Database } from "@/lib/supabase/database.types";
+import { ADMIN_STATUS_TRANSITIONS } from "@/lib/utils/zasahUtils";
 
 const REVALIDATE_PATH = "/kalendar";
 
@@ -122,6 +123,27 @@ export async function updateZasahAction(
   // Validace časů pokud přijdou oba
   if (input.cas_od && input.cas_do && input.cas_od >= input.cas_do) {
     throw new Error("Čas od musí být menší než čas do");
+  }
+
+  // Validace přechodu statusu (server-side)
+  if (input.status) {
+    const { data: zasah } = await supabase
+      .from("zasahy")
+      .select("status")
+      .eq("id", id)
+      .is("deleted_at", null)
+      .single();
+
+    if (!zasah) {
+      throw new Error("Zásah nenalezen");
+    }
+
+    const allowed = ADMIN_STATUS_TRANSITIONS[zasah.status] || [];
+    if (!allowed.includes(input.status)) {
+      throw new Error(
+        `Nelze změnit status z "${zasah.status}" na "${input.status}"`,
+      );
+    }
   }
 
   const { error } = await updateZasah(supabase, id, input);

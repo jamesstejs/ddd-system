@@ -178,12 +178,12 @@ async function TechnikDashboard({
                       : "zásahů dnes"}
                 </p>
                 {dnesnizasahy.slice(0, 3).map((z) => (
-                  <p key={z.id} className="text-xs text-muted-foreground">
+                  <p key={z.id} className="text-sm text-muted-foreground">
                     {formatCasCz(z.cas_od.substring(0, 5))} — {getKlientName(z)}
                   </p>
                 ))}
                 {dnesnizasahy.length > 3 && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm text-muted-foreground">
                     a dalších {dnesnizasahy.length - 3}...
                   </p>
                 )}

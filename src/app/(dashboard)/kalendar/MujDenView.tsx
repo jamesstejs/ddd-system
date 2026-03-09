@@ -212,7 +212,7 @@ export function MujDenView({
             <Button
               variant="link"
               size="sm"
-              className="h-auto p-0 text-sm"
+              className="min-h-[44px] min-w-[44px] text-sm"
               onClick={goToToday}
             >
               Dnes
@@ -241,7 +241,7 @@ export function MujDenView({
 
       {/* Error */}
       {error && (
-        <div className="rounded-lg bg-destructive/10 p-3">
+        <div className="rounded-lg bg-destructive/10 p-3" role="alert">
           <p className="text-sm text-destructive">{error}</p>
         </div>
       )}
@@ -296,7 +296,7 @@ export function MujDenView({
                     <Badge
                       className={`${statusInfo?.bgColor} ${statusInfo?.color} text-sm px-2 py-0.5`}
                     >
-                      {statusInfo?.label}
+                      {statusInfo?.label ?? zasah.status}
                     </Badge>
                   </div>
                   <div className="text-right">
@@ -422,7 +422,7 @@ export function MujDenView({
                       return (
                         <Button
                           key={s}
-                          className={`min-h-[44px] flex-1 ${sInfo?.bgColor} ${sInfo?.color} border-transparent hover:opacity-90`}
+                          className={`min-h-[44px] flex-1 ${sInfo?.bgColor} ${sInfo?.color} border-transparent hover:opacity-90 active:opacity-80`}
                           variant="outline"
                           disabled={isPending}
                           aria-label={`Změnit status na ${sInfo?.label}`}

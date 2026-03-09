@@ -16,6 +16,7 @@ export async function requireTechnik() {
   const { data: profile } = await getProfile(supabase, user.id);
   if (
     !profile ||
+    !Array.isArray(profile.role) ||
     !profile.role.includes("technik" as AppRole)
   ) {
     throw new Error("Nemáte oprávnění technika");

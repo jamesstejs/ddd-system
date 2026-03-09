@@ -11,11 +11,19 @@ import { TECHNIK_STATUS_TRANSITIONS } from "@/lib/utils/zasahUtils";
 import type { Database } from "@/lib/supabase/database.types";
 
 const REVALIDATE_PATH = "/kalendar";
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MAX_KLIENT_IDS = 100;
 
 /**
  * Načte zásahy přihlášeného technika pro daný den.
  */
 export async function getMojeZasahyAction(datum: string) {
+  if (!DATE_REGEX.test(datum)) {
+    throw new Error("Neplatný formát data (očekáváno YYYY-MM-DD)");
+  }
+
   const { supabase, user } = await requireTechnik();
 
   const { data, error } = await getZasahyForTechnik(
@@ -32,9 +40,15 @@ export async function getMojeZasahyAction(datum: string) {
  * Načte kontaktní osoby pro dané klient IDs.
  */
 export async function getKontaktniOsobyAction(klientIds: string[]) {
-  const { supabase } = await requireTechnik();
-
   if (klientIds.length === 0) return [];
+  if (klientIds.length > MAX_KLIENT_IDS) {
+    throw new Error(`Příliš mnoho klient IDs (max ${MAX_KLIENT_IDS})`);
+  }
+  if (!klientIds.every((id) => UUID_REGEX.test(id))) {
+    throw new Error("Neplatný formát klient ID");
+  }
+
+  const { supabase } = await requireTechnik();
 
   const { data, error } = await getKontaktniOsobyByKlientIds(
     supabase,

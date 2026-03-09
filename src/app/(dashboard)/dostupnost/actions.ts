@@ -108,10 +108,10 @@ export async function updateDostupnostAction(
 ) {
   const { supabase, user } = await requireAuth();
 
-  // Ověřit vlastnictví
+  // Ověřit vlastnictví + načíst aktuální časy pro validaci
   const { data: existing } = await supabase
     .from("dostupnost")
-    .select("technik_id")
+    .select("technik_id, cas_od, cas_do")
     .eq("id", id)
     .is("deleted_at", null)
     .single();
@@ -120,7 +120,11 @@ export async function updateDostupnostAction(
     throw new Error("Nemáte oprávnění editovat tento záznam");
   }
 
-  if (input.cas_od && input.cas_do && input.cas_od >= input.cas_do) {
+  // Validace časů — pokud přijde jen jeden, doplnit z DB
+  const effectiveCasOd = input.cas_od ?? existing.cas_od;
+  const effectiveCasDo = input.cas_do ?? existing.cas_do;
+
+  if (effectiveCasOd && effectiveCasDo && effectiveCasOd >= effectiveCasDo) {
     throw new Error("Čas od musí být menší než čas do");
   }
 

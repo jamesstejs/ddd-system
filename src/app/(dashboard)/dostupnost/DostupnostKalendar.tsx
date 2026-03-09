@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +45,10 @@ interface DostupnostKalendarProps {
 }
 
 const DAY_NAMES = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"];
+const MONTH_NAMES = [
+  "Leden", "Únor", "Březen", "Duben", "Květen", "Červen",
+  "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec",
+];
 
 export function DostupnostKalendar({
   dostupnost,
@@ -68,6 +72,7 @@ export function DostupnostKalendar({
   const [casDo, setCasDo] = useState("16:00");
   const [poznamka, setPoznamka] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Vytvoř datumy z stringu
   const od = parseDateLocal(datumOd);
@@ -114,6 +119,7 @@ export function DostupnostKalendar({
   // Uložit
   async function handleSave() {
     setError(null);
+    setIsSaving(true);
     try {
       if (sheetMode === "add") {
         await saveDostupnostAction({
@@ -133,6 +139,8 @@ export function DostupnostKalendar({
       startTransition(() => router.refresh());
     } catch (e) {
       setError(e instanceof Error ? e.message : "Chyba při ukládání");
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -140,12 +148,15 @@ export function DostupnostKalendar({
   async function handleDelete() {
     if (!editingSlot) return;
     setError(null);
+    setIsSaving(true);
     try {
       await deleteDostupnostAction(editingSlot.id);
       setSheetOpen(false);
       startTransition(() => router.refresh());
     } catch (e) {
       setError(e instanceof Error ? e.message : "Chyba při mazání");
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -179,9 +190,19 @@ export function DostupnostKalendar({
       </Card>
 
       {/* Kalendář */}
-      {weeks.map((week, weekIdx) => (
+      {weeks.map((week, weekIdx) => {
+        // Zjistit měsíc(e) v tomto týdnu pro label
+        const weekMonthLabel = getWeekMonthLabel(week, weekIdx === 0);
+
+        return (
         <Card key={weekIdx}>
           <CardContent className="p-3">
+            {/* Měsíční label pokud je začátek nového měsíce */}
+            {weekMonthLabel && (
+              <p className="mb-2 text-sm font-semibold text-foreground">
+                {weekMonthLabel}
+              </p>
+            )}
             {/* Hlavička dnů */}
             <div className="mb-2 grid grid-cols-7 gap-1 text-center text-xs text-muted-foreground">
               {DAY_NAMES.map((name) => (
@@ -234,7 +255,8 @@ export function DostupnostKalendar({
             </div>
           </CardContent>
         </Card>
-      ))}
+        );
+      })}
 
       {/* BottomSheet formulář */}
       <BottomSheet
@@ -300,10 +322,10 @@ export function DostupnostKalendar({
           <div className="flex gap-2">
             <Button
               onClick={handleSave}
-              disabled={isPending}
+              disabled={isSaving || isPending}
               className="min-h-[44px] flex-1"
             >
-              {isPending
+              {isSaving || isPending
                 ? "Ukládám..."
                 : sheetMode === "add"
                   ? "Uložit"
@@ -314,10 +336,10 @@ export function DostupnostKalendar({
               <Button
                 variant="destructive"
                 onClick={handleDelete}
-                disabled={isPending}
+                disabled={isSaving || isPending}
                 className="min-h-[44px]"
               >
-                Smazat
+                {isSaving ? "Mažu..." : "Smazat"}
               </Button>
             )}
           </div>
@@ -325,6 +347,35 @@ export function DostupnostKalendar({
       </BottomSheet>
     </div>
   );
+}
+
+/** Vrátí label měsíce pro týden (zobrazí se u prvního týdne a při změně měsíce) */
+function getWeekMonthLabel(
+  week: (Date | null)[],
+  isFirst: boolean,
+): string | null {
+  const dates = week.filter((d): d is Date => d !== null);
+  if (dates.length === 0) return null;
+
+  const firstDate = dates[0];
+  const lastDate = dates[dates.length - 1];
+
+  // První týden vždy ukáže měsíc
+  if (isFirst) {
+    if (firstDate.getMonth() !== lastDate.getMonth()) {
+      return `${MONTH_NAMES[firstDate.getMonth()]} / ${MONTH_NAMES[lastDate.getMonth()]} ${lastDate.getFullYear()}`;
+    }
+    return `${MONTH_NAMES[firstDate.getMonth()]} ${firstDate.getFullYear()}`;
+  }
+
+  // Další týdny: ukáže label jen pokud obsahuje 1. den měsíce
+  const hasFirstOfMonth = dates.some((d) => d.getDate() === 1);
+  if (hasFirstOfMonth) {
+    const newMonthDate = dates.find((d) => d.getDate() === 1)!;
+    return `${MONTH_NAMES[newMonthDate.getMonth()]} ${newMonthDate.getFullYear()}`;
+  }
+
+  return null;
 }
 
 /** Parse "YYYY-MM-DD" jako lokální datum (bez UTC shift) */

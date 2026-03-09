@@ -39,5 +39,6 @@ export async function softDeleteProfile(
   return supabase
     .from("profiles")
     .update({ deleted_at: new Date().toISOString() })
+    .is("deleted_at", null)
     .eq("id", userId);
 }

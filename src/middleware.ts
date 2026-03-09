@@ -1,15 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-
-type AppRole = "super_admin" | "admin" | "technik" | "klient";
-
-const ROLE_ROUTES: Record<string, AppRole[]> = {
-  "/klienti": ["admin", "super_admin"],
-  "/zakazky": ["admin", "super_admin", "technik"],
-  "/kalendar": ["admin", "super_admin", "technik"],
-  "/uzivatele": ["admin", "super_admin"],
-  "/nastaveni": ["super_admin"],
-};
+import { ROLE_ROUTES } from "@/types/roles";
+import type { AppRole } from "@/types/roles";
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });

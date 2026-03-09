@@ -10,15 +10,8 @@ import {
   Card,
   CardContent,
 } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { BottomSheet } from "@/components/layout/BottomSheet";
+import { ConfirmDeleteSheet } from "@/components/layout/ConfirmDeleteSheet";
 import {
   Search,
   Building2,
@@ -552,39 +545,21 @@ export function KlientiList({ klienti }: { klienti: Klient[] }) {
         )}
       </BottomSheet>
 
-      {/* Delete Dialog */}
-      <Dialog
+      {/* Delete ConfirmDeleteSheet */}
+      <ConfirmDeleteSheet
         open={!!deleteConfirm}
         onOpenChange={(open) => !open && setDeleteConfirm(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Smazat klienta?</DialogTitle>
-            <DialogDescription>
-              Opravdu chcete smazat klienta{" "}
-              <strong>{deleteConfirm ? getDisplayName(deleteConfirm) : ""}</strong>?
-              Klient bude deaktivován.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setDeleteConfirm(null)}
-              className="min-h-[44px]"
-            >
-              Zrušit
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={isPending}
-              className="min-h-[44px]"
-            >
-              {isPending ? "Mažu..." : "Smazat"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        title="Smazat klienta?"
+        description={
+          <>
+            Opravdu chcete smazat klienta{" "}
+            <strong>{deleteConfirm ? getDisplayName(deleteConfirm) : ""}</strong>?
+            Klient bude deaktivován.
+          </>
+        }
+        onConfirm={handleDelete}
+        isPending={isPending}
+      />
     </div>
   );
 }

@@ -18,13 +18,7 @@ import {
   countWorkDays,
   getDostupnostStatus,
 } from "@/lib/utils/dostupnostUtils";
-
-function toDateString(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
+import { toDateString } from "@/lib/utils/dateUtils";
 
 async function AdminDashboard({
   supabase,

@@ -1,4 +1,4 @@
-import type { AppRole } from "@/lib/auth";
+export type AppRole = "super_admin" | "admin" | "technik" | "klient";
 
 export const ROLE_LABELS: Record<AppRole, string> = {
   super_admin: "Super Admin",

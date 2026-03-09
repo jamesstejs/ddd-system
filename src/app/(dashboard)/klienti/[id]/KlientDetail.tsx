@@ -13,15 +13,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { BottomSheet } from "@/components/layout/BottomSheet";
+import { ConfirmDeleteSheet } from "@/components/layout/ConfirmDeleteSheet";
 import {
   ArrowLeft,
   Building2,
@@ -673,26 +666,20 @@ export function KlientDetail({
         </form>
       </BottomSheet>
 
-      {/* Delete Klient Dialog */}
-      <Dialog open={showDeleteKlient} onOpenChange={setShowDeleteKlient}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Smazat klienta?</DialogTitle>
-            <DialogDescription>
-              Opravdu chcete smazat klienta <strong>{getDisplayName(klient)}</strong>?
-              Klient bude deaktivován.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setShowDeleteKlient(false)} className="min-h-[44px]">
-              Zrušit
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteKlient} disabled={isPending} className="min-h-[44px]">
-              {isPending ? "Mažu..." : "Smazat"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Delete Klient */}
+      <ConfirmDeleteSheet
+        open={showDeleteKlient}
+        onOpenChange={setShowDeleteKlient}
+        title="Smazat klienta?"
+        description={
+          <>
+            Opravdu chcete smazat klienta <strong>{getDisplayName(klient)}</strong>?
+            Klient bude deaktivován.
+          </>
+        }
+        onConfirm={handleDeleteKlient}
+        isPending={isPending}
+      />
 
       {/* Create Kontaktní osoba BottomSheet */}
       <BottomSheet
@@ -728,25 +715,19 @@ export function KlientDetail({
         )}
       </BottomSheet>
 
-      {/* Delete Kontaktní osoba Dialog */}
-      <Dialog open={!!deleteOsoba} onOpenChange={(open) => !open && setDeleteOsoba(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Smazat kontakt?</DialogTitle>
-            <DialogDescription>
-              Opravdu chcete smazat kontaktní osobu <strong>{deleteOsoba?.jmeno}</strong>?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setDeleteOsoba(null)} className="min-h-[44px]">
-              Zrušit
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteOsoba} disabled={isPending} className="min-h-[44px]">
-              {isPending ? "Mažu..." : "Smazat"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Delete Kontaktní osoba */}
+      <ConfirmDeleteSheet
+        open={!!deleteOsoba}
+        onOpenChange={(open) => !open && setDeleteOsoba(null)}
+        title="Smazat kontakt?"
+        description={
+          <>
+            Opravdu chcete smazat kontaktní osobu <strong>{deleteOsoba?.jmeno}</strong>?
+          </>
+        }
+        onConfirm={handleDeleteOsoba}
+        isPending={isPending}
+      />
 
       {/* Create Objekt BottomSheet */}
       <BottomSheet
@@ -782,26 +763,20 @@ export function KlientDetail({
         )}
       </BottomSheet>
 
-      {/* Delete Objekt Dialog */}
-      <Dialog open={!!deleteObjektState} onOpenChange={(open) => !open && setDeleteObjektState(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Smazat objekt?</DialogTitle>
-            <DialogDescription>
-              Opravdu chcete smazat objekt <strong>{deleteObjektState?.nazev}</strong>?
-              Objekt bude deaktivován.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setDeleteObjektState(null)} className="min-h-[44px]">
-              Zrušit
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteObjekt} disabled={isPending} className="min-h-[44px]">
-              {isPending ? "Mažu..." : "Smazat"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Delete Objekt */}
+      <ConfirmDeleteSheet
+        open={!!deleteObjektState}
+        onOpenChange={(open) => !open && setDeleteObjektState(null)}
+        title="Smazat objekt?"
+        description={
+          <>
+            Opravdu chcete smazat objekt <strong>{deleteObjektState?.nazev}</strong>?
+            Objekt bude deaktivován.
+          </>
+        }
+        onConfirm={handleDeleteObjekt}
+        isPending={isPending}
+      />
     </div>
   );
 }

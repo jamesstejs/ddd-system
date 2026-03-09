@@ -14,15 +14,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { BottomSheet } from "@/components/layout/BottomSheet";
+import { ConfirmDeleteSheet } from "@/components/layout/ConfirmDeleteSheet";
 import {
   Select,
   SelectContent,
@@ -639,26 +632,20 @@ export function ObjektDetail({
         </form>
       </BottomSheet>
 
-      {/* Delete Objekt Dialog */}
-      <Dialog open={showDeleteObjekt} onOpenChange={setShowDeleteObjekt}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Smazat objekt?</DialogTitle>
-            <DialogDescription>
-              Opravdu chcete smazat objekt <strong>{objekt.nazev}</strong>?
-              Objekt bude deaktivován.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setShowDeleteObjekt(false)} className="min-h-[44px]">
-              Zrušit
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteObjekt} disabled={isPending} className="min-h-[44px]">
-              {isPending ? "Mažu..." : "Smazat"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Delete Objekt */}
+      <ConfirmDeleteSheet
+        open={showDeleteObjekt}
+        onOpenChange={setShowDeleteObjekt}
+        title="Smazat objekt?"
+        description={
+          <>
+            Opravdu chcete smazat objekt <strong>{objekt.nazev}</strong>?
+            Objekt bude deaktivován.
+          </>
+        }
+        onConfirm={handleDeleteObjekt}
+        isPending={isPending}
+      />
 
       {/* Create Okruh BottomSheet */}
       <BottomSheet
@@ -705,25 +692,19 @@ export function ObjektDetail({
         )}
       </BottomSheet>
 
-      {/* Delete Okruh Dialog */}
-      <Dialog open={!!deleteOkruhState} onOpenChange={(open) => !open && setDeleteOkruhState(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Smazat okruh?</DialogTitle>
-            <DialogDescription>
-              Opravdu chcete smazat okruh <strong>{deleteOkruhState?.nazev}</strong>?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setDeleteOkruhState(null)} className="min-h-[44px]">
-              Zrušit
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteOkruh} disabled={isPending} className="min-h-[44px]">
-              {isPending ? "Mažu..." : "Smazat"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Delete Okruh */}
+      <ConfirmDeleteSheet
+        open={!!deleteOkruhState}
+        onOpenChange={(open) => !open && setDeleteOkruhState(null)}
+        title="Smazat okruh?"
+        description={
+          <>
+            Opravdu chcete smazat okruh <strong>{deleteOkruhState?.nazev}</strong>?
+          </>
+        }
+        onConfirm={handleDeleteOkruh}
+        isPending={isPending}
+      />
     </div>
   );
 }

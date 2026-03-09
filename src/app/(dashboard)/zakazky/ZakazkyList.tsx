@@ -7,15 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { BottomSheet } from "@/components/layout/BottomSheet";
+import { ConfirmDeleteSheet } from "@/components/layout/ConfirmDeleteSheet";
 import {
   Search,
   Plus,
@@ -883,42 +876,24 @@ export function ZakazkyList({ zakazky, klienti, skudci, isAdmin = true }: Zakazk
         )}
       </BottomSheet>
 
-      {/* ========== DELETE DIALOG ========== */}
-      <Dialog
+      {/* ========== DELETE CONFIRM ========== */}
+      <ConfirmDeleteSheet
         open={!!deleteConfirm}
         onOpenChange={(open) => !open && setDeleteConfirm(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Smazat zakázku?</DialogTitle>
-            <DialogDescription>
-              Opravdu chcete smazat zakázku pro{" "}
-              <strong>{deleteConfirm ? getKlientName(deleteConfirm) : ""}</strong>
-              {deleteConfirm
-                ? ` — ${deleteConfirm.objekty.nazev || deleteConfirm.objekty.adresa}`
-                : ""}
-              ? Zakázka bude deaktivována.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setDeleteConfirm(null)}
-              className="min-h-[44px]"
-            >
-              Zrušit
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={isPending}
-              className="min-h-[44px]"
-            >
-              {isPending ? "Mažu..." : "Smazat"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        title="Smazat zakázku?"
+        description={
+          <>
+            Opravdu chcete smazat zakázku pro{" "}
+            <strong>{deleteConfirm ? getKlientName(deleteConfirm) : ""}</strong>
+            {deleteConfirm
+              ? ` — ${deleteConfirm.objekty.nazev || deleteConfirm.objekty.adresa}`
+              : ""}
+            ? Zakázka bude deaktivována.
+          </>
+        }
+        onConfirm={handleDelete}
+        isPending={isPending}
+      />
     </div>
   );
 }

@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/client";
 
-export type AppRole = "super_admin" | "admin" | "technik" | "klient";
+// Re-export AppRole from canonical source
+import type { AppRole } from "@/types/roles";
+export type { AppRole } from "@/types/roles";
 
 export interface SignInData {
   email: string;
@@ -36,30 +38,6 @@ export async function updatePassword(newPassword: string) {
     password: newPassword,
   });
   return { data, error };
-}
-
-export async function getCurrentUser() {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
-}
-
-export async function getCurrentUserProfile() {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-
-  return profile;
 }
 
 export function hasRole(

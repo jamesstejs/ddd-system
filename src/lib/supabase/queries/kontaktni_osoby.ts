@@ -22,5 +22,6 @@ export async function softDeleteKontaktniOsoba(
   return supabase
     .from("kontaktni_osoby")
     .update({ deleted_at: new Date().toISOString() })
+    .is("deleted_at", null)
     .eq("id", id);
 }

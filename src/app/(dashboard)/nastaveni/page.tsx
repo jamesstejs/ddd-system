@@ -20,8 +20,6 @@ export default function NastaveniPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-semibold">Nastavení systému</h1>
-
       {sections.map((section) => (
         <Link key={section.href} href={section.href}>
           <Card className="hover:bg-muted/50 transition-colors">

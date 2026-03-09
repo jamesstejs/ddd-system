@@ -2,6 +2,7 @@
 
 import { requireAuth } from "@/lib/auth/requireAuth";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
+import { toDateString } from "@/lib/utils/dateUtils";
 import { revalidatePath } from "next/cache";
 import {
   getDostupnostForTechnik,
@@ -208,10 +209,3 @@ export async function getDostupnostStatsAction() {
   return { filledDays, totalWorkDays, status };
 }
 
-/** Helper: Date → "YYYY-MM-DD" */
-function toDateString(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}

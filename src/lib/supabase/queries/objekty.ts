@@ -25,5 +25,6 @@ export async function softDeleteObjekt(supabase: TypedSupabase, id: string) {
   return supabase
     .from("objekty")
     .update({ deleted_at: new Date().toISOString() })
+    .is("deleted_at", null)
     .eq("id", id);
 }

@@ -2,6 +2,8 @@
 
 import { requireAdmin } from "@/lib/auth/requireAdmin";
 import { fetchAres } from "@/lib/ares";
+import { softDeleteKlient } from "@/lib/supabase/queries/klienti";
+import { softDeleteKontaktniOsoba } from "@/lib/supabase/queries/kontaktni_osoby";
 import { revalidatePath } from "next/cache";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -40,11 +42,7 @@ export async function updateKlientAction(
 export async function deleteKlientAction(id: string) {
   const { supabase } = await requireAdmin();
 
-  const { error } = await supabase
-    .from("klienti")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id);
-
+  const { error } = await softDeleteKlient(supabase, id);
   if (error) throw new Error(error.message);
   revalidatePath("/klienti");
 }
@@ -103,11 +101,7 @@ export async function updateKontaktniOsobaAction(
 export async function deleteKontaktniOsobaAction(id: string, klientId: string) {
   const { supabase } = await requireAdmin();
 
-  const { error } = await supabase
-    .from("kontaktni_osoby")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id);
-
+  const { error } = await softDeleteKontaktniOsoba(supabase, id);
   if (error) throw new Error(error.message);
   revalidatePath(`/klienti/${klientId}`);
 }

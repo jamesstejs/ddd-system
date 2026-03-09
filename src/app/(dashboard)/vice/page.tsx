@@ -31,6 +31,7 @@ export default async function VicePage() {
   const isAdmin =
     profile.aktivni_role === "admin" ||
     profile.aktivni_role === "super_admin";
+  const isTechnik = profile.aktivni_role === "technik";
 
   return (
     <div className="space-y-4">
@@ -68,6 +69,19 @@ export default async function VicePage() {
           </div>
         </CardContent>
       </Card>
+
+      {isTechnik && (
+        <Card>
+          <CardContent className="space-y-1 pt-6">
+            <Link
+              href="/dostupnost"
+              className="flex min-h-[44px] items-center text-sm font-medium hover:underline"
+            >
+              Moje dostupnost
+            </Link>
+          </CardContent>
+        </Card>
+      )}
 
       {isAdmin && (
         <Card>

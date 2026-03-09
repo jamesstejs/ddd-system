@@ -203,6 +203,50 @@ export type Database = {
         }
         Relationships: []
       }
+      dostupnost: {
+        Row: {
+          cas_do: string
+          cas_od: string
+          created_at: string
+          datum: string
+          deleted_at: string | null
+          id: string
+          poznamka: string | null
+          technik_id: string
+          updated_at: string
+        }
+        Insert: {
+          cas_do: string
+          cas_od: string
+          created_at?: string
+          datum: string
+          deleted_at?: string | null
+          id?: string
+          poznamka?: string | null
+          technik_id: string
+          updated_at?: string
+        }
+        Update: {
+          cas_do?: string
+          cas_od?: string
+          created_at?: string
+          datum?: string
+          deleted_at?: string | null
+          id?: string
+          poznamka?: string | null
+          technik_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dostupnost_technik_id_fkey"
+            columns: ["technik_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       klienti: {
         Row: {
           adresa: string

@@ -16,6 +16,7 @@ import {
   getTechnikColor,
   formatDelka,
 } from "@/lib/utils/zasahUtils";
+import { computeTravelEstimates } from "@/lib/utils/travelUtils";
 import { PrirazeniSheet } from "./PrirazeniSheet";
 import { ZasahDetailSheet } from "./ZasahDetailSheet";
 
@@ -52,6 +53,8 @@ export type ZasahRow = {
       plocha_m2: number | null;
       typ_objektu: string;
       klient_id: string;
+      lat: number | null;
+      lng: number | null;
       klienti: {
         id: string;
         nazev: string;
@@ -253,6 +256,44 @@ export function KalendarView({
     return map;
   }, [zasahyByDate, selectedTechnikFilter]);
 
+  // Compute travel collision detection per technik per day
+  const collisionZasahIds = useMemo(() => {
+    const collisions = new Set<string>();
+
+    // Group all zasahy by technik_id + datum
+    const groups = new Map<string, ZasahRow[]>();
+    for (const z of initialZasahy) {
+      const key = `${z.technik_id}:${z.datum}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(z);
+    }
+
+    for (const [, group] of groups) {
+      if (group.length < 2) continue;
+      const sorted = [...group].sort((a, b) =>
+        a.cas_od.localeCompare(b.cas_od),
+      );
+      const estimates = computeTravelEstimates(
+        sorted,
+        (z) => z.id,
+        (z) => ({
+          lat: z.zakazky?.objekty?.lat ?? null,
+          lng: z.zakazky?.objekty?.lng ?? null,
+        }),
+        (z) => z.cas_do,
+        (z) => z.cas_od,
+      );
+      for (const est of estimates) {
+        if (est.hasCollision) {
+          collisions.add(est.fromZasahId);
+          collisions.add(est.toZasahId);
+        }
+      }
+    }
+
+    return collisions;
+  }, [initialZasahy]);
+
   // Navigation
   const navigate = useCallback(
     (direction: number) => {
@@ -414,6 +455,7 @@ export function KalendarView({
           zasahyByDate={filteredZasahyByDate}
           dostupnostByDate={dostupnostByDate}
           technikColorMap={technikColorMap}
+          collisionZasahIds={collisionZasahIds}
           onAddZasah={handleAddZasah}
           onZasahClick={handleZasahClick}
           getKlientName={getKlientName}
@@ -426,6 +468,7 @@ export function KalendarView({
           zasahyByDate={filteredZasahyByDate}
           dostupnostByDate={dostupnostByDate}
           technikColorMap={technikColorMap}
+          collisionZasahIds={collisionZasahIds}
           onAddZasah={handleAddZasah}
           onZasahClick={handleZasahClick}
           getKlientName={getKlientName}
@@ -438,6 +481,7 @@ export function KalendarView({
           zasahyByDate={filteredZasahyByDate}
           dostupnostByDate={dostupnostByDate}
           technikColorMap={technikColorMap}
+          collisionZasahIds={collisionZasahIds}
           onAddZasah={handleAddZasah}
           onZasahClick={handleZasahClick}
           getKlientName={getKlientName}
@@ -474,6 +518,7 @@ interface ViewProps {
   zasahyByDate: Map<string, ZasahRow[]>;
   dostupnostByDate: Map<string, DostupnostRow[]>;
   technikColorMap: Map<string, number>;
+  collisionZasahIds: Set<string>;
   onAddZasah: (dateStr: string) => void;
   onZasahClick: (zasah: ZasahRow) => void;
   getKlientName: (zasah: ZasahRow) => string;
@@ -486,6 +531,7 @@ function MonthView({
   zasahyByDate,
   dostupnostByDate,
   technikColorMap,
+  collisionZasahIds,
   onAddZasah,
   onZasahClick,
   getKlientName,
@@ -518,6 +564,9 @@ function MonthView({
             const zasahy = zasahyByDate.get(dateStr) || [];
             const dostupnost = dostupnostByDate.get(dateStr) || [];
             const hasDostupnost = dostupnost.length > 0;
+            const hasCollision = zasahy.some((z) =>
+              collisionZasahIds.has(z.id),
+            );
 
             return (
               <div
@@ -573,6 +622,15 @@ function MonthView({
                         +{zasahy.length - 3}
                       </span>
                     )}
+                    {hasCollision && (
+                      <span
+                        className="text-[11px] text-amber-600"
+                        aria-label="Kolize přejezdů"
+                        role="img"
+                      >
+                        ⚠
+                      </span>
+                    )}
                   </div>
                 )}
 
@@ -598,6 +656,7 @@ function WeekView({
   zasahyByDate,
   dostupnostByDate,
   technikColorMap,
+  collisionZasahIds,
   onAddZasah,
   onZasahClick,
   getKlientName,
@@ -665,11 +724,14 @@ function WeekView({
                     const color = getTechnikColor(colorIdx);
                     const statusInfo = STATUS_ZASAHU_LABELS[z.status];
 
+                    const hasCollision = collisionZasahIds.has(z.id);
+
                     return (
                       <button
                         key={z.id}
-                        className={`flex w-full items-start gap-2 rounded-lg border-l-4 ${color.border} ${color.bg} p-2 text-left transition-colors hover:opacity-80 active:opacity-70`}
+                        className={`flex min-h-[44px] w-full items-start gap-2 rounded-lg border-l-4 ${color.border} ${color.bg} p-2 text-left transition-colors hover:opacity-80 active:opacity-70 ${hasCollision ? "ring-2 ring-amber-400" : ""}`}
                         onClick={() => onZasahClick(z)}
+                        aria-label={`Zásah ${getKlientName(z)} — ${formatCasCz(z.cas_od.substring(0, 5))}–${formatCasCz(z.cas_do.substring(0, 5))}`}
                       >
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
@@ -682,6 +744,11 @@ function WeekView({
                             >
                               {statusInfo?.label}
                             </Badge>
+                            {hasCollision && (
+                              <Badge className="bg-amber-100 text-amber-700 text-xs px-1 py-0">
+                                ⚠ Kolize
+                              </Badge>
+                            )}
                           </div>
                           <p className="mt-0.5 truncate text-sm font-medium">
                             {getKlientName(z)}
@@ -716,6 +783,7 @@ function DayView({
   zasahyByDate,
   dostupnostByDate,
   technikColorMap,
+  collisionZasahIds,
   onAddZasah,
   onZasahClick,
   getKlientName,
@@ -774,13 +842,15 @@ function DayView({
             const color = getTechnikColor(colorIdx);
             const statusInfo = STATUS_ZASAHU_LABELS[z.status];
 
+            const hasCollision = collisionZasahIds.has(z.id);
+
             return (
               <Card
                 key={z.id}
                 role="button"
                 tabIndex={0}
                 aria-label={`Zásah ${getKlientName(z)} — ${formatCasCz(z.cas_od.substring(0, 5))}–${formatCasCz(z.cas_do.substring(0, 5))}`}
-                className={`border-l-4 ${color.border} cursor-pointer transition-colors hover:bg-muted/30 active:bg-muted/40`}
+                className={`border-l-4 ${color.border} cursor-pointer transition-colors hover:bg-muted/30 active:bg-muted/40 ${hasCollision ? "ring-2 ring-amber-400" : ""}`}
                 onClick={() => onZasahClick(z)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
@@ -802,6 +872,11 @@ function DayView({
                         >
                           {statusInfo?.label}
                         </Badge>
+                        {hasCollision && (
+                          <Badge className="bg-amber-100 text-amber-700 text-xs">
+                            ⚠ Kolize
+                          </Badge>
+                        )}
                       </div>
                       <p className="mt-1 text-base font-medium">
                         {getKlientName(z)}

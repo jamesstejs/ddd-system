@@ -11,6 +11,7 @@ import {
   ADMIN_STATUS_TRANSITIONS,
   formatDelka,
   getTechnikColor,
+  getGoogleMapsUrl,
 } from "@/lib/utils/zasahUtils";
 import { updateZasahAction, deleteZasahAction } from "./actions";
 import type { ZasahRow } from "./KalendarView";
@@ -145,9 +146,18 @@ export function ZasahDetailSheet({
               <p className="text-sm font-medium">
                 {zasah.zakazky?.objekty?.nazev}
               </p>
-              <p className="text-xs text-muted-foreground">
-                {zasah.zakazky?.objekty?.adresa}
-              </p>
+              {zasah.zakazky?.objekty?.adresa && (
+                <a
+                  href={getGoogleMapsUrl(zasah.zakazky.objekty.adresa)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 flex min-h-[44px] items-center gap-2 rounded-lg bg-blue-50 p-2 text-blue-800 active:bg-blue-100"
+                >
+                  <span className="text-base">📍</span>
+                  <span className="flex-1 text-sm">{zasah.zakazky.objekty.adresa}</span>
+                  <span className="text-sm font-bold">→</span>
+                </a>
+              )}
             </div>
           </div>
 

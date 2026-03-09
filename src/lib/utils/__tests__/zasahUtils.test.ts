@@ -9,6 +9,7 @@ import {
   ADMIN_STATUS_TRANSITIONS,
   TECHNIK_STATUS_ACTION_LABELS,
   getGoogleMapsUrl,
+  computeSuggestedDate,
 } from "../zasahUtils";
 
 describe("odhadDelkyZasahu", () => {
@@ -246,5 +247,45 @@ describe("getGoogleMapsUrl", () => {
   it("zvládá prázdnou adresu", () => {
     const url = getGoogleMapsUrl("");
     expect(url).toBe("https://www.google.com/maps/dir/?api=1&destination=");
+  });
+});
+
+describe("computeSuggestedDate", () => {
+  it("přidá cetnost_dny k datu zásahu", () => {
+    expect(computeSuggestedDate("2026-03-01", 14)).toBe("2026-03-15");
+  });
+
+  it("přidá 30 dní (přes konec měsíce)", () => {
+    expect(computeSuggestedDate("2026-03-15", 30)).toBe("2026-04-14");
+  });
+
+  it("přidá 7 dní", () => {
+    expect(computeSuggestedDate("2026-12-28", 7)).toBe("2027-01-04");
+  });
+
+  it("vrátí null pro cetnost_dny = null", () => {
+    expect(computeSuggestedDate("2026-03-01", null)).toBeNull();
+  });
+
+  it("vrátí null pro cetnost_dny = undefined", () => {
+    expect(computeSuggestedDate("2026-03-01", undefined)).toBeNull();
+  });
+
+  it("vrátí null pro cetnost_dny = 0", () => {
+    expect(computeSuggestedDate("2026-03-01", 0)).toBeNull();
+  });
+
+  it("vrátí null pro zápornou cetnost", () => {
+    expect(computeSuggestedDate("2026-03-01", -5)).toBeNull();
+  });
+
+  it("funguje s přestupným rokem", () => {
+    // 2028 je přestupný rok
+    expect(computeSuggestedDate("2028-02-28", 1)).toBe("2028-02-29");
+    expect(computeSuggestedDate("2028-02-28", 2)).toBe("2028-03-01");
+  });
+
+  it("formátuje datum se správnými nulami", () => {
+    expect(computeSuggestedDate("2026-01-05", 3)).toBe("2026-01-08");
   });
 });

@@ -364,6 +364,8 @@ export type Database = {
           deleted_at: string | null
           id: string
           klient_id: string
+          lat: number | null
+          lng: number | null
           nazev: string
           planek_url: string | null
           plocha_m2: number | null
@@ -377,6 +379,8 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           klient_id: string
+          lat?: number | null
+          lng?: number | null
           nazev?: string
           planek_url?: string | null
           plocha_m2?: number | null
@@ -390,6 +394,8 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           klient_id?: string
+          lat?: number | null
+          lng?: number | null
           nazev?: string
           planek_url?: string | null
           plocha_m2?: number | null
@@ -438,6 +444,73 @@ export type Database = {
             columns: ["objekt_id"]
             isOneToOne: false
             referencedRelation: "objekty"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pripominky_terminu: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          max_upozorneni: number
+          pocet_upozorneni: number
+          posledni_upozorneni_at: string | null
+          stav: Database["public"]["Enums"]["stav_pripominky"]
+          technik_id: string
+          typ: Database["public"]["Enums"]["typ_pripominky"]
+          updated_at: string
+          zakazka_id: string
+          zasah_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          max_upozorneni?: number
+          pocet_upozorneni?: number
+          posledni_upozorneni_at?: string | null
+          stav?: Database["public"]["Enums"]["stav_pripominky"]
+          technik_id: string
+          typ?: Database["public"]["Enums"]["typ_pripominky"]
+          updated_at?: string
+          zakazka_id: string
+          zasah_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          max_upozorneni?: number
+          pocet_upozorneni?: number
+          posledni_upozorneni_at?: string | null
+          stav?: Database["public"]["Enums"]["stav_pripominky"]
+          technik_id?: string
+          typ?: Database["public"]["Enums"]["typ_pripominky"]
+          updated_at?: string
+          zakazka_id?: string
+          zasah_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pripominky_terminu_technik_id_fkey"
+            columns: ["technik_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pripominky_terminu_zakazka_id_fkey"
+            columns: ["zakazka_id"]
+            isOneToOne: false
+            referencedRelation: "zakazky"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pripominky_terminu_zasah_id_fkey"
+            columns: ["zasah_id"]
+            isOneToOne: false
+            referencedRelation: "zasahy"
             referencedColumns: ["id"]
           },
         ]
@@ -662,66 +735,6 @@ export type Database = {
           },
         ]
       }
-      zasahy: {
-        Row: {
-          cas_do: string
-          cas_od: string
-          created_at: string
-          datum: string
-          deleted_at: string | null
-          id: string
-          odhadovana_delka_min: number | null
-          poznamka: string | null
-          status: Database["public"]["Enums"]["status_zasahu"]
-          technik_id: string
-          updated_at: string
-          zakazka_id: string
-        }
-        Insert: {
-          cas_do: string
-          cas_od: string
-          created_at?: string
-          datum: string
-          deleted_at?: string | null
-          id?: string
-          odhadovana_delka_min?: number | null
-          poznamka?: string | null
-          status?: Database["public"]["Enums"]["status_zasahu"]
-          technik_id: string
-          updated_at?: string
-          zakazka_id: string
-        }
-        Update: {
-          cas_do?: string
-          cas_od?: string
-          created_at?: string
-          datum?: string
-          deleted_at?: string | null
-          id?: string
-          odhadovana_delka_min?: number | null
-          poznamka?: string | null
-          status?: Database["public"]["Enums"]["status_zasahu"]
-          technik_id?: string
-          updated_at?: string
-          zakazka_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "zasahy_zakazka_id_fkey"
-            columns: ["zakazka_id"]
-            isOneToOne: false
-            referencedRelation: "zakazky"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "zasahy_technik_id_fkey"
-            columns: ["technik_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       zakazky: {
         Row: {
           cena_po_sleve: number | null
@@ -817,6 +830,66 @@ export type Database = {
           },
         ]
       }
+      zasahy: {
+        Row: {
+          cas_do: string
+          cas_od: string
+          created_at: string
+          datum: string
+          deleted_at: string | null
+          id: string
+          odhadovana_delka_min: number | null
+          poznamka: string | null
+          status: Database["public"]["Enums"]["status_zasahu"]
+          technik_id: string
+          updated_at: string
+          zakazka_id: string
+        }
+        Insert: {
+          cas_do: string
+          cas_od: string
+          created_at?: string
+          datum: string
+          deleted_at?: string | null
+          id?: string
+          odhadovana_delka_min?: number | null
+          poznamka?: string | null
+          status?: Database["public"]["Enums"]["status_zasahu"]
+          technik_id: string
+          updated_at?: string
+          zakazka_id: string
+        }
+        Update: {
+          cas_do?: string
+          cas_od?: string
+          created_at?: string
+          datum?: string
+          deleted_at?: string | null
+          id?: string
+          odhadovana_delka_min?: number | null
+          poznamka?: string | null
+          status?: Database["public"]["Enums"]["status_zasahu"]
+          technik_id?: string
+          updated_at?: string
+          zakazka_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zasahy_technik_id_fkey"
+            columns: ["technik_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "zasahy_zakazka_id_fkey"
+            columns: ["zakazka_id"]
+            isOneToOne: false
+            referencedRelation: "zakazky"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -827,7 +900,13 @@ export type Database = {
     Enums: {
       app_role: "super_admin" | "admin" | "technik" | "klient"
       status_zakazky: "nova" | "aktivni" | "pozastavena" | "ukoncena"
-      status_zasahu: "naplanovano" | "potvrzeny" | "probiha" | "hotovo" | "zruseno"
+      status_zasahu:
+        | "naplanovano"
+        | "potvrzeny"
+        | "probiha"
+        | "hotovo"
+        | "zruseno"
+      stav_pripominky: "aktivni" | "vyreseno"
       typ_klienta: "firma" | "fyzicka_osoba"
       typ_objektu:
         | "gastro"
@@ -841,6 +920,7 @@ export type Database = {
         | "ubytovna"
         | "vyrobni_hala"
         | "jiny"
+      typ_pripominky: "technik_nenastavil" | "klient_nevybral"
       typ_prostoru:
         | "potravinarsky"
         | "domacnost"
@@ -984,7 +1064,14 @@ export const Constants = {
     Enums: {
       app_role: ["super_admin", "admin", "technik", "klient"],
       status_zakazky: ["nova", "aktivni", "pozastavena", "ukoncena"],
-      status_zasahu: ["naplanovano", "potvrzeny", "probiha", "hotovo", "zruseno"],
+      status_zasahu: [
+        "naplanovano",
+        "potvrzeny",
+        "probiha",
+        "hotovo",
+        "zruseno",
+      ],
+      stav_pripominky: ["aktivni", "vyreseno"],
       typ_klienta: ["firma", "fyzicka_osoba"],
       typ_objektu: [
         "gastro",
@@ -999,6 +1086,7 @@ export const Constants = {
         "vyrobni_hala",
         "jiny",
       ],
+      typ_pripominky: ["technik_nenastavil", "klient_nevybral"],
       typ_prostoru: [
         "potravinarsky",
         "domacnost",

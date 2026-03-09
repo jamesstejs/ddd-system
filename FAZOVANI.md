@@ -207,13 +207,15 @@ Po implementaci vždy:
 
 ---
 
-## Sprint 13 — Odhad přejezdů
+## Sprint 13 — Odhad přejezdů ✅
 **Cíl:** Systém počítá čas na přejezd mezi zásahy
 
-- [ ] Integrace: vzdálenost mezi dvěma adresami (Google Maps Distance Matrix API nebo jednoduchý Haversine + koeficient)
-- [ ] Na kartě zásahu v "Můj den": zobrazit odhadovaný čas přejezdu z předchozího
-- [ ] V admin kalendáři: vizuální indikace kolize (zásah + přejezd > dostupný čas)
-- [ ] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
+- [x] Integrace: vzdálenost mezi dvěma adresami (Haversine + koeficient 1.4× + Nominatim geocoding)
+- [x] DB migrace: lat/lng sloupce na objekty tabulce
+- [x] Na kartě zásahu v "Můj den": zobrazit odhadovaný čas přejezdu z předchozího (🚗 indikátor)
+- [x] V admin kalendáři: vizuální indikace kolize (amber ring + "⚠ Kolize" badge)
+- [x] Auto-geocoding objektů bez souřadnic (Nominatim OSM, rate-limited)
+- [x] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` (294 testů) + `npm run build` + mobile audit + wiring check
 
 ---
 

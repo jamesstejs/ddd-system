@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,10 +17,17 @@ import {
   formatDelka,
 } from "@/lib/utils/zasahUtils";
 import {
+  computeTravelEstimates,
+  formatTravelTime,
+  type TravelEstimate,
+} from "@/lib/utils/travelUtils";
+import {
   getMojeZasahyAction,
   getKontaktniOsobyAction,
   updateZasahStatusTechnikAction,
 } from "./technikActions";
+import { geocodeMissingObjektyTechnikAction } from "./geocodeActions";
+import { DalsiTerminSheet } from "./DalsiTerminSheet";
 import type { Database } from "@/lib/supabase/database.types";
 
 // ---------- Types ----------
@@ -41,6 +48,7 @@ export type TechnikZasahRow = {
     status: string;
     typy_zasahu: unknown;
     skudci: unknown;
+    cetnost_dny: number | null;
     objekty: {
       id: string;
       nazev: string;
@@ -48,6 +56,8 @@ export type TechnikZasahRow = {
       plocha_m2: number | null;
       typ_objektu: string;
       klient_id: string;
+      lat: number | null;
+      lng: number | null;
       klienti: {
         id: string;
         nazev: string;
@@ -96,6 +106,14 @@ export function MujDenView({
   const [isLoading, setIsLoading] = useState(false);
   const [pendingZasahId, setPendingZasahId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+
+  // Další termín sheet state
+  const [dalsiTerminOpen, setDalsiTerminOpen] = useState(false);
+  const [dalsiTerminZasah, setDalsiTerminZasah] = useState<TechnikZasahRow | null>(null);
+
+  // Guard against infinite geocoding retries (track already-attempted objekt IDs)
+  const geocodedIdsRef = useRef<Set<string>>(new Set());
 
   // Kontaktní osoby grouped by klient_id
   const kontaktyByKlient = useMemo(() => {
@@ -107,6 +125,83 @@ export function MujDenView({
     }
     return map;
   }, [kontakty]);
+
+  // Compute travel estimates between active zasahy
+  const activeZasahy = useMemo(
+    () => zasahy.filter((z) => z.status !== "zruseno"),
+    [zasahy],
+  );
+  const cancelledZasahy = useMemo(
+    () => zasahy.filter((z) => z.status === "zruseno"),
+    [zasahy],
+  );
+
+  const travelEstimates = useMemo(() => {
+    return computeTravelEstimates(
+      activeZasahy,
+      (z) => z.id,
+      (z) => ({
+        lat: z.zakazky?.objekty?.lat ?? null,
+        lng: z.zakazky?.objekty?.lng ?? null,
+      }),
+      (z) => z.cas_do,
+      (z) => z.cas_od,
+    );
+  }, [activeZasahy]);
+
+  // Map: toZasahId → TravelEstimate for quick lookup
+  const travelByToId = useMemo(() => {
+    const map = new Map<string, TravelEstimate>();
+    for (const te of travelEstimates) {
+      map.set(te.toZasahId, te);
+    }
+    return map;
+  }, [travelEstimates]);
+
+  // Auto-geocode missing objekty when zasahy are loaded
+  useEffect(() => {
+    const missingIds = activeZasahy
+      .filter(
+        (z) =>
+          z.zakazky?.objekty &&
+          (z.zakazky.objekty.lat == null || z.zakazky.objekty.lng == null),
+      )
+      .map((z) => z.zakazky!.objekty.id);
+
+    // Filter out IDs we've already attempted to geocode (prevents infinite retries)
+    const uniqueIds = [...new Set(missingIds)].filter(
+      (id) => !geocodedIdsRef.current.has(id),
+    );
+    if (uniqueIds.length === 0) return;
+
+    // Mark as attempted BEFORE the async call to prevent double-triggers
+    for (const id of uniqueIds) {
+      geocodedIdsRef.current.add(id);
+    }
+
+    let cancelled = false;
+    setIsGeocoding(true);
+
+    geocodeMissingObjektyTechnikAction(uniqueIds)
+      .then((count) => {
+        if (!cancelled && count > 0) {
+          // Reload zasahy to get updated lat/lng
+          loadData(selectedDate);
+        }
+      })
+      .catch(() => {
+        // Geocoding failure is non-critical — ignore silently
+      })
+      .finally(() => {
+        if (!cancelled) setIsGeocoding(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // Only trigger on zasahy change (not selectedDate to avoid infinite loop)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zasahy]);
 
   // Load data for a given date
   const loadData = useCallback(async (datum: string) => {
@@ -144,12 +239,14 @@ export function MujDenView({
     current.setDate(current.getDate() + offset);
     const newDate = toDateString(current);
     setSelectedDate(newDate);
+    geocodedIdsRef.current.clear();
     loadData(newDate);
   }
 
   function goToToday() {
     const today = toDateString(new Date());
     setSelectedDate(today);
+    geocodedIdsRef.current.clear();
     loadData(today);
   }
 
@@ -161,14 +258,36 @@ export function MujDenView({
     setPendingZasahId(zasahId);
     setError(null);
     try {
+      // Save reference to the zasah BEFORE status change (for DalsiTerminSheet)
+      const completingZasah = zasahy.find((z) => z.id === zasahId) || null;
+
       await updateZasahStatusTechnikAction(zasahId, newStatus);
       // Reload data
       await loadData(selectedDate);
+
+      // After completing → open "Další termín" sheet
+      if (newStatus === "hotovo" && completingZasah) {
+        setDalsiTerminZasah(completingZasah);
+        setDalsiTerminOpen(true);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Chyba při změně statusu");
     } finally {
       setPendingZasahId(null);
     }
+  }
+
+  // Další termín callbacks
+  function handleDalsiTerminScheduled() {
+    setDalsiTerminOpen(false);
+    setDalsiTerminZasah(null);
+    loadData(selectedDate);
+  }
+
+  function handleDalsiTerminSkipped() {
+    setDalsiTerminOpen(false);
+    setDalsiTerminZasah(null);
+    loadData(selectedDate);
   }
 
   // Helpers
@@ -188,8 +307,8 @@ export function MujDenView({
 
   const isToday = selectedDate === toDateString(new Date());
 
-  const activeZasahy = zasahy.filter((z) => z.status !== "zruseno");
-  const cancelledZasahy = zasahy.filter((z) => z.status === "zruseno");
+  // Count collisions for summary
+  const collisionCount = travelEstimates.filter((te) => te.hasCollision).length;
 
   return (
     <div className="space-y-4">
@@ -236,7 +355,17 @@ export function MujDenView({
           {activeZasahy.length === 0
             ? "Žádné zásahy"
             : `${activeZasahy.length} ${activeZasahy.length === 1 ? "zásah" : activeZasahy.length < 5 ? "zásahy" : "zásahů"}`}
+          {collisionCount > 0 && (
+            <span className="ml-1 text-amber-600 font-medium">
+              · {collisionCount} {collisionCount < 5 ? "kolize" : "kolizí"} v čase
+            </span>
+          )}
         </p>
+        {isGeocoding && (
+          <p className="text-xs text-muted-foreground animate-pulse">
+            Zjišťuji vzdálenosti...
+          </p>
+        )}
       </div>
 
       {/* Error */}
@@ -277,9 +406,9 @@ export function MujDenView({
         </Card>
       )}
 
-      {/* Zasah cards */}
+      {/* Zasah cards with travel indicators */}
       {!isLoading &&
-        activeZasahy.map((zasah) => {
+        activeZasahy.map((zasah, idx) => {
           const statusInfo = STATUS_ZASAHU_LABELS[zasah.status];
           const nextStatuses = TECHNIK_STATUS_TRANSITIONS[zasah.status] || [];
           const klientId = zasah.zakazky?.objekty?.klient_id;
@@ -287,201 +416,267 @@ export function MujDenView({
           const adresa = zasah.zakazky?.objekty?.adresa;
           const isPending = pendingZasahId === zasah.id;
 
+          // Travel estimate TO this zasah (from previous)
+          const travel = travelByToId.get(zasah.id);
+
           return (
-            <Card key={zasah.id} className="overflow-hidden">
-              <CardContent className="p-4 space-y-3">
-                {/* Status + Time */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      className={`${statusInfo?.bgColor} ${statusInfo?.color} text-sm px-2 py-0.5`}
-                    >
-                      {statusInfo?.label ?? zasah.status}
-                    </Badge>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-sm font-bold">
-                      {formatCasCz(zasah.cas_od.substring(0, 5))}–
-                      {formatCasCz(zasah.cas_do.substring(0, 5))}
-                    </span>
-                    {zasah.odhadovana_delka_min && (
-                      <span className="ml-1 text-xs text-muted-foreground">
-                        ({formatDelka(zasah.odhadovana_delka_min)})
-                      </span>
-                    )}
-                  </div>
-                </div>
+            <div key={zasah.id}>
+              {/* Travel time indicator (between cards) */}
+              {idx > 0 && travel && travel.travelMinutes !== null && (
+                <TravelIndicator travel={travel} />
+              )}
 
-                {/* Client name */}
-                <div>
-                  <p className="text-base font-semibold">
-                    {getKlientName(zasah)}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {zasah.zakazky?.objekty?.nazev}
-                  </p>
-                </div>
-
-                {/* Address + Navigation */}
-                {adresa && (
-                  <a
-                    href={getGoogleMapsUrl(adresa)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex min-h-[44px] items-center gap-2 rounded-lg bg-blue-50 p-3 text-blue-800 active:bg-blue-100"
-                  >
-                    <span className="text-lg">📍</span>
-                    <span className="flex-1 text-sm font-medium">{adresa}</span>
-                    <span className="text-sm font-bold">→</span>
-                  </a>
-                )}
-
-                {/* Zakázka type badges */}
-                <div className="flex flex-wrap gap-1">
-                  <Badge variant="outline" className="text-xs">
-                    {zasah.zakazky?.typ === "smluvni"
-                      ? "Smluvní"
-                      : "Jednorázová"}
-                  </Badge>
-                  {Array.isArray(zasah.zakazky?.typy_zasahu) &&
-                    (zasah.zakazky.typy_zasahu as string[]).map((t: string) => (
-                      <Badge key={t} variant="outline" className="text-xs">
-                        {t.replace(/_/g, " ")}
+              <Card
+                className={`overflow-hidden ${
+                  travel?.hasCollision ? "ring-2 ring-amber-400" : ""
+                }`}
+              >
+                <CardContent className="p-4 space-y-3">
+                  {/* Status + Time */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        className={`${statusInfo?.bgColor} ${statusInfo?.color} text-sm px-2 py-0.5`}
+                      >
+                        {statusInfo?.label ?? zasah.status}
                       </Badge>
-                    ))}
-                </div>
-
-                {/* Client contact */}
-                {(zasah.zakazky?.objekty?.klienti?.telefon ||
-                  zasah.zakazky?.objekty?.klienti?.email) && (
-                  <div className="rounded-lg bg-muted/30 p-3">
-                    <p className="mb-1 text-xs font-medium text-muted-foreground">
-                      Kontakt na klienta
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {zasah.zakazky?.objekty?.klienti?.telefon && (
-                        <a
-                          href={`tel:${zasah.zakazky.objekty.klienti.telefon}`}
-                          className="inline-flex min-h-[44px] items-center gap-1 rounded-lg bg-green-50 px-3 py-2 text-sm font-medium text-green-800 active:bg-green-100"
-                        >
-                          📞 {zasah.zakazky.objekty.klienti.telefon}
-                        </a>
+                      {travel?.hasCollision && (
+                        <Badge className="bg-amber-100 text-amber-800 text-xs px-1.5 py-0.5">
+                          Kolize
+                        </Badge>
                       )}
-                      {zasah.zakazky?.objekty?.klienti?.email && (
-                        <a
-                          href={`mailto:${zasah.zakazky.objekty.klienti.email}`}
-                          className="inline-flex min-h-[44px] items-center gap-1 rounded-lg bg-gray-50 px-3 py-2 text-sm font-medium text-gray-800 active:bg-gray-100"
-                        >
-                          ✉️ {zasah.zakazky.objekty.klienti.email}
-                        </a>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-sm font-bold">
+                        {formatCasCz(zasah.cas_od.substring(0, 5))}–
+                        {formatCasCz(zasah.cas_do.substring(0, 5))}
+                      </span>
+                      {zasah.odhadovana_delka_min && (
+                        <span className="ml-1 text-xs text-muted-foreground">
+                          ({formatDelka(zasah.odhadovana_delka_min)})
+                        </span>
                       )}
                     </div>
                   </div>
-                )}
 
-                {/* Contact person on-site */}
-                {kontakt && (
-                  <div className="rounded-lg bg-amber-50 p-3">
-                    <p className="mb-1 text-xs font-medium text-muted-foreground">
-                      Kontaktní osoba na místě
+                  {/* Client name */}
+                  <div>
+                    <p className="text-base font-semibold">
+                      {getKlientName(zasah)}
                     </p>
-                    <p className="text-sm font-semibold">
-                      {kontakt.jmeno}
-                      {kontakt.funkce && (
-                        <span className="ml-1 font-normal text-muted-foreground">
-                          ({kontakt.funkce})
-                        </span>
-                      )}
+                    <p className="text-sm text-muted-foreground">
+                      {zasah.zakazky?.objekty?.nazev}
                     </p>
-                    {kontakt.telefon && (
-                      <a
-                        href={`tel:${kontakt.telefon}`}
-                        className="inline-flex min-h-[44px] items-center gap-1 text-sm font-medium text-green-800 active:opacity-70"
-                      >
-                        📞 {kontakt.telefon}
-                      </a>
-                    )}
                   </div>
-                )}
 
-                {/* Note */}
-                {zasah.poznamka && (
-                  <div className="rounded-lg bg-muted/30 p-3">
-                    <p className="text-xs text-muted-foreground">Poznámka</p>
-                    <p className="mt-0.5 text-sm">{zasah.poznamka}</p>
+                  {/* Address + Navigation */}
+                  {adresa && (
+                    <a
+                      href={getGoogleMapsUrl(adresa)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex min-h-[44px] items-center gap-2 rounded-lg bg-blue-50 p-3 text-blue-800 active:bg-blue-100"
+                    >
+                      <span className="text-lg">📍</span>
+                      <span className="flex-1 text-sm font-medium">{adresa}</span>
+                      <span className="text-sm font-bold">→</span>
+                    </a>
+                  )}
+
+                  {/* Zakázka type badges */}
+                  <div className="flex flex-wrap gap-1">
+                    <Badge variant="outline" className="text-xs">
+                      {zasah.zakazky?.typ === "smluvni"
+                        ? "Smluvní"
+                        : "Jednorázová"}
+                    </Badge>
+                    {Array.isArray(zasah.zakazky?.typy_zasahu) &&
+                      (zasah.zakazky.typy_zasahu as string[]).map((t: string) => (
+                        <Badge key={t} variant="outline" className="text-xs">
+                          {t.replace(/_/g, " ")}
+                        </Badge>
+                      ))}
                   </div>
-                )}
 
-                {/* Status action buttons */}
-                {nextStatuses.length > 0 && (
-                  <div className="flex gap-2">
-                    {nextStatuses.map((s) => {
-                      const sInfo = STATUS_ZASAHU_LABELS[s];
-                      const actionLabel =
-                        TECHNIK_STATUS_ACTION_LABELS[s] || sInfo?.label;
-                      return (
-                        <Button
-                          key={s}
-                          className={`min-h-[44px] flex-1 ${sInfo?.bgColor} ${sInfo?.color} border-transparent hover:opacity-90 active:opacity-80`}
-                          variant="outline"
-                          disabled={isPending}
-                          aria-label={`Změnit status na ${sInfo?.label}`}
-                          onClick={() =>
-                            handleStatusChange(
-                              zasah.id,
-                              s as Database["public"]["Enums"]["status_zasahu"],
-                            )
-                          }
+                  {/* Client contact */}
+                  {(zasah.zakazky?.objekty?.klienti?.telefon ||
+                    zasah.zakazky?.objekty?.klienti?.email) && (
+                    <div className="rounded-lg bg-muted/30 p-3">
+                      <p className="mb-1 text-xs font-medium text-muted-foreground">
+                        Kontakt na klienta
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {zasah.zakazky?.objekty?.klienti?.telefon && (
+                          <a
+                            href={`tel:${zasah.zakazky.objekty.klienti.telefon}`}
+                            className="inline-flex min-h-[44px] items-center gap-1 rounded-lg bg-green-50 px-3 py-2 text-sm font-medium text-green-800 active:bg-green-100"
+                          >
+                            📞 {zasah.zakazky.objekty.klienti.telefon}
+                          </a>
+                        )}
+                        {zasah.zakazky?.objekty?.klienti?.email && (
+                          <a
+                            href={`mailto:${zasah.zakazky.objekty.klienti.email}`}
+                            className="inline-flex min-h-[44px] items-center gap-1 rounded-lg bg-gray-50 px-3 py-2 text-sm font-medium text-gray-800 active:bg-gray-100"
+                          >
+                            ✉️ {zasah.zakazky.objekty.klienti.email}
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Contact person on-site */}
+                  {kontakt && (
+                    <div className="rounded-lg bg-amber-50 p-3">
+                      <p className="mb-1 text-xs font-medium text-muted-foreground">
+                        Kontaktní osoba na místě
+                      </p>
+                      <p className="text-sm font-semibold">
+                        {kontakt.jmeno}
+                        {kontakt.funkce && (
+                          <span className="ml-1 font-normal text-muted-foreground">
+                            ({kontakt.funkce})
+                          </span>
+                        )}
+                      </p>
+                      {kontakt.telefon && (
+                        <a
+                          href={`tel:${kontakt.telefon}`}
+                          className="inline-flex min-h-[44px] items-center gap-1 text-sm font-medium text-green-800 active:opacity-70"
                         >
-                          {isPending ? "..." : actionLabel}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                )}
+                          📞 {kontakt.telefon}
+                        </a>
+                      )}
+                    </div>
+                  )}
 
-                {/* Completed indicator */}
-                {zasah.status === "hotovo" && (
-                  <div className="flex items-center justify-center gap-1 rounded-lg bg-emerald-50 p-2">
-                    <span className="text-lg">✅</span>
-                    <span className="text-sm font-medium text-emerald-800">
-                      Dokončeno
-                    </span>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  {/* Note */}
+                  {zasah.poznamka && (
+                    <div className="rounded-lg bg-muted/30 p-3">
+                      <p className="text-xs text-muted-foreground">Poznámka</p>
+                      <p className="mt-0.5 text-sm">{zasah.poznamka}</p>
+                    </div>
+                  )}
+
+                  {/* Status action buttons */}
+                  {nextStatuses.length > 0 && (
+                    <div className="flex gap-2">
+                      {nextStatuses.map((s) => {
+                        const sInfo = STATUS_ZASAHU_LABELS[s];
+                        const actionLabel =
+                          TECHNIK_STATUS_ACTION_LABELS[s] || sInfo?.label;
+                        return (
+                          <Button
+                            key={s}
+                            className={`min-h-[44px] flex-1 ${sInfo?.bgColor} ${sInfo?.color} border-transparent hover:opacity-90 active:opacity-80`}
+                            variant="outline"
+                            disabled={isPending}
+                            aria-label={`Změnit status na ${sInfo?.label}`}
+                            onClick={() =>
+                              handleStatusChange(
+                                zasah.id,
+                                s as Database["public"]["Enums"]["status_zasahu"],
+                              )
+                            }
+                          >
+                            {isPending ? "..." : actionLabel}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Completed indicator */}
+                  {zasah.status === "hotovo" && (
+                    <div className="flex items-center justify-center gap-1 rounded-lg bg-emerald-50 p-2">
+                      <span className="text-lg">✅</span>
+                      <span className="text-sm font-medium text-emerald-800">
+                        Dokončeno
+                      </span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           );
         })}
 
-      {/* Cancelled zasahy (collapsed) */}
+      {/* Cancelled zasahy (collapsible) */}
       {!isLoading && cancelledZasahy.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground">
+        <details className="space-y-2">
+          <summary className="cursor-pointer text-xs font-medium text-muted-foreground list-none flex items-center gap-1 min-h-[44px]">
+            <span className="text-muted-foreground/60">▶</span>
             Zrušené zásahy ({cancelledZasahy.length})
-          </p>
-          {cancelledZasahy.map((zasah) => (
-            <Card key={zasah.id} className="opacity-50">
-              <CardContent className="p-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-red-100 text-red-800 text-xs px-2 py-0.5">
-                      Zrušeno
-                    </Badge>
-                    <span className="text-sm line-through">
-                      {getKlientName(zasah)}
+          </summary>
+          <div className="space-y-2">
+            {cancelledZasahy.map((zasah) => (
+              <Card key={zasah.id} className="opacity-50">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-red-100 text-red-800 text-xs px-2 py-0.5">
+                        Zrušeno
+                      </Badge>
+                      <span className="text-sm line-through">
+                        {getKlientName(zasah)}
+                      </span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {formatCasCz(zasah.cas_od.substring(0, 5))}–
+                      {formatCasCz(zasah.cas_do.substring(0, 5))}
                     </span>
                   </div>
-                  <span className="text-xs text-muted-foreground">
-                    {formatCasCz(zasah.cas_od.substring(0, 5))}–
-                    {formatCasCz(zasah.cas_do.substring(0, 5))}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </details>
       )}
+
+      {/* Další termín Bottom Sheet */}
+      <DalsiTerminSheet
+        open={dalsiTerminOpen}
+        onOpenChange={setDalsiTerminOpen}
+        zasah={dalsiTerminZasah}
+        onScheduled={handleDalsiTerminScheduled}
+        onSkipped={handleDalsiTerminSkipped}
+      />
+    </div>
+  );
+}
+
+// ---------- Travel Indicator Component ----------
+
+function TravelIndicator({ travel }: { travel: TravelEstimate }) {
+  if (travel.travelMinutes == null || travel.travelMinutes === 0) return null;
+
+  const isCollision = travel.hasCollision;
+
+  return (
+    <div className="flex items-center justify-center gap-2 py-2" aria-label={`Přejezd ${formatTravelTime(travel.travelMinutes)}${travel.distanceKm ? `, ${travel.distanceKm} km` : ""}`}>
+      <div
+        className={`h-px flex-1 ${isCollision ? "bg-amber-400" : "bg-muted-foreground/20"}`}
+      />
+      <div
+        className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-sm ${
+          isCollision
+            ? "bg-amber-100 text-amber-800 font-medium"
+            : "bg-muted/50 text-muted-foreground"
+        }`}
+      >
+        <span>🚗</span>
+        <span>{formatTravelTime(travel.travelMinutes)}</span>
+        {travel.distanceKm != null && travel.distanceKm > 0 && (
+          <span className="text-xs opacity-70">
+            ({travel.distanceKm} km)
+          </span>
+        )}
+        {isCollision && <span className="text-xs font-bold">⚠️</span>}
+      </div>
+      <div
+        className={`h-px flex-1 ${isCollision ? "bg-amber-400" : "bg-muted-foreground/20"}`}
+      />
     </div>
   );
 }

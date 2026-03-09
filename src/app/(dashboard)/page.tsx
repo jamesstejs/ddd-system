@@ -20,7 +20,17 @@ import {
 } from "@/lib/utils/dostupnostUtils";
 import { toDateString } from "@/lib/utils/dateUtils";
 import { getZasahyForTechnik } from "@/lib/supabase/queries/zasahy";
-import { formatCasCz } from "@/lib/utils/dostupnostUtils";
+import {
+  getAktivniPripominky,
+  getAktivniPripominkyTechnik,
+} from "@/lib/supabase/queries/pripominky";
+import { formatCasCz, formatDatumCzLong } from "@/lib/utils/dostupnostUtils";
+
+/** Format YYYY-MM-DD → "9. 3." (short Czech date) */
+function formatDatumShort(datum: string): string {
+  const [, m, d] = datum.split("-").map(Number);
+  return `${d}. ${m}.`;
+}
 
 async function AdminDashboard({
   supabase,
@@ -45,6 +55,29 @@ async function AdminDashboard({
     // RLS může blokovat pokud nejsme admin — fallback na 0
   }
 
+  // Nedomluvené termíny — reálná data
+  type PripominkaRow = {
+    id: string;
+    created_at: string;
+    profiles: { jmeno: string | null; prijmeni: string | null } | null;
+    zasahy: { datum: string } | null;
+    zakazky: { objekty: { klienti: { nazev: string; jmeno: string; prijmeni: string; typ: string } } } | null;
+  };
+  let pripominky: PripominkaRow[] = [];
+  try {
+    const { data } = await getAktivniPripominky(supabase);
+    pripominky = (data ?? []) as PripominkaRow[];
+  } catch {
+    // fallback
+  }
+
+  function getPripominkaKlientName(p: PripominkaRow): string {
+    const klient = p.zakazky?.objekty?.klienti;
+    if (!klient) return "—";
+    if (klient.typ === "firma") return klient.nazev;
+    return `${klient.prijmeni} ${klient.jmeno}`.trim();
+  }
+
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <Card>
@@ -63,10 +96,31 @@ async function AdminDashboard({
           <CardTitle className="text-base">Nedomluvené termíny</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-2xl font-bold">0</p>
-          <p className="text-sm text-muted-foreground">
-            Bude implementováno ve sprintu 14
-          </p>
+          <p className="text-2xl font-bold">{pripominky.length}</p>
+          {pripominky.length > 0 ? (
+            <div className="mt-1 space-y-1">
+              {pripominky.slice(0, 5).map((p) => (
+                <p key={p.id} className="text-sm text-muted-foreground">
+                  {getPripominkaKlientName(p)}
+                  {p.profiles && (
+                    <span className="text-xs"> — {p.profiles.jmeno} {p.profiles.prijmeni}</span>
+                  )}
+                  {p.zasahy?.datum && (
+                    <span className="text-xs"> ({formatDatumShort(p.zasahy.datum)})</span>
+                  )}
+                </p>
+              ))}
+              {pripominky.length > 5 && (
+                <p className="text-xs text-muted-foreground">
+                  a dalších {pripominky.length - 5}...
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Žádné nedomluvené termíny
+            </p>
+          )}
         </CardContent>
       </Card>
       <Card>
@@ -155,6 +209,28 @@ async function TechnikDashboard({
     return `${klient.prijmeni} ${klient.jmeno}`.trim();
   }
 
+  // Klienti k domluvení — reálná data
+  type TechnikPripominkaRow = {
+    id: string;
+    created_at: string;
+    zasahy: { datum: string } | null;
+    zakazky: { objekty: { klienti: { nazev: string; jmeno: string; prijmeni: string; typ: string } } } | null;
+  };
+  let mojePripominky: TechnikPripominkaRow[] = [];
+  try {
+    const { data } = await getAktivniPripominkyTechnik(supabase, userId);
+    mojePripominky = (data ?? []) as TechnikPripominkaRow[];
+  } catch {
+    // fallback
+  }
+
+  function getPripominkaKlient(p: TechnikPripominkaRow): string {
+    const klient = p.zakazky?.objekty?.klienti;
+    if (!klient) return "—";
+    if (klient.typ === "firma") return klient.nazev;
+    return `${klient.prijmeni} ${klient.jmeno}`.trim();
+  }
+
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <Link href="/kalendar" className="contents">
@@ -197,10 +273,28 @@ async function TechnikDashboard({
           <CardTitle className="text-base">Klienti k domluvení</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-2xl font-bold">0</p>
-          <p className="text-sm text-muted-foreground">
-            Bude implementováno ve sprintu 14
-          </p>
+          <p className="text-2xl font-bold">{mojePripominky.length}</p>
+          {mojePripominky.length > 0 ? (
+            <div className="mt-1 space-y-1">
+              {mojePripominky.slice(0, 3).map((p) => (
+                <p key={p.id} className="text-sm text-muted-foreground">
+                  {getPripominkaKlient(p)}
+                  {p.zasahy?.datum && (
+                    <span className="text-xs"> (zásah {formatDatumShort(p.zasahy.datum)})</span>
+                  )}
+                </p>
+              ))}
+              {mojePripominky.length > 3 && (
+                <p className="text-xs text-muted-foreground">
+                  a dalších {mojePripominky.length - 3}...
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Žádní klienti k domluvení
+            </p>
+          )}
         </CardContent>
       </Card>
       <Link href="/dostupnost" className="contents">

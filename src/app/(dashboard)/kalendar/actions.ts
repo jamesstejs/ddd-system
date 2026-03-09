@@ -11,6 +11,7 @@ import {
 } from "@/lib/supabase/queries/zasahy";
 import { getAllDostupnost } from "@/lib/supabase/queries/dostupnost";
 import { getZakazky } from "@/lib/supabase/queries/zakazky";
+import { updatePripominka } from "@/lib/supabase/queries/pripominky";
 import type { Database } from "@/lib/supabase/database.types";
 import { ADMIN_STATUS_TRANSITIONS } from "@/lib/utils/zasahUtils";
 
@@ -160,6 +161,22 @@ export async function deleteZasahAction(id: string) {
   const { supabase } = await requireAdmin();
 
   const { error } = await softDeleteZasah(supabase, id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(REVALIDATE_PATH);
+  revalidatePath("/");
+}
+
+/**
+ * Admin vyřeší připomínku (označí jako vyřešeno).
+ * Používá se poté, co admin domluví termín s klientem.
+ */
+export async function resolvePripominkaAction(pripominkaId: string) {
+  const { supabase } = await requireAdmin();
+
+  const { error } = await updatePripominka(supabase, pripominkaId, {
+    stav: "vyreseno",
+  });
   if (error) throw new Error(error.message);
 
   revalidatePath(REVALIDATE_PATH);

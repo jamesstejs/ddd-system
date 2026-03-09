@@ -38,6 +38,8 @@ export async function getZasahy(
           plocha_m2,
           typ_objektu,
           klient_id,
+          lat,
+          lng,
           klienti!inner (
             id,
             nazev,
@@ -79,6 +81,7 @@ export async function getZasahyForTechnik(
         status,
         typy_zasahu,
         skudci,
+        cetnost_dny,
         objekty!inner (
           id,
           nazev,
@@ -86,6 +89,8 @@ export async function getZasahyForTechnik(
           plocha_m2,
           typ_objektu,
           klient_id,
+          lat,
+          lng,
           klienti!inner (
             id,
             nazev,
@@ -137,6 +142,8 @@ export async function getZasah(supabase: TypedSupabase, id: string) {
           plocha_m2,
           typ_objektu,
           klient_id,
+          lat,
+          lng,
           klienti!inner (
             id,
             nazev,

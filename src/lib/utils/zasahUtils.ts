@@ -172,6 +172,30 @@ export const STATUS_ZASAHU_LABELS: Record<
 };
 
 /**
+ * Spočítá navrhované datum dalšího zásahu na základě cetnosti (dny) zakázky.
+ * Vrací null pokud cetnost_dny je null/undefined (jednorázová zakázka apod.).
+ *
+ * @param zasahDatum — datum dokončeného zásahu (YYYY-MM-DD)
+ * @param cetnostDny — četnost v dnech z zakázky (nullable)
+ * @returns datum YYYY-MM-DD nebo null
+ */
+export function computeSuggestedDate(
+  zasahDatum: string,
+  cetnostDny: number | null | undefined,
+): string | null {
+  if (!cetnostDny || cetnostDny <= 0) return null;
+
+  const [y, m, d] = zasahDatum.split("-").map(Number);
+  const base = new Date(y, m - 1, d);
+  base.setDate(base.getDate() + cetnostDny);
+
+  const ny = base.getFullYear();
+  const nm = String(base.getMonth() + 1).padStart(2, "0");
+  const nd = String(base.getDate()).padStart(2, "0");
+  return `${ny}-${nm}-${nd}`;
+}
+
+/**
  * Barvy pro techniky v kalendáři (cyklické přiřazení).
  */
 export const TECHNIK_COLORS = [

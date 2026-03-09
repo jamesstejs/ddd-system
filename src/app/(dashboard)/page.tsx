@@ -169,7 +169,7 @@ async function TechnikDashboard({
         </CardContent>
       </Card>
       <Link href="/dostupnost" className="contents">
-        <Card className="cursor-pointer transition-colors hover:bg-muted/50">
+        <Card className="cursor-pointer transition-colors hover:bg-muted/50 active:bg-muted/70">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Vyplnit dostupnost</CardTitle>
             <Badge className={statusColors[status]}>

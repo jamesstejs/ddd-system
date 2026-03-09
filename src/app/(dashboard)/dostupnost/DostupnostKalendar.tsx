@@ -208,7 +208,7 @@ export function DostupnostKalendar({
                     key={dayIdx}
                     disabled={!workDay}
                     onClick={() => handleDayClick(date)}
-                    className={`flex min-h-[52px] flex-col items-center justify-center rounded-lg p-1 text-xs transition-colors ${
+                    className={`flex min-h-[52px] min-w-[44px] flex-col items-center justify-center rounded-lg p-1 text-xs transition-colors ${
                       !workDay
                         ? "cursor-default bg-muted/30 text-muted-foreground/50"
                         : hasDostupnost
@@ -218,13 +218,13 @@ export function DostupnostKalendar({
                   >
                     <span className="font-semibold">{date.getDate()}</span>
                     {workDay && hasDostupnost && (
-                      <span className="mt-0.5 text-[10px] leading-tight">
+                      <span className="mt-0.5 text-xs leading-tight">
                         {formatCasCz(slots[0].cas_od.substring(0, 5))}–
                         {formatCasCz(slots[0].cas_do.substring(0, 5))}
                       </span>
                     )}
                     {workDay && !hasDostupnost && (
-                      <span className="mt-0.5 text-[10px] leading-tight opacity-60">
+                      <span className="mt-0.5 text-xs leading-tight opacity-60">
                         +
                       </span>
                     )}
@@ -252,7 +252,7 @@ export function DostupnostKalendar({
         }
       >
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <Label htmlFor="cas_od" className="text-sm">
                 Čas od

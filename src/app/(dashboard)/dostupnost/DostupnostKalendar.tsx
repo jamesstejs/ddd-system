@@ -46,10 +46,16 @@ interface DostupnostKalendarProps {
 }
 
 const DAY_NAMES = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"];
+const DAY_NAMES_LONG = ["Pondělí", "Úterý", "Středa", "Čtvrtek", "Pátek", "Sobota", "Neděle"];
 const MONTH_NAMES = [
   "Leden", "Únor", "Březen", "Duben", "Květen", "Červen",
   "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec",
 ];
+
+function formatAriaLabel(date: Date): string {
+  const dayName = DAY_NAMES_LONG[(date.getDay() + 6) % 7];
+  return `${dayName} ${date.getDate()}. ${MONTH_NAMES[date.getMonth()].toLowerCase()}`;
+}
 
 export function DostupnostKalendar({
   dostupnost,
@@ -229,6 +235,7 @@ export function DostupnostKalendar({
                   <button
                     key={dayIdx}
                     disabled={!workDay}
+                    aria-label={formatAriaLabel(date)}
                     onClick={() => handleDayClick(date)}
                     className={`flex min-h-[52px] min-w-[44px] flex-col items-center justify-center rounded-lg p-1 text-xs transition-colors ${
                       !workDay

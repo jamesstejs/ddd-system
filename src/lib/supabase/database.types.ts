@@ -571,6 +571,65 @@ export type Database = {
         }
         Relationships: []
       }
+      zakazky: {
+        Row: {
+          cetnost_dny: number | null
+          created_at: string
+          deleted_at: string | null
+          id: string
+          objekt_id: string
+          platba_predem: boolean
+          platnost_do: string | null
+          pocet_navstev_rocne: number | null
+          poznamka: string | null
+          skudci: Json
+          status: Database["public"]["Enums"]["status_zakazky"]
+          typ: Database["public"]["Enums"]["typ_zakazky"]
+          typy_zasahu: Json
+          updated_at: string
+        }
+        Insert: {
+          cetnost_dny?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          objekt_id: string
+          platba_predem?: boolean
+          platnost_do?: string | null
+          pocet_navstev_rocne?: number | null
+          poznamka?: string | null
+          skudci?: Json
+          status?: Database["public"]["Enums"]["status_zakazky"]
+          typ?: Database["public"]["Enums"]["typ_zakazky"]
+          typy_zasahu?: Json
+          updated_at?: string
+        }
+        Update: {
+          cetnost_dny?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          objekt_id?: string
+          platba_predem?: boolean
+          platnost_do?: string | null
+          pocet_navstev_rocne?: number | null
+          poznamka?: string | null
+          skudci?: Json
+          status?: Database["public"]["Enums"]["status_zakazky"]
+          typ?: Database["public"]["Enums"]["typ_zakazky"]
+          typy_zasahu?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zakazky_objekt_id_fkey"
+            columns: ["objekt_id"]
+            isOneToOne: false
+            referencedRelation: "objekty"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -580,6 +639,7 @@ export type Database = {
     }
     Enums: {
       app_role: "super_admin" | "admin" | "technik" | "klient"
+      status_zakazky: "nova" | "aktivni" | "pozastavena" | "ukoncena"
       typ_klienta: "firma" | "fyzicka_osoba"
       typ_objektu:
         | "gastro"
@@ -601,6 +661,7 @@ export type Database = {
         | "zemedelsky"
         | "chov_zvirat"
       typ_skudce: "hlodavec" | "lezouci_hmyz" | "letajici_hmyz" | "ostatni"
+      typ_zakazky: "jednorazova" | "smluvni"
       typ_zasahu_kalkulacka:
         | "vnitrni_deratizace"
         | "vnejsi_deratizace"
@@ -734,6 +795,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["super_admin", "admin", "technik", "klient"],
+      status_zakazky: ["nova", "aktivni", "pozastavena", "ukoncena"],
       typ_klienta: ["firma", "fyzicka_osoba"],
       typ_objektu: [
         "gastro",
@@ -757,6 +819,7 @@ export const Constants = {
         "chov_zvirat",
       ],
       typ_skudce: ["hlodavec", "lezouci_hmyz", "letajici_hmyz", "ostatni"],
+      typ_zakazky: ["jednorazova", "smluvni"],
       typ_zasahu_kalkulacka: [
         "vnitrni_deratizace",
         "vnejsi_deratizace",

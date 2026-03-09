@@ -14,6 +14,195 @@ export type Database = {
   }
   public: {
     Tables: {
+      cenik_deratizace: {
+        Row: {
+          cena_za_kus: number
+          created_at: string
+          deleted_at: string | null
+          id: string
+          nazev: string
+          updated_at: string
+        }
+        Insert: {
+          cena_za_kus: number
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          nazev: string
+          updated_at?: string
+        }
+        Update: {
+          cena_za_kus?: number
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          nazev?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cenik_dezinfekce: {
+        Row: {
+          cena_za_m: number
+          created_at: string
+          deleted_at: string | null
+          id: string
+          plocha_do: number | null
+          plocha_od: number
+          typ: string
+          updated_at: string
+        }
+        Insert: {
+          cena_za_m: number
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          plocha_do?: number | null
+          plocha_od: number
+          typ: string
+          updated_at?: string
+        }
+        Update: {
+          cena_za_m?: number
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          plocha_do?: number | null
+          plocha_od?: number
+          typ?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cenik_gely: {
+        Row: {
+          bytu_do: number | null
+          bytu_od: number
+          cena: number
+          created_at: string
+          deleted_at: string | null
+          id: string
+          kategorie: string
+          updated_at: string
+        }
+        Insert: {
+          bytu_do?: number | null
+          bytu_od: number
+          cena: number
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          kategorie: string
+          updated_at?: string
+        }
+        Update: {
+          bytu_do?: number | null
+          bytu_od?: number
+          cena?: number
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          kategorie?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cenik_obecne: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          hodnota: number
+          id: string
+          jednotka: string
+          nazev: string
+          poznamka: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          hodnota: number
+          id?: string
+          jednotka: string
+          nazev: string
+          poznamka?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          hodnota?: number
+          id?: string
+          jednotka?: string
+          nazev?: string
+          poznamka?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cenik_postriky: {
+        Row: {
+          cena: number
+          created_at: string
+          deleted_at: string | null
+          id: string
+          kategorie: string
+          plocha_do: number | null
+          plocha_od: number
+          updated_at: string
+        }
+        Insert: {
+          cena: number
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          kategorie: string
+          plocha_do?: number | null
+          plocha_od: number
+          updated_at?: string
+        }
+        Update: {
+          cena?: number
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          kategorie?: string
+          plocha_do?: number | null
+          plocha_od?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cenik_specialni: {
+        Row: {
+          cena_do: number | null
+          cena_od: number
+          created_at: string
+          deleted_at: string | null
+          id: string
+          nazev: string
+          updated_at: string
+        }
+        Insert: {
+          cena_do?: number | null
+          cena_od: number
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          nazev: string
+          updated_at?: string
+        }
+        Update: {
+          cena_do?: number | null
+          cena_od?: number
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          nazev?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       klienti: {
         Row: {
           adresa: string

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronRight, Calculator } from "lucide-react";
+import { ChevronRight, Calculator, Coins } from "lucide-react";
 
 export default function NastaveniPage() {
   const sections = [
@@ -9,6 +9,12 @@ export default function NastaveniPage() {
       icon: Calculator,
       title: "Šablony bodů",
       description: "Kalkulačka monitorovacích bodů — šablony dle typu objektu a zásahu",
+    },
+    {
+      href: "/nastaveni/cenik",
+      icon: Coins,
+      title: "Ceník",
+      description: "Sazby, postřiky, gely, deratizace, dezinfekce",
     },
   ];
 

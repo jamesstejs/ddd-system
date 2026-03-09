@@ -1,12 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/supabase/queries/profiles";
-import { getZasahy, getTechnici } from "@/lib/supabase/queries/zasahy";
+import { getZasahy, getZasahyForTechnik, getTechnici } from "@/lib/supabase/queries/zasahy";
 import { getAllDostupnost } from "@/lib/supabase/queries/dostupnost";
 import { getZakazky } from "@/lib/supabase/queries/zakazky";
+import { getKontaktniOsobyByKlientIds } from "@/lib/supabase/queries/kontaktni_osoby";
 import { toDateString } from "@/lib/utils/dateUtils";
 import { KalendarView } from "./KalendarView";
+import { MujDenView } from "./MujDenView";
 import type { ZasahRow, DostupnostRow, TechnikRow, ZakazkaOption } from "./KalendarView";
+import type { TechnikZasahRow, KontaktniOsobaRow } from "./MujDenView";
 
 export default async function KalendarPage() {
   const supabase = await createClient();
@@ -27,7 +30,44 @@ export default async function KalendarPage() {
     redirect("/");
   }
 
-  // Date range: current month ± buffer for navigation
+  const aktivniRole = profile.aktivni_role;
+
+  // ── Technik "Můj den" ─────────────────────────────
+  if (aktivniRole === "technik") {
+    const today = toDateString(new Date());
+
+    const { data: zasahy } = await getZasahyForTechnik(
+      supabase,
+      user.id,
+      today,
+      today,
+    );
+    const zasahyData = (zasahy || []) as TechnikZasahRow[];
+
+    // Batch-load kontaktní osoby for all klient IDs in today's zasahy
+    const klientIds = [
+      ...new Set(
+        zasahyData
+          .map((z) => z.zakazky?.objekty?.klient_id)
+          .filter(Boolean) as string[],
+      ),
+    ];
+
+    const { data: kontaktyData } =
+      klientIds.length > 0
+        ? await getKontaktniOsobyByKlientIds(supabase, klientIds)
+        : { data: [] as KontaktniOsobaRow[] };
+
+    return (
+      <MujDenView
+        initialZasahy={zasahyData}
+        initialKontakty={(kontaktyData || []) as KontaktniOsobaRow[]}
+        initialDate={today}
+      />
+    );
+  }
+
+  // ── Admin/Super_admin — plný kalendář ─────────────
   const today = new Date();
   const rangeStart = new Date(today.getFullYear(), today.getMonth(), 1);
   rangeStart.setDate(rangeStart.getDate() - 7);

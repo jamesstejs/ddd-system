@@ -21,7 +21,7 @@ Po implementaci vždy:
 
 ---
 
-## Aktuální sprint: SPRINT 11
+## Aktuální sprint: SPRINT 12
 
 ---
 
@@ -197,13 +197,13 @@ Po implementaci vždy:
 ## Sprint 12 — Kalendář: technik "Můj den"
 **Cíl:** Technik vidí svůj denní plán
 
-- [ ] UI: mobilní "Můj den" (chronologický seznam dnešních zásahů)
-- [ ] Karta zásahu: klient, adresa, typ, čas, počet bodů, odhadovaná délka
-- [ ] Navigační odkaz (Google Maps) na adresu objektu
-- [ ] Změna statusu: naplánováno → probíhá → hotovo
-- [ ] Kontakt na klienta (klik → volání, email)
-- [ ] Zobrazení kontaktní osoby na místě (jméno, telefon)
-- [ ] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
+- [x] UI: mobilní "Můj den" (chronologický seznam dnešních zásahů)
+- [x] Karta zásahu: klient, adresa, typ, čas, počet bodů, odhadovaná délka
+- [x] Navigační odkaz (Google Maps) na adresu objektu
+- [x] Změna statusu: naplánováno → probíhá → hotovo
+- [x] Kontakt na klienta (klik → volání, email)
+- [x] Zobrazení kontaktní osoby na místě (jméno, telefon)
+- [x] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
 
 ---
 

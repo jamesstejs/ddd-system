@@ -19,6 +19,8 @@ import {
   getDostupnostStatus,
 } from "@/lib/utils/dostupnostUtils";
 import { toDateString } from "@/lib/utils/dateUtils";
+import { getZasahyForTechnik } from "@/lib/supabase/queries/zasahy";
+import { formatCasCz } from "@/lib/utils/dostupnostUtils";
 
 async function AdminDashboard({
   supabase,
@@ -136,21 +138,60 @@ async function TechnikDashboard({
     critical: "bg-red-100 text-red-800",
   };
 
+  // Můj den — reálná data
+  const dnes = toDateString(new Date());
+  let dnesnizasahy: { id: string; cas_od: string; cas_do: string; status: string; zakazky: { objekty: { klienti: { nazev: string; jmeno: string; prijmeni: string; typ: string } } } | null }[] = [];
+  try {
+    const { data } = await getZasahyForTechnik(supabase, userId, dnes, dnes);
+    dnesnizasahy = (data ?? []).filter((z: { status: string }) => z.status !== "zruseno") as typeof dnesnizasahy;
+  } catch {
+    // fallback
+  }
+
+  function getKlientName(z: typeof dnesnizasahy[number]): string {
+    const klient = z.zakazky?.objekty?.klienti;
+    if (!klient) return "—";
+    if (klient.typ === "firma") return klient.nazev;
+    return `${klient.prijmeni} ${klient.jmeno}`.trim();
+  }
+
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Můj den</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Žádné zásahy na dnes.
-          </p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Bude implementováno ve sprintu 12
-          </p>
-        </CardContent>
-      </Card>
+      <Link href="/kalendar" className="contents">
+        <Card className="cursor-pointer transition-colors hover:bg-muted/50 active:bg-muted/70">
+          <CardHeader>
+            <CardTitle className="text-base">Můj den</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {dnesnizasahy.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Žádné zásahy na dnes.
+              </p>
+            ) : (
+              <div className="space-y-1">
+                <p className="text-2xl font-bold">{dnesnizasahy.length}</p>
+                <p className="text-sm text-muted-foreground">
+                  {dnesnizasahy.length === 1
+                    ? "zásah dnes"
+                    : dnesnizasahy.length < 5
+                      ? "zásahy dnes"
+                      : "zásahů dnes"}
+                </p>
+                {dnesnizasahy.slice(0, 3).map((z) => (
+                  <p key={z.id} className="text-xs text-muted-foreground">
+                    {formatCasCz(z.cas_od.substring(0, 5))} — {getKlientName(z)}
+                  </p>
+                ))}
+                {dnesnizasahy.length > 3 && (
+                  <p className="text-xs text-muted-foreground">
+                    a dalších {dnesnizasahy.length - 3}...
+                  </p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </Link>
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Klienti k domluvení</CardTitle>

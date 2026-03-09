@@ -97,6 +97,47 @@ export function formatDelka(minutes: number): string {
 }
 
 /**
+ * Povolené přechody statusu pro technika.
+ * Technik může: naplánováno/potvrzený → probíhá → hotovo.
+ * Technik nemůže rušit (to dělá admin).
+ */
+export const TECHNIK_STATUS_TRANSITIONS: Record<string, string[]> = {
+  naplanovano: ["probiha"],
+  potvrzeny: ["probiha"],
+  probiha: ["hotovo"],
+  hotovo: [],
+  zruseno: [],
+};
+
+/**
+ * Povolené přechody statusu pro admina.
+ * Admin má plnou kontrolu nad statusy včetně rušení.
+ */
+export const ADMIN_STATUS_TRANSITIONS: Record<string, string[]> = {
+  naplanovano: ["potvrzeny", "zruseno"],
+  potvrzeny: ["probiha", "zruseno"],
+  probiha: ["hotovo", "zruseno"],
+  hotovo: [],
+  zruseno: ["naplanovano"],
+};
+
+/**
+ * Google Maps navigační URL z adresy.
+ * Otevře navigaci (driving directions) na danou adresu.
+ */
+export function getGoogleMapsUrl(adresa: string): string {
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(adresa)}`;
+}
+
+/**
+ * Tlačítko label pro technikův status přechod.
+ */
+export const TECHNIK_STATUS_ACTION_LABELS: Record<string, string> = {
+  probiha: "Zahájit",
+  hotovo: "Dokončit",
+};
+
+/**
  * Status zásahu — čeština + barva.
  */
 export const STATUS_ZASAHU_LABELS: Record<

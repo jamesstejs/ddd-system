@@ -5,6 +5,10 @@ import {
   STATUS_ZASAHU_LABELS,
   getTechnikColor,
   TECHNIK_COLORS,
+  TECHNIK_STATUS_TRANSITIONS,
+  ADMIN_STATUS_TRANSITIONS,
+  TECHNIK_STATUS_ACTION_LABELS,
+  getGoogleMapsUrl,
 } from "../zasahUtils";
 
 describe("odhadDelkyZasahu", () => {
@@ -146,5 +150,101 @@ describe("getTechnikColor", () => {
     const color0 = getTechnikColor(0);
     const color1 = getTechnikColor(1);
     expect(color0.dot).not.toBe(color1.dot);
+  });
+});
+
+describe("TECHNIK_STATUS_TRANSITIONS", () => {
+  it("naplánováno → probíhá je povoleno", () => {
+    expect(TECHNIK_STATUS_TRANSITIONS.naplanovano).toContain("probiha");
+  });
+
+  it("potvrzený → probíhá je povoleno", () => {
+    expect(TECHNIK_STATUS_TRANSITIONS.potvrzeny).toContain("probiha");
+  });
+
+  it("probíhá → hotovo je povoleno", () => {
+    expect(TECHNIK_STATUS_TRANSITIONS.probiha).toContain("hotovo");
+  });
+
+  it("hotovo nemá žádné přechody", () => {
+    expect(TECHNIK_STATUS_TRANSITIONS.hotovo).toHaveLength(0);
+  });
+
+  it("zrušeno nemá žádné přechody pro technika", () => {
+    expect(TECHNIK_STATUS_TRANSITIONS.zruseno).toHaveLength(0);
+  });
+
+  it("technik nemůže rušit zásahy (žádný status → zruseno)", () => {
+    for (const transitions of Object.values(TECHNIK_STATUS_TRANSITIONS)) {
+      expect(transitions).not.toContain("zruseno");
+    }
+  });
+
+  it("technik nemůže potvrzovat (žádný status → potvrzeny)", () => {
+    for (const transitions of Object.values(TECHNIK_STATUS_TRANSITIONS)) {
+      expect(transitions).not.toContain("potvrzeny");
+    }
+  });
+});
+
+describe("ADMIN_STATUS_TRANSITIONS", () => {
+  it("naplánováno → potvrzený a zrušeno", () => {
+    expect(ADMIN_STATUS_TRANSITIONS.naplanovano).toContain("potvrzeny");
+    expect(ADMIN_STATUS_TRANSITIONS.naplanovano).toContain("zruseno");
+  });
+
+  it("potvrzený → probíhá a zrušeno", () => {
+    expect(ADMIN_STATUS_TRANSITIONS.potvrzeny).toContain("probiha");
+    expect(ADMIN_STATUS_TRANSITIONS.potvrzeny).toContain("zruseno");
+  });
+
+  it("probíhá → hotovo a zrušeno", () => {
+    expect(ADMIN_STATUS_TRANSITIONS.probiha).toContain("hotovo");
+    expect(ADMIN_STATUS_TRANSITIONS.probiha).toContain("zruseno");
+  });
+
+  it("hotovo nemá přechody", () => {
+    expect(ADMIN_STATUS_TRANSITIONS.hotovo).toHaveLength(0);
+  });
+
+  it("zrušeno → naplánováno (obnovení)", () => {
+    expect(ADMIN_STATUS_TRANSITIONS.zruseno).toContain("naplanovano");
+  });
+});
+
+describe("TECHNIK_STATUS_ACTION_LABELS", () => {
+  it("probíhá má label 'Zahájit'", () => {
+    expect(TECHNIK_STATUS_ACTION_LABELS.probiha).toBe("Zahájit");
+  });
+
+  it("hotovo má label 'Dokončit'", () => {
+    expect(TECHNIK_STATUS_ACTION_LABELS.hotovo).toBe("Dokončit");
+  });
+});
+
+describe("getGoogleMapsUrl", () => {
+  it("zakóduje adresu správně", () => {
+    const url = getGoogleMapsUrl("Dvořákova 475, Velké Přílepy");
+    expect(url).toBe(
+      "https://www.google.com/maps/dir/?api=1&destination=Dvo%C5%99%C3%A1kova%20475%2C%20Velk%C3%A9%20P%C5%99%C3%ADlepy",
+    );
+  });
+
+  it("obsahuje správný base URL", () => {
+    const url = getGoogleMapsUrl("Praha 1");
+    expect(url).toContain("https://www.google.com/maps/dir/?api=1&destination=");
+  });
+
+  it("zvládá české znaky", () => {
+    const url = getGoogleMapsUrl("Žižkovo náměstí 5, Říčany");
+    expect(url).toContain("destination=");
+    // URL by mělo být dekódovatelné zpět
+    const decoded = decodeURIComponent(url.split("destination=")[1]);
+    expect(decoded).toBe("Žižkovo náměstí 5, Říčany");
+  });
+
+  it("zvládá prázdnou adresu", () => {
+    const url = getGoogleMapsUrl("");
+    expect(url).toBe("https://www.google.com/maps/dir/?api=1&destination=");
   });
 });

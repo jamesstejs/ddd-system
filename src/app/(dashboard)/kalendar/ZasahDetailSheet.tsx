@@ -8,6 +8,7 @@ import { ConfirmDeleteSheet } from "@/components/layout/ConfirmDeleteSheet";
 import { formatCasCz, formatDatumCzLong } from "@/lib/utils/dostupnostUtils";
 import {
   STATUS_ZASAHU_LABELS,
+  ADMIN_STATUS_TRANSITIONS,
   formatDelka,
   getTechnikColor,
 } from "@/lib/utils/zasahUtils";
@@ -28,13 +29,7 @@ function parseDateLocal(str: string): Date {
   return new Date(y, m - 1, d);
 }
 
-const STATUS_TRANSITIONS: Record<string, string[]> = {
-  naplanovano: ["potvrzeny", "zruseno"],
-  potvrzeny: ["probiha", "zruseno"],
-  probiha: ["hotovo", "zruseno"],
-  hotovo: [],
-  zruseno: ["naplanovano"],
-};
+// Using shared admin transitions from zasahUtils
 
 export function ZasahDetailSheet({
   open,
@@ -52,7 +47,7 @@ export function ZasahDetailSheet({
   const colorIdx = technikColorMap.get(zasah.technik_id) ?? 0;
   const color = getTechnikColor(colorIdx);
   const statusInfo = STATUS_ZASAHU_LABELS[zasah.status];
-  const nextStatuses = STATUS_TRANSITIONS[zasah.status] || [];
+  const nextStatuses = ADMIN_STATUS_TRANSITIONS[zasah.status] || [];
 
   function getKlientName(): string {
     const klient = zasah?.zakazky?.objekty?.klienti;

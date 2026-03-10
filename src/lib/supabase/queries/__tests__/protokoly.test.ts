@@ -26,6 +26,7 @@ import {
   createProtokolFotka,
   updateProtokolFotka,
   deleteProtokolFotka,
+  getLatestProtokolForObjekt,
 } from "../protokoly";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -34,7 +35,9 @@ function createMockSupabase(result: { data: unknown; error: unknown }): any {
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
     is: vi.fn().mockReturnThis(),
+    in: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
     single: vi.fn().mockResolvedValue(result),
     insert: vi.fn().mockReturnThis(),
     update: vi.fn().mockReturnThis(),
@@ -46,8 +49,16 @@ function createMockSupabase(result: { data: unknown; error: unknown }): any {
     };
     return awaitable;
   });
+  chain.limit.mockImplementation(() => {
+    const awaitable = {
+      ...chain,
+      then: (resolve: (v: unknown) => void) => resolve(result),
+    };
+    return awaitable;
+  });
   chain.is.mockReturnValue(chain);
   chain.eq.mockReturnValue(chain);
+  chain.in.mockReturnValue(chain);
 
   return { from: vi.fn().mockReturnValue(chain), _chain: chain };
 }
@@ -502,5 +513,44 @@ describe("updateProtokolFotka", () => {
     expect(supabase.from).toHaveBeenCalledWith("protokol_fotky");
     expect(supabase._chain.update).toHaveBeenCalledWith(updateData);
     expect(supabase._chain.eq).toHaveBeenCalledWith("id", "f1");
+  });
+});
+
+// ============================================================
+// Speciální queries
+// ============================================================
+
+describe("getLatestProtokolForObjekt", () => {
+  it("queries recent protokoly with status schvaleny/odeslany", async () => {
+    const recentProtokoly = [
+      { id: "pr1", status: "schvaleny", created_at: "2026-03-10" },
+    ];
+    const supabase = createMockSupabase({
+      data: recentProtokoly,
+      error: null,
+    });
+
+    const result = await getLatestProtokolForObjekt(supabase, "obj-1");
+
+    expect(supabase.from).toHaveBeenCalledWith("protokoly");
+    expect(supabase._chain.in).toHaveBeenCalledWith("status", [
+      "schvaleny",
+      "odeslany",
+    ]);
+    expect(supabase._chain.is).toHaveBeenCalledWith("deleted_at", null);
+    expect(supabase._chain.limit).toHaveBeenCalledWith(100);
+    expect(result.data).toEqual(recentProtokoly);
+  });
+
+  it("returns empty on error", async () => {
+    const supabase = createMockSupabase({
+      data: null,
+      error: { message: "DB error" },
+    });
+
+    const result = await getLatestProtokolForObjekt(supabase, "obj-1");
+
+    expect(result.error).toBeTruthy();
+    expect(result.data).toBeNull();
   });
 });

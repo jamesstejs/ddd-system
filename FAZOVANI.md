@@ -21,7 +21,7 @@ Po implementaci vždy:
 
 ---
 
-## Aktuální sprint: SPRINT 18
+## Aktuální sprint: SPRINT 19
 
 ---
 
@@ -279,19 +279,19 @@ Po implementaci vždy:
 
 ---
 
-## Sprint 18 — Protokoly: deratizační formulář
+## Sprint 18 — Protokoly: deratizační formulář ✅
 **Cíl:** Technik vyplní deratizační kontrolu na mobilu
 
-- [ ] UI: zahájení protokolu z "Můj den" karty (klik → nový protokol)
-- [ ] **Předvyplnění bodů z předchozího protokolu** (pokud existuje — typy staniček, rozložení)
-- [ ] Formulář: deratizační bod — po jednom (mobilní wizard)
-- [ ] Každý bod: číslo (prefix+číslo), okruh, typ staničky, přípravek, požer (slider/select), stav
-- [ ] Možnost přidat / odebrat bod
-- [ ] Průměrný požer — automatický výpočet
-- [ ] Uložení jako rozpracovaný
-- [ ] **Testy:** předvyplnění z minulého protokolu, průměrný požer (8 bodů: 7×100% + 1×0% = 87.5%), přidání/odebrání bodu, uložení rozpracovaného
-- [ ] **Mobile audit:** formulář po jednom bodu (ne seznam), slider/select ≥44px, klávesnice nepřekrývá pole
-- [ ] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
+- [x] UI: zahájení protokolu z "Můj den" karty (klik → nový protokol) — tlačítko "Vyplnit protokol" na kartě zásahu se statusem "hotovo"
+- [x] **Předvyplnění bodů z předchozího protokolu** (pokud existuje — typy staniček, rozložení) — `getPrefilledBodyAction` + `prefillBodyFromPrevious()`
+- [x] Formulář: deratizační bod — po jednom (mobilní wizard) — `DeratBodForm.tsx` + `DeratFormView.tsx` wizard orchestrator
+- [x] Každý bod: číslo (prefix+číslo), okruh, typ staničky, přípravek, požer (5 tlačítek 0/25/50/75/100%), stav
+- [x] Možnost přidat / odebrat bod — přidání s auto-prefix, smazání s inline potvrzením
+- [x] Průměrný požer — automatický výpočet (`prumernyPozer()` s barevným badge)
+- [x] Uložení jako rozpracovaný — `saveDeratBodyAction` (batch create/update/delete)
+- [x] **Testy:** 41 nových testů (30 protokolUtils + 2 query + 9 component) — celkem 434/434
+- [x] **Mobile audit:** tap targets ≥44px, inputs text-base (16px), žádný center modal, aktivní stavy pro touch
+- [x] **Kontrola:** `npx tsc --noEmit` ✅ + `npx vitest run` 434/434 ✅ + `npm run build` ✅ + mobile audit ✅ + wiring check ✅
 
 ---
 

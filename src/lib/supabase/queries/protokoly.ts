@@ -463,3 +463,38 @@ export async function deleteProtokolFotka(
     .eq("id", id)
     .is("deleted_at", null);
 }
+
+// ============================================================
+// Speciální queries
+// ============================================================
+
+/**
+ * Najde poslední dokončený (schválený/odeslaný) protokol pro daný objekt.
+ * Používá se pro pre-fill bodů z předchozího protokolu.
+ */
+export async function getLatestProtokolForObjekt(
+  supabase: TypedSupabase,
+  objektId: string,
+) {
+  return supabase
+    .from("protokoly")
+    .select(`
+      id, status, created_at,
+      zasahy!protokoly_zasah_id_fkey (
+        id,
+        zakazky (
+          id,
+          objekty (
+            id
+          )
+        )
+      )
+    `)
+    .in("status", ["schvaleny", "odeslany"])
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  // Note: Supabase PostgREST does not support filtering on nested relations
+  // directly. We fetch recent protokoly and filter in application code.
+  // The caller should filter by objektId from the returned data.
+}

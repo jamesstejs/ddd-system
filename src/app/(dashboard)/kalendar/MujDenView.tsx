@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +29,7 @@ import {
 } from "./technikActions";
 import { geocodeMissingObjektyTechnikAction } from "./geocodeActions";
 import { DalsiTerminSheet } from "./DalsiTerminSheet";
+import { initProtokolAction } from "../protokoly/[id]/protokolActions";
 import type { Database } from "@/lib/supabase/database.types";
 
 // ---------- Types ----------
@@ -111,6 +113,10 @@ export function MujDenView({
   // Další termín sheet state
   const [dalsiTerminOpen, setDalsiTerminOpen] = useState(false);
   const [dalsiTerminZasah, setDalsiTerminZasah] = useState<TechnikZasahRow | null>(null);
+
+  // Protokol navigation
+  const router = useRouter();
+  const [pendingProtokolZasahId, setPendingProtokolZasahId] = useState<string | null>(null);
 
   // Guard against infinite geocoding retries (track already-attempted objekt IDs)
   const geocodedIdsRef = useRef<Set<string>>(new Set());
@@ -288,6 +294,21 @@ export function MujDenView({
     setDalsiTerminOpen(false);
     setDalsiTerminZasah(null);
     loadData(selectedDate);
+  }
+
+  // Vyplnit protokol — init + navigate
+  async function handleVyplnitProtokol(zasah: TechnikZasahRow) {
+    setPendingProtokolZasahId(zasah.id);
+    setError(null);
+    try {
+      const protokol = await initProtokolAction(zasah.id);
+      router.push(`/protokoly/${protokol.id}`);
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Chyba při vytváření protokolu",
+      );
+      setPendingProtokolZasahId(null);
+    }
   }
 
   // Helpers
@@ -587,13 +608,24 @@ export function MujDenView({
                     </div>
                   )}
 
-                  {/* Completed indicator */}
+                  {/* Completed indicator + protokol button */}
                   {zasah.status === "hotovo" && (
-                    <div className="flex items-center justify-center gap-1 rounded-lg bg-emerald-50 p-2">
-                      <span className="text-lg">✅</span>
-                      <span className="text-sm font-medium text-emerald-800">
-                        Dokončeno
-                      </span>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-center gap-1 rounded-lg bg-emerald-50 p-2">
+                        <span className="text-lg">✅</span>
+                        <span className="text-sm font-medium text-emerald-800">
+                          Dokončeno
+                        </span>
+                      </div>
+                      <Button
+                        className="min-h-[44px] w-full bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800"
+                        disabled={pendingProtokolZasahId === zasah.id}
+                        onClick={() => handleVyplnitProtokol(zasah)}
+                      >
+                        {pendingProtokolZasahId === zasah.id
+                          ? "Připravuji..."
+                          : "📋 Vyplnit protokol"}
+                      </Button>
                     </div>
                   )}
                 </CardContent>

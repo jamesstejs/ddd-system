@@ -21,7 +21,7 @@ Po implementaci vždy:
 
 ---
 
-## Aktuální sprint: SPRINT 17
+## Aktuální sprint: SPRINT 18
 
 ---
 
@@ -259,19 +259,23 @@ Po implementaci vždy:
 
 ---
 
-## Sprint 17 — Protokoly: DB schéma
+## Sprint 17 — Protokoly: DB schéma ✅
 **Cíl:** Kompletní DB struktura pro všechny typy protokolů
 
-- [ ] DB: `protokoly` (zasah_id, technik_id, status: rozpracovany/ke_schvaleni/schvaleny/odeslany, zodpovedny_technik text default 'Pavel Horák', cislo_protokolu text, podpis_klient_url nullable, poznamka, ai_hodnoceni text nullable, admin_komentar text nullable, created_at, updated_at, deleted_at)
-- [ ] DB: `protokol_deratizacni_body` (protokol_id, cislo_bodu text, okruh_id nullable, typ_stanicky enum, pripravek_id nullable, pozer_procent enum 0/25/50/75/100, stav_stanicky enum)
-- [ ] DB: `protokol_dezinsekci_body` (protokol_id, cislo_bodu text, okruh_id nullable, typ_lapace enum, druh_hmyzu text, pocet int)
-- [ ] DB: `protokol_postrik` (protokol_id, skudce text, plocha_m2, typ_zakroku text, poznamka)
-- [ ] DB: `protokol_postrik_pripravky` (postrik_id, pripravek_id, spotreba text, koncentrace_procent)
-- [ ] DB: `protokol_fotky` (protokol_id, soubor_url, popis)
-- [ ] Generování čísla protokolu: P-[KLIENT_KOD]-[SEKVENCE] (sekvenční per klient)
-- [ ] RLS policies
-- [ ] TypeScript typy
-- [ ] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
+- [x] DB: `protokoly` (zasah_id, technik_id, status: rozpracovany/ke_schvaleni/schvaleny/odeslany, zodpovedny_technik text default 'Pavel Horák', cislo_protokolu text, podpis_klient_url nullable, poznamka, ai_hodnoceni text nullable, admin_komentar text nullable, created_at, updated_at, deleted_at)
+- [x] DB: `protokol_deratizacni_body` (protokol_id, cislo_bodu text, okruh_id nullable, typ_stanicky enum, pripravek_id nullable, pozer_procent enum 0/25/50/75/100, stav_stanicky enum)
+- [x] DB: `protokol_dezinsekci_body` (protokol_id, cislo_bodu text, okruh_id nullable, typ_lapace enum, druh_hmyzu text, pocet int)
+- [x] DB: `protokol_postrik` (protokol_id, skudce text, plocha_m2, typ_zakroku text, poznamka)
+- [x] DB: `protokol_postrik_pripravky` (postrik_id, pripravek_id, spotreba text, koncentrace_procent)
+- [x] DB: `protokol_fotky` (protokol_id, soubor_url, popis)
+- [x] Generování čísla protokolu: P-[KLIENT_KOD]-[SEKVENCE] (sekvenční per klient) — DB funkce `generate_cislo_protokolu()`
+- [x] RLS policies (admin full CRUD, technik own via EXISTS subquery)
+- [x] TypeScript typy (regenerated)
+- [x] Klient `kod` sloupec (3 písmena + 3 číslice, trigger + backfill)
+- [x] Storage bucket `protokol-fotky` (20MB, jpeg/png/webp/heic)
+- [x] Queries: 20 functions v `src/lib/supabase/queries/protokoly.ts`
+- [x] Testy: 18 test suites v `protokoly.test.ts` (384/384 celkem)
+- [x] **Kontrola:** `npx tsc --noEmit` ✅ + `npx vitest run` 384/384 ✅ + `npm run build` ✅ + wiring check ✅ (no UI this sprint)
 
 ---
 

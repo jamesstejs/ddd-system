@@ -303,6 +303,7 @@ export type Database = {
           id: string
           individualni_sleva_procent: number
           jmeno: string
+          kod: string
           nazev: string
           platba_predem: boolean
           poznamka: string | null
@@ -322,6 +323,7 @@ export type Database = {
           id?: string
           individualni_sleva_procent?: number
           jmeno?: string
+          kod?: string
           nazev?: string
           platba_predem?: boolean
           poznamka?: string | null
@@ -341,6 +343,7 @@ export type Database = {
           id?: string
           individualni_sleva_procent?: number
           jmeno?: string
+          kod?: string
           nazev?: string
           platba_predem?: boolean
           poznamka?: string | null
@@ -651,6 +654,317 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      protokol_deratizacni_body: {
+        Row: {
+          cislo_bodu: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          okruh_id: string | null
+          pozer_procent: number
+          pripravek_id: string | null
+          protokol_id: string
+          stav_stanicky: Database["public"]["Enums"]["stav_stanicky"]
+          typ_stanicky: Database["public"]["Enums"]["typ_stanicky"]
+          updated_at: string
+        }
+        Insert: {
+          cislo_bodu: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          okruh_id?: string | null
+          pozer_procent?: number
+          pripravek_id?: string | null
+          protokol_id: string
+          stav_stanicky?: Database["public"]["Enums"]["stav_stanicky"]
+          typ_stanicky: Database["public"]["Enums"]["typ_stanicky"]
+          updated_at?: string
+        }
+        Update: {
+          cislo_bodu?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          okruh_id?: string | null
+          pozer_procent?: number
+          pripravek_id?: string | null
+          protokol_id?: string
+          stav_stanicky?: Database["public"]["Enums"]["stav_stanicky"]
+          typ_stanicky?: Database["public"]["Enums"]["typ_stanicky"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protokol_deratizacni_body_okruh_id_fkey"
+            columns: ["okruh_id"]
+            isOneToOne: false
+            referencedRelation: "okruhy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protokol_deratizacni_body_pripravek_id_fkey"
+            columns: ["pripravek_id"]
+            isOneToOne: false
+            referencedRelation: "pripravky"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protokol_deratizacni_body_protokol_id_fkey"
+            columns: ["protokol_id"]
+            isOneToOne: false
+            referencedRelation: "protokoly"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protokol_dezinsekci_body: {
+        Row: {
+          cislo_bodu: string
+          created_at: string
+          deleted_at: string | null
+          druh_hmyzu: string | null
+          id: string
+          okruh_id: string | null
+          pocet: number
+          protokol_id: string
+          typ_lapace: Database["public"]["Enums"]["typ_lapace"]
+          updated_at: string
+        }
+        Insert: {
+          cislo_bodu: string
+          created_at?: string
+          deleted_at?: string | null
+          druh_hmyzu?: string | null
+          id?: string
+          okruh_id?: string | null
+          pocet?: number
+          protokol_id: string
+          typ_lapace: Database["public"]["Enums"]["typ_lapace"]
+          updated_at?: string
+        }
+        Update: {
+          cislo_bodu?: string
+          created_at?: string
+          deleted_at?: string | null
+          druh_hmyzu?: string | null
+          id?: string
+          okruh_id?: string | null
+          pocet?: number
+          protokol_id?: string
+          typ_lapace?: Database["public"]["Enums"]["typ_lapace"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protokol_dezinsekci_body_okruh_id_fkey"
+            columns: ["okruh_id"]
+            isOneToOne: false
+            referencedRelation: "okruhy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protokol_dezinsekci_body_protokol_id_fkey"
+            columns: ["protokol_id"]
+            isOneToOne: false
+            referencedRelation: "protokoly"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protokol_fotky: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          popis: string | null
+          protokol_id: string
+          soubor_url: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          popis?: string | null
+          protokol_id: string
+          soubor_url: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          popis?: string | null
+          protokol_id?: string
+          soubor_url?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protokol_fotky_protokol_id_fkey"
+            columns: ["protokol_id"]
+            isOneToOne: false
+            referencedRelation: "protokoly"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protokol_postrik: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          plocha_m2: number | null
+          poznamka: string | null
+          protokol_id: string
+          skudce: string | null
+          typ_zakroku: Database["public"]["Enums"]["typ_zakroku"] | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          plocha_m2?: number | null
+          poznamka?: string | null
+          protokol_id: string
+          skudce?: string | null
+          typ_zakroku?: Database["public"]["Enums"]["typ_zakroku"] | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          plocha_m2?: number | null
+          poznamka?: string | null
+          protokol_id?: string
+          skudce?: string | null
+          typ_zakroku?: Database["public"]["Enums"]["typ_zakroku"] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protokol_postrik_protokol_id_fkey"
+            columns: ["protokol_id"]
+            isOneToOne: false
+            referencedRelation: "protokoly"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protokol_postrik_pripravky: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          koncentrace_procent: number | null
+          postrik_id: string
+          pripravek_id: string
+          spotreba: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          koncentrace_procent?: number | null
+          postrik_id: string
+          pripravek_id: string
+          spotreba?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          koncentrace_procent?: number | null
+          postrik_id?: string
+          pripravek_id?: string
+          spotreba?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protokol_postrik_pripravky_postrik_id_fkey"
+            columns: ["postrik_id"]
+            isOneToOne: false
+            referencedRelation: "protokol_postrik"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protokol_postrik_pripravky_pripravek_id_fkey"
+            columns: ["pripravek_id"]
+            isOneToOne: false
+            referencedRelation: "pripravky"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protokoly: {
+        Row: {
+          admin_komentar: string | null
+          ai_hodnoceni: string | null
+          cislo_protokolu: string | null
+          created_at: string
+          deleted_at: string | null
+          id: string
+          podpis_klient_url: string | null
+          poznamka: string | null
+          status: Database["public"]["Enums"]["status_protokolu"]
+          technik_id: string
+          updated_at: string
+          zasah_id: string
+          zodpovedny_technik: string
+        }
+        Insert: {
+          admin_komentar?: string | null
+          ai_hodnoceni?: string | null
+          cislo_protokolu?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          podpis_klient_url?: string | null
+          poznamka?: string | null
+          status?: Database["public"]["Enums"]["status_protokolu"]
+          technik_id: string
+          updated_at?: string
+          zasah_id: string
+          zodpovedny_technik?: string
+        }
+        Update: {
+          admin_komentar?: string | null
+          ai_hodnoceni?: string | null
+          cislo_protokolu?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          podpis_klient_url?: string | null
+          poznamka?: string | null
+          status?: Database["public"]["Enums"]["status_protokolu"]
+          technik_id?: string
+          updated_at?: string
+          zasah_id?: string
+          zodpovedny_technik?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protokoly_technik_id_fkey"
+            columns: ["technik_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protokoly_zasah_id_fkey"
+            columns: ["zasah_id"]
+            isOneToOne: false
+            referencedRelation: "zasahy"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sablony_bodu: {
         Row: {
@@ -1034,6 +1348,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_cislo_protokolu: {
+        Args: { p_zasah_id: string }
+        Returns: string
+      }
       is_admin_or_super_admin: { Args: never; Returns: boolean }
     }
     Enums: {
@@ -1050,6 +1368,11 @@ export type Database = {
         | "voskovy_blok"
         | "mikrokapsule"
         | "jiny"
+      status_protokolu:
+        | "rozpracovany"
+        | "ke_schvaleni"
+        | "schvaleny"
+        | "odeslany"
       status_zakazky: "nova" | "aktivni" | "pozastavena" | "ukoncena"
       status_zasahu:
         | "naplanovano"
@@ -1058,7 +1381,14 @@ export type Database = {
         | "hotovo"
         | "zruseno"
       stav_pripominky: "aktivni" | "vyreseno"
+      stav_stanicky:
+        | "zavedena"
+        | "odcizena"
+        | "znovu_zavedena"
+        | "poskozena"
+        | "ok"
       typ_klienta: "firma" | "fyzicka_osoba"
+      typ_lapace: "lezouci_hmyz" | "letajici_hmyz" | "lepova" | "elektronicka"
       typ_objektu:
         | "gastro"
         | "sklad_nevyzivocisna"
@@ -1086,7 +1416,14 @@ export type Database = {
         | "zemedelsky"
         | "chov_zvirat"
       typ_skudce: "hlodavec" | "lezouci_hmyz" | "letajici_hmyz" | "ostatni"
+      typ_stanicky:
+        | "zivolovna"
+        | "mys"
+        | "potkan"
+        | "sklopna_mys"
+        | "sklopna_potkan"
       typ_zakazky: "jednorazova" | "smluvni"
+      typ_zakroku: "postrik" | "ulv" | "poprash" | "gelova_nastraha"
       typ_zasahu_kalkulacka:
         | "vnitrni_deratizace"
         | "vnejsi_deratizace"
@@ -1233,6 +1570,12 @@ export const Constants = {
         "mikrokapsule",
         "jiny",
       ],
+      status_protokolu: [
+        "rozpracovany",
+        "ke_schvaleni",
+        "schvaleny",
+        "odeslany",
+      ],
       status_zakazky: ["nova", "aktivni", "pozastavena", "ukoncena"],
       status_zasahu: [
         "naplanovano",
@@ -1242,7 +1585,15 @@ export const Constants = {
         "zruseno",
       ],
       stav_pripominky: ["aktivni", "vyreseno"],
+      stav_stanicky: [
+        "zavedena",
+        "odcizena",
+        "znovu_zavedena",
+        "poskozena",
+        "ok",
+      ],
       typ_klienta: ["firma", "fyzicka_osoba"],
+      typ_lapace: ["lezouci_hmyz", "letajici_hmyz", "lepova", "elektronicka"],
       typ_objektu: [
         "gastro",
         "sklad_nevyzivocisna",
@@ -1273,7 +1624,15 @@ export const Constants = {
         "chov_zvirat",
       ],
       typ_skudce: ["hlodavec", "lezouci_hmyz", "letajici_hmyz", "ostatni"],
+      typ_stanicky: [
+        "zivolovna",
+        "mys",
+        "potkan",
+        "sklopna_mys",
+        "sklopna_potkan",
+      ],
       typ_zakazky: ["jednorazova", "smluvni"],
+      typ_zakroku: ["postrik", "ulv", "poprash", "gelova_nastraha"],
       typ_zasahu_kalkulacka: [
         "vnitrni_deratizace",
         "vnejsi_deratizace",

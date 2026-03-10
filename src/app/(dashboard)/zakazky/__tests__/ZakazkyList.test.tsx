@@ -62,6 +62,7 @@ const baseKlient: Klient = {
   prijmeni: "",
   ico: "12345678",
   dic: null,
+  kod: "TST001",
   email: "kocour@test.cz",
   telefon: "777111222",
   adresa: "Praha 1",

@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      bezpecnostni_listy: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          nahrano_datum: string
+          nazev_souboru: string
+          pripravek_id: string
+          soubor_url: string
+          updated_at: string
+          velikost_bytes: number | null
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          nahrano_datum?: string
+          nazev_souboru: string
+          pripravek_id: string
+          soubor_url: string
+          updated_at?: string
+          velikost_bytes?: number | null
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          nahrano_datum?: string
+          nazev_souboru?: string
+          pripravek_id?: string
+          soubor_url?: string
+          updated_at?: string
+          velikost_bytes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bezpecnostni_listy_pripravek_id_fkey"
+            columns: ["pripravek_id"]
+            isOneToOne: false
+            referencedRelation: "pripravky"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cenik_deratizace: {
         Row: {
           cena_za_kus: number
@@ -658,6 +702,50 @@ export type Database = {
           zivolovna?: number
         }
         Relationships: []
+      }
+      sablony_pouceni: {
+        Row: {
+          aktivni: boolean
+          created_at: string
+          deleted_at: string | null
+          id: string
+          nazev: string
+          obsah: string
+          skudce_id: string | null
+          typ_zasahu: string | null
+          updated_at: string
+        }
+        Insert: {
+          aktivni?: boolean
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          nazev: string
+          obsah?: string
+          skudce_id?: string | null
+          typ_zasahu?: string | null
+          updated_at?: string
+        }
+        Update: {
+          aktivni?: boolean
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          nazev?: string
+          obsah?: string
+          skudce_id?: string | null
+          typ_zasahu?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sablony_pouceni_skudce_id_fkey"
+            columns: ["skudce_id"]
+            isOneToOne: false
+            referencedRelation: "skudci"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       skudce_pripravky: {
         Row: {

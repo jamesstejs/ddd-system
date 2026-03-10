@@ -21,7 +21,7 @@ Po implementaci vždy:
 
 ---
 
-## Aktuální sprint: SPRINT 12
+## Aktuální sprint: SPRINT 17
 
 ---
 
@@ -222,13 +222,13 @@ Po implementaci vždy:
 ## Sprint 14 — Další termín po zásahu
 **Cíl:** Technik po zásahu domluvý nebo systém připomíná
 
-- [ ] DB: `pripominky_terminu` (zakazka_id, typ: technik_nenastavil/klient_nevybral, stav: aktivni/vyreseno, posledni_upozorneni_at, pocet_upozorneni int, max_upozorneni int default 10, created_at)
-- [ ] UI: po dokončení zásahu (status=hotovo) → Bottom Sheet "Další termín" (datum + čas)
-- [ ] Pokud technik vyplní → nový zásah v kalendáři (status: potvrzený)
-- [ ] Pokud nevyplní → vytvoří se připomínka pro admina
-- [ ] Dashboard admin: "Nedomluvené termíny" widget
-- [ ] Dashboard technik: "Klienti — domluvit termín" widget
-- [ ] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
+- [x] DB: `pripominky_terminu` (zakazka_id, typ: technik_nenastavil/klient_nevybral, stav: aktivni/vyreseno, posledni_upozorneni_at, pocet_upozorneni int, max_upozorneni int default 10, created_at)
+- [x] UI: po dokončení zásahu (status=hotovo) → Bottom Sheet "Další termín" (datum + čas)
+- [x] Pokud technik vyplní → nový zásah v kalendáři (status: potvrzený)
+- [x] Pokud nevyplní → vytvoří se připomínka pro admina
+- [x] Dashboard admin: "Nedomluvené termíny" widget
+- [x] Dashboard technik: "Klienti — domluvit termín" widget
+- [x] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
 
 ---
 
@@ -249,13 +249,13 @@ Po implementaci vždy:
 ## Sprint 16 — Bezpečnostní listy + poučení
 **Cíl:** Upload BL, šablony poučení per škůdce
 
-- [ ] DB: `bezpecnostni_listy` (pripravek_id, soubor_url, nazev_souboru, nahrano_datum)
-- [ ] Supabase Storage bucket: `bezpecnostni-listy`
-- [ ] UI: na detailu přípravku upload PDF + zobrazení BL
-- [ ] DB: `sablony_pouceni` (skudce_id nullable, typ_zasahu nullable, nazev, obsah text, aktivni boolean)
-- [ ] Seed: default šablony poučení per typ škůdce (admin dodá texty později, seed = placeholder)
-- [ ] UI: admin CRUD šablon poučení (textarea + preview)
-- [ ] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
+- [x] DB: `bezpecnostni_listy` (pripravek_id, soubor_url, nazev_souboru, nahrano_datum)
+- [x] Supabase Storage bucket: `bezpecnostni-listy`
+- [x] UI: na detailu přípravku upload PDF + zobrazení BL
+- [x] DB: `sablony_pouceni` (skudce_id nullable, typ_zasahu nullable, nazev, obsah text, aktivni boolean)
+- [x] Seed: default šablony poučení per typ škůdce (admin dodá texty později, seed = placeholder)
+- [x] UI: admin CRUD šablon poučení (textarea + preview)
+- [x] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
 
 ---
 

@@ -104,6 +104,12 @@ export default async function VicePage() {
             >
               Přípravky
             </Link>
+            <Link
+              href="/pouceni"
+              className="flex min-h-[44px] items-center text-sm font-medium underline-offset-4 hover:underline active:underline focus-visible:underline"
+            >
+              Šablony poučení
+            </Link>
           </CardContent>
         </Card>
       )}

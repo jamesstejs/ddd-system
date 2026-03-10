@@ -68,7 +68,7 @@ const pripravky: Pripravek[] = [
 
 describe("PripravkyList", () => {
   it("renders all pripravky for non-admin", () => {
-    render(<PripravkyList pripravky={pripravky} isAdmin={false} />);
+    render(<PripravkyList pripravky={pripravky} isAdmin={false} blByPripravek={{}} />);
 
     expect(screen.getByText("Brodifacoum Bloc")).toBeInTheDocument();
     expect(screen.getByText("Cyperkill 25 EC")).toBeInTheDocument();
@@ -77,32 +77,32 @@ describe("PripravkyList", () => {
   });
 
   it("shows correct count", () => {
-    render(<PripravkyList pripravky={pripravky} isAdmin={false} />);
+    render(<PripravkyList pripravky={pripravky} isAdmin={false} blByPripravek={{}} />);
     expect(screen.getByText("4 přípravky")).toBeInTheDocument();
   });
 
   it("shows singular count for 1 item", () => {
     render(
-      <PripravkyList pripravky={[basePripravek]} isAdmin={false} />,
+      <PripravkyList pripravky={[basePripravek]} isAdmin={false} blByPripravek={{}} />,
     );
     expect(screen.getByText("1 přípravek")).toBeInTheDocument();
   });
 
   it("shows empty state when no pripravky", () => {
-    render(<PripravkyList pripravky={[]} isAdmin={false} />);
+    render(<PripravkyList pripravky={[]} isAdmin={false} blByPripravek={{}} />);
     expect(
       screen.getByText("Zatím žádné přípravky"),
     ).toBeInTheDocument();
   });
 
   it("displays ucinna_latka", () => {
-    render(<PripravkyList pripravky={pripravky} isAdmin={false} />);
+    render(<PripravkyList pripravky={pripravky} isAdmin={false} blByPripravek={{}} />);
     expect(screen.getByText("Brodifacoum 0,005%")).toBeInTheDocument();
     expect(screen.getByText("Cypermethrin 25%")).toBeInTheDocument();
   });
 
   it("displays typ badges", () => {
-    render(<PripravkyList pripravky={pripravky} isAdmin={false} />);
+    render(<PripravkyList pripravky={pripravky} isAdmin={false} blByPripravek={{}} />);
     // Typ labels appear in filter buttons AND in card badges
     expect(screen.getAllByText("Rodenticid").length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByText("Insekticid").length).toBeGreaterThanOrEqual(2);
@@ -111,46 +111,46 @@ describe("PripravkyList", () => {
   });
 
   it("displays forma badges", () => {
-    render(<PripravkyList pripravky={pripravky} isAdmin={false} />);
+    render(<PripravkyList pripravky={pripravky} isAdmin={false} blByPripravek={{}} />);
     expect(screen.getByText("Voskový blok")).toBeInTheDocument();
     expect(screen.getAllByText("Kapalina").length).toBeGreaterThanOrEqual(2);
   });
 
   it("displays cilovy_skudce badges", () => {
-    render(<PripravkyList pripravky={pripravky} isAdmin={false} />);
+    render(<PripravkyList pripravky={pripravky} isAdmin={false} blByPripravek={{}} />);
     expect(screen.getByText("Potkan obecný")).toBeInTheDocument();
     expect(screen.getByText("Myš domácí")).toBeInTheDocument();
     expect(screen.getByText("Šváb obecný")).toBeInTheDocument();
   });
 
   it("displays omezeni_prostor badges", () => {
-    render(<PripravkyList pripravky={pripravky} isAdmin={false} />);
+    render(<PripravkyList pripravky={pripravky} isAdmin={false} blByPripravek={{}} />);
     expect(screen.getAllByText("Průmysl").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Venkovní").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Domácnost").length).toBeGreaterThanOrEqual(1);
   });
 
   it("displays protilatka", () => {
-    render(<PripravkyList pripravky={pripravky} isAdmin={false} />);
+    render(<PripravkyList pripravky={pripravky} isAdmin={false} blByPripravek={{}} />);
     expect(
       screen.getByText("Vitamin K1 (Fytomenadion)"),
     ).toBeInTheDocument();
   });
 
   it("displays baleni", () => {
-    render(<PripravkyList pripravky={pripravky} isAdmin={false} />);
+    render(<PripravkyList pripravky={pripravky} isAdmin={false} blByPripravek={{}} />);
     expect(screen.getByText("10 kg kbelík")).toBeInTheDocument();
   });
 
   it("displays poznamka", () => {
-    render(<PripravkyList pripravky={pripravky} isAdmin={false} />);
+    render(<PripravkyList pripravky={pripravky} isAdmin={false} blByPripravek={{}} />);
     expect(screen.getByText("Profesionální použití")).toBeInTheDocument();
   });
 
   // --- Filtrování ---
 
   it("filters by typ rodenticid", () => {
-    render(<PripravkyList pripravky={pripravky} isAdmin={false} />);
+    render(<PripravkyList pripravky={pripravky} isAdmin={false} blByPripravek={{}} />);
 
     const filterButtons = screen.getAllByRole("button");
     const rodenticidFilter = filterButtons.find(
@@ -164,7 +164,7 @@ describe("PripravkyList", () => {
   });
 
   it("filters by typ insekticid", () => {
-    render(<PripravkyList pripravky={pripravky} isAdmin={false} />);
+    render(<PripravkyList pripravky={pripravky} isAdmin={false} blByPripravek={{}} />);
 
     const filterButtons = screen.getAllByRole("button");
     const insekticidFilter = filterButtons.find(
@@ -177,7 +177,7 @@ describe("PripravkyList", () => {
   });
 
   it("filters by search query (nazev)", () => {
-    render(<PripravkyList pripravky={pripravky} isAdmin={false} />);
+    render(<PripravkyList pripravky={pripravky} isAdmin={false} blByPripravek={{}} />);
 
     const searchInput = screen.getByPlaceholderText(
       "Hledat přípravek, účinnou látku, škůdce...",
@@ -189,7 +189,7 @@ describe("PripravkyList", () => {
   });
 
   it("filters by search query (ucinna_latka)", () => {
-    render(<PripravkyList pripravky={pripravky} isAdmin={false} />);
+    render(<PripravkyList pripravky={pripravky} isAdmin={false} blByPripravek={{}} />);
 
     const searchInput = screen.getByPlaceholderText(
       "Hledat přípravek, účinnou látku, škůdce...",
@@ -201,7 +201,7 @@ describe("PripravkyList", () => {
   });
 
   it("filters by search query (cilovy_skudce)", () => {
-    render(<PripravkyList pripravky={pripravky} isAdmin={false} />);
+    render(<PripravkyList pripravky={pripravky} isAdmin={false} blByPripravek={{}} />);
 
     const searchInput = screen.getByPlaceholderText(
       "Hledat přípravek, účinnou látku, škůdce...",
@@ -213,7 +213,7 @@ describe("PripravkyList", () => {
   });
 
   it("shows no-match message when search yields no results", () => {
-    render(<PripravkyList pripravky={pripravky} isAdmin={false} />);
+    render(<PripravkyList pripravky={pripravky} isAdmin={false} blByPripravek={{}} />);
 
     const searchInput = screen.getByPlaceholderText(
       "Hledat přípravek, účinnou látku, škůdce...",
@@ -228,17 +228,17 @@ describe("PripravkyList", () => {
   // --- Admin funkce ---
 
   it("does not show CRUD buttons for non-admin", () => {
-    render(<PripravkyList pripravky={pripravky} isAdmin={false} />);
+    render(<PripravkyList pripravky={pripravky} isAdmin={false} blByPripravek={{}} />);
     expect(screen.queryByText("Přidat")).not.toBeInTheDocument();
   });
 
   it("shows Přidat button for admin", () => {
-    render(<PripravkyList pripravky={pripravky} isAdmin={true} />);
+    render(<PripravkyList pripravky={pripravky} isAdmin={true} blByPripravek={{}} />);
     expect(screen.getByText("Přidat")).toBeInTheDocument();
   });
 
   it("shows edit and delete buttons for admin", () => {
-    render(<PripravkyList pripravky={pripravky} isAdmin={true} />);
+    render(<PripravkyList pripravky={pripravky} isAdmin={true} blByPripravek={{}} />);
     // Each card has edit + delete icon buttons
     const allButtons = screen.getAllByRole("button");
     const editButtons = allButtons.filter((btn) =>
@@ -252,7 +252,7 @@ describe("PripravkyList", () => {
   });
 
   it("shows aktivni/neaktivni filter for admin", () => {
-    render(<PripravkyList pripravky={pripravky} isAdmin={true} />);
+    render(<PripravkyList pripravky={pripravky} isAdmin={true} blByPripravek={{}} />);
     const filterButtons = screen.getAllByRole("button");
     const aktivniFilter = filterButtons.find(
       (btn) => btn.textContent === "Aktivní",
@@ -265,7 +265,7 @@ describe("PripravkyList", () => {
   });
 
   it("does not show aktivni/neaktivni filter for non-admin", () => {
-    render(<PripravkyList pripravky={pripravky} isAdmin={false} />);
+    render(<PripravkyList pripravky={pripravky} isAdmin={false} blByPripravek={{}} />);
     const filterButtons = screen.getAllByRole("button");
     const aktivniFilter = filterButtons.find(
       (btn) => btn.textContent === "Aktivní",
@@ -274,7 +274,7 @@ describe("PripravkyList", () => {
   });
 
   it("filters aktivni only for admin", () => {
-    render(<PripravkyList pripravky={pripravky} isAdmin={true} />);
+    render(<PripravkyList pripravky={pripravky} isAdmin={true} blByPripravek={{}} />);
 
     const filterButtons = screen.getAllByRole("button");
     const aktivniBtn = filterButtons.find(
@@ -288,7 +288,7 @@ describe("PripravkyList", () => {
   });
 
   it("filters neaktivni only for admin", () => {
-    render(<PripravkyList pripravky={pripravky} isAdmin={true} />);
+    render(<PripravkyList pripravky={pripravky} isAdmin={true} blByPripravek={{}} />);
 
     const filterButtons = screen.getAllByRole("button");
     const neaktivniBtn = filterButtons.find(
@@ -303,14 +303,14 @@ describe("PripravkyList", () => {
   // --- Neaktivní indikace ---
 
   it("shows Neaktivní badge on inactive items", () => {
-    render(<PripravkyList pripravky={pripravky} isAdmin={false} />);
+    render(<PripravkyList pripravky={pripravky} isAdmin={false} blByPripravek={{}} />);
     expect(screen.getByText("Neaktivní")).toBeInTheDocument();
   });
 
   // --- Mobile/A11y ---
 
   it("search input has minimum tap target", () => {
-    render(<PripravkyList pripravky={pripravky} isAdmin={false} />);
+    render(<PripravkyList pripravky={pripravky} isAdmin={false} blByPripravek={{}} />);
     const input = screen.getByPlaceholderText(
       "Hledat přípravek, účinnou látku, škůdce...",
     );
@@ -318,7 +318,7 @@ describe("PripravkyList", () => {
   });
 
   it("search input has 16px font for iOS zoom prevention", () => {
-    render(<PripravkyList pripravky={pripravky} isAdmin={false} />);
+    render(<PripravkyList pripravky={pripravky} isAdmin={false} blByPripravek={{}} />);
     const input = screen.getByPlaceholderText(
       "Hledat přípravek, účinnou látku, škůdce...",
     );

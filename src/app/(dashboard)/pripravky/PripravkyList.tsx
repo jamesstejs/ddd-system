@@ -18,15 +18,21 @@ import {
   Shield,
   Droplets,
   BirdIcon,
+  FileText,
+  Upload,
+  X,
 } from "lucide-react";
 import type { Database } from "@/lib/supabase/database.types";
 import {
   createPripravekAction,
   updatePripravekAction,
   deletePripravekAction,
+  uploadBezpecnostniListAction,
+  deleteBezpecnostniListAction,
 } from "./actions";
 
 type Pripravek = Database["public"]["Tables"]["pripravky"]["Row"];
+type BezpecnostniList = Database["public"]["Tables"]["bezpecnostni_listy"]["Row"];
 type TypPripravku = Database["public"]["Enums"]["typ_pripravku"];
 type FormaPripravku = Database["public"]["Enums"]["forma_pripravku"];
 
@@ -86,11 +92,13 @@ const ALL_PROSTORY = Object.keys(PROSTOR_LABELS);
 interface PripravkyListProps {
   pripravky: Pripravek[];
   isAdmin: boolean;
+  blByPripravek: Record<string, BezpecnostniList[]>;
 }
 
 export default function PripravkyList({
   pripravky,
   isAdmin,
+  blByPripravek,
 }: PripravkyListProps) {
   const [search, setSearch] = useState("");
   const [filterTyp, setFilterTyp] = useState<TypPripravku | "all">("all");
@@ -257,6 +265,7 @@ export default function PripravkyList({
                         variant="ghost"
                         size="icon"
                         className="h-9 w-9"
+                        aria-label={`Upravit ${p.nazev}`}
                         onClick={() => setEditItem(p)}
                       >
                         <Pencil className="h-4 w-4" />
@@ -265,6 +274,7 @@ export default function PripravkyList({
                         variant="ghost"
                         size="icon"
                         className="h-9 w-9 text-destructive"
+                        aria-label={`Smazat ${p.nazev}`}
                         onClick={() => setDeleteItem(p)}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -330,6 +340,13 @@ export default function PripravkyList({
                     )}
                   </div>
                 )}
+
+                {/* Bezpečnostní listy */}
+                <BezpecnostniListySection
+                  pripravekId={p.id}
+                  listy={blByPripravek[p.id] || []}
+                  isAdmin={isAdmin}
+                />
               </CardContent>
             </Card>
           );
@@ -372,6 +389,126 @@ export default function PripravkyList({
         </>
       )}
     </div>
+  );
+}
+
+// --- Bezpečnostní listy sekce ---
+
+function BezpecnostniListySection({
+  pripravekId,
+  listy,
+  isAdmin,
+}: {
+  pripravekId: string;
+  listy: BezpecnostniList[];
+  isAdmin: boolean;
+}) {
+  const [isPending, startTransition] = useTransition();
+  const [deleteBlId, setDeleteBlId] = useState<{
+    id: string;
+    url: string;
+    nazev: string;
+  } | null>(null);
+
+  function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    startTransition(async () => {
+      try {
+        await uploadBezpecnostniListAction(pripravekId, formData);
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "Chyba při nahrávání");
+      }
+    });
+
+    // Reset input
+    e.target.value = "";
+  }
+
+  // Non-admin: skrýt sekci pokud nejsou žádné BL
+  if (!isAdmin && listy.length === 0) return null;
+
+  return (
+    <>
+      <div className="mt-3 border-t pt-3">
+        <div className="flex items-center justify-between">
+          <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+            <FileText className="h-3 w-3" />
+            Bezpečnostní listy ({listy.length})
+          </p>
+          {isAdmin && (
+            <label className="cursor-pointer">
+              <input
+                type="file"
+                accept="application/pdf"
+                className="hidden"
+                onChange={handleUpload}
+                disabled={isPending}
+              />
+              <span className="inline-flex min-h-[44px] items-center gap-1 rounded-md border border-input px-3 py-1 text-xs font-medium hover:bg-accent active:bg-accent">
+                <Upload className="h-3 w-3" />
+                {isPending ? "Nahrávám..." : "Nahrát PDF"}
+              </span>
+            </label>
+          )}
+        </div>
+
+        {listy.length > 0 && (
+          <div className="mt-2 space-y-1">
+            {listy.map((bl) => (
+              <div
+                key={bl.id}
+                className="flex min-h-[44px] items-center justify-between gap-2 rounded-md bg-muted/50 px-2 py-1.5"
+              >
+                <a
+                  href={bl.soubor_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-h-[44px] min-w-0 items-center gap-1.5 text-xs text-primary underline-offset-2 hover:underline active:underline"
+                >
+                  <FileText className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span className="truncate">{bl.nazev_souboru}</span>
+                </a>
+                {isAdmin && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 flex-shrink-0 text-destructive"
+                    aria-label={`Smazat ${bl.nazev_souboru}`}
+                    onClick={() =>
+                      setDeleteBlId({
+                        id: bl.id,
+                        url: bl.soubor_url,
+                        nazev: bl.nazev_souboru,
+                      })
+                    }
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <ConfirmDeleteSheet
+        open={!!deleteBlId}
+        onOpenChange={(open) => !open && setDeleteBlId(null)}
+        title="Smazat bezpečnostní list"
+        description={`Opravdu chcete smazat "${deleteBlId?.nazev}"?`}
+        onConfirm={async () => {
+          if (deleteBlId) {
+            await deleteBezpecnostniListAction(deleteBlId.id, deleteBlId.url);
+            setDeleteBlId(null);
+          }
+        }}
+      />
+    </>
   );
 }
 

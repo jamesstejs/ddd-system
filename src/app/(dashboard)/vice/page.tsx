@@ -98,6 +98,12 @@ export default async function VicePage() {
             >
               Škůdci
             </Link>
+            <Link
+              href="/pripravky"
+              className="flex min-h-[44px] items-center text-sm font-medium hover:underline"
+            >
+              Přípravky
+            </Link>
           </CardContent>
         </Card>
       )}

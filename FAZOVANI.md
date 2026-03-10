@@ -235,13 +235,14 @@ Po implementaci vždy:
 ## Sprint 15 — Přípravky: DB + CRUD
 **Cíl:** Databáze přípravků ze CSV
 
-- [ ] DB: `pripravky` (nazev, ucinna_latka, protilatka, typ: rodenticid/insekticid/biocid, forma, baleni, cilovy_skudce jsonb, omezeni_prostor jsonb, aktivni boolean, poznamka, created_at, updated_at, deleted_at)
-- [ ] Seed: přípravky z nahraného CSV (cca 30+)
-- [ ] RLS policy
-- [ ] UI: admin seznam přípravků (search, filtr dle typu)
-- [ ] UI: CRUD přípravku (Bottom Sheet)
-- [ ] Vazba: přípravek × škůdce × typ prostoru (z CSV seed)
-- [ ] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
+- [x] DB: `pripravky` (nazev, ucinna_latka, protilatka, typ: rodenticid/insekticid/biocid/dezinfekce/repelent, forma, baleni, cilovy_skudce jsonb, omezeni_prostor jsonb, aktivni boolean, poznamka, created_at, updated_at, deleted_at)
+- [x] Seed: přípravky z nahraného CSV (30 přípravků — rodenticidy, insekticidy, dezinfekce, repelenty, biocidy)
+- [x] RLS policy (all authenticated SELECT, admin INSERT/UPDATE/DELETE)
+- [x] UI: admin seznam přípravků (search, filtr dle typu, filtr aktivní/neaktivní)
+- [x] UI: CRUD přípravku (Bottom Sheet) + navigace z Více
+- [x] Vazba: přípravek × škůdce × typ prostoru (z seed — cilovy_skudce + omezeni_prostor JSONB)
+- [x] Testy: 7 unit (queries) + 28 component (PripravkyList) = 35 nových testů
+- [x] **Kontrola:** `npx tsc --noEmit` ✅ + `npx vitest run` 338/338 ✅ + `npm run build` ✅ + mobile audit ✅ + wiring check ✅
 
 ---
 

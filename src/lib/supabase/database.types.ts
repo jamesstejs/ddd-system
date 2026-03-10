@@ -515,6 +515,57 @@ export type Database = {
           },
         ]
       }
+      pripravky: {
+        Row: {
+          aktivni: boolean
+          baleni: string | null
+          cilovy_skudce: Json | null
+          created_at: string
+          deleted_at: string | null
+          forma: Database["public"]["Enums"]["forma_pripravku"]
+          id: string
+          nazev: string
+          omezeni_prostor: Json | null
+          poznamka: string | null
+          protilatka: string | null
+          typ: Database["public"]["Enums"]["typ_pripravku"]
+          ucinna_latka: string | null
+          updated_at: string
+        }
+        Insert: {
+          aktivni?: boolean
+          baleni?: string | null
+          cilovy_skudce?: Json | null
+          created_at?: string
+          deleted_at?: string | null
+          forma?: Database["public"]["Enums"]["forma_pripravku"]
+          id?: string
+          nazev: string
+          omezeni_prostor?: Json | null
+          poznamka?: string | null
+          protilatka?: string | null
+          typ: Database["public"]["Enums"]["typ_pripravku"]
+          ucinna_latka?: string | null
+          updated_at?: string
+        }
+        Update: {
+          aktivni?: boolean
+          baleni?: string | null
+          cilovy_skudce?: Json | null
+          created_at?: string
+          deleted_at?: string | null
+          forma?: Database["public"]["Enums"]["forma_pripravku"]
+          id?: string
+          nazev?: string
+          omezeni_prostor?: Json | null
+          poznamka?: string | null
+          protilatka?: string | null
+          typ?: Database["public"]["Enums"]["typ_pripravku"]
+          ucinna_latka?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           aktivni_role: Database["public"]["Enums"]["app_role"]
@@ -899,6 +950,18 @@ export type Database = {
     }
     Enums: {
       app_role: "super_admin" | "admin" | "technik" | "klient"
+      forma_pripravku:
+        | "pasta"
+        | "granule"
+        | "gel"
+        | "kapalina"
+        | "prasek"
+        | "aerosol"
+        | "pena"
+        | "tablety"
+        | "voskovy_blok"
+        | "mikrokapsule"
+        | "jiny"
       status_zakazky: "nova" | "aktivni" | "pozastavena" | "ukoncena"
       status_zasahu:
         | "naplanovano"
@@ -921,6 +984,12 @@ export type Database = {
         | "vyrobni_hala"
         | "jiny"
       typ_pripominky: "technik_nenastavil" | "klient_nevybral"
+      typ_pripravku:
+        | "rodenticid"
+        | "insekticid"
+        | "biocid"
+        | "dezinfekce"
+        | "repelent"
       typ_prostoru:
         | "potravinarsky"
         | "domacnost"
@@ -1063,6 +1132,19 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["super_admin", "admin", "technik", "klient"],
+      forma_pripravku: [
+        "pasta",
+        "granule",
+        "gel",
+        "kapalina",
+        "prasek",
+        "aerosol",
+        "pena",
+        "tablety",
+        "voskovy_blok",
+        "mikrokapsule",
+        "jiny",
+      ],
       status_zakazky: ["nova", "aktivni", "pozastavena", "ukoncena"],
       status_zasahu: [
         "naplanovano",
@@ -1087,6 +1169,13 @@ export const Constants = {
         "jiny",
       ],
       typ_pripominky: ["technik_nenastavil", "klient_nevybral"],
+      typ_pripravku: [
+        "rodenticid",
+        "insekticid",
+        "biocid",
+        "dezinfekce",
+        "repelent",
+      ],
       typ_prostoru: [
         "potravinarsky",
         "domacnost",

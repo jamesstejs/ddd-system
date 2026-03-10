@@ -14,10 +14,7 @@ import {
   getNextCisloBodu,
   POZER_COLORS,
 } from "@/lib/utils/protokolUtils";
-import {
-  saveDeratBodyAction,
-  saveProtokolPoznamkaAction,
-} from "./protokolActions";
+import { saveDeratBodyAction } from "./protokolActions";
 import type { Database } from "@/lib/supabase/database.types";
 
 // ---------- Types ----------
@@ -159,12 +156,13 @@ export function DeratFormView({
         })),
       ];
 
-      await saveDeratBodyAction(protokol.id, bodyToSave);
-
-      // Save poznámka
-      if (poznamka !== (protokol.poznamka || "")) {
-        await saveProtokolPoznamkaAction(protokol.id, poznamka);
-      }
+      // Uloží body + poznámku v jednom požadavku (1 server action místo 2)
+      const poznamkaChanged = poznamka !== (protokol.poznamka || "");
+      await saveDeratBodyAction(
+        protokol.id,
+        bodyToSave,
+        poznamkaChanged ? poznamka : undefined,
+      );
 
       setSaveMessage("Uloženo");
       setTimeout(() => setSaveMessage(null), 3000);

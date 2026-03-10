@@ -172,11 +172,12 @@ export async function getPrefilledBodyAction(zasahId: string) {
 }
 
 // ============================================================
-// Uložení deratizačních bodů (batch)
+// Uložení deratizačních bodů + poznámky (single action)
 // ============================================================
 
 /**
- * Uloží deratizační body protokolu.
+ * Uloží deratizační body a poznámku protokolu v jednom požadavku.
+ * Body se zpracovávají paralelně (Promise.all) místo sekvenčně.
  * - Nové body (bez id) → createProtokolDeratBod
  * - Existující body (s id) → updateProtokolDeratBod
  * - Smazané body (_deleted: true) → deleteProtokolDeratBod
@@ -184,6 +185,7 @@ export async function getPrefilledBodyAction(zasahId: string) {
 export async function saveDeratBodyAction(
   protokolId: string,
   body: DeratBodInput[],
+  poznamka?: string,
 ) {
   if (!UUID_REGEX.test(protokolId)) {
     throw new Error("Neplatný formát ID protokolu");
@@ -203,16 +205,12 @@ export async function saveDeratBodyAction(
     throw new Error("Protokol nelze editovat (status: " + protokol.status + ")");
   }
 
-  // Zpracování bodů
-  const errors: string[] = [];
-
-  for (const bod of body) {
+  // Zpracování bodů PARALELNĚ (místo sekvenčního for-await)
+  const promises = body.map(async (bod) => {
     if (bod._deleted && bod.id) {
-      // Smazat existující bod
       const { error } = await deleteProtokolDeratBod(supabase, bod.id);
-      if (error) errors.push(`Chyba při mazání bodu ${bod.cislo_bodu}: ${error.message}`);
+      if (error) return `Chyba při mazání bodu ${bod.cislo_bodu}: ${error.message}`;
     } else if (bod.id) {
-      // Aktualizovat existující bod
       const { error } = await updateProtokolDeratBod(supabase, bod.id, {
         cislo_bodu: bod.cislo_bodu,
         okruh_id: bod.okruh_id,
@@ -221,9 +219,8 @@ export async function saveDeratBodyAction(
         pozer_procent: bod.pozer_procent,
         stav_stanicky: bod.stav_stanicky,
       });
-      if (error) errors.push(`Chyba při ukládání bodu ${bod.cislo_bodu}: ${error.message}`);
+      if (error) return `Chyba při ukládání bodu ${bod.cislo_bodu}: ${error.message}`;
     } else {
-      // Vytvořit nový bod
       const { error } = await createProtokolDeratBod(supabase, {
         protokol_id: protokolId,
         cislo_bodu: bod.cislo_bodu,
@@ -233,24 +230,40 @@ export async function saveDeratBodyAction(
         pozer_procent: bod.pozer_procent,
         stav_stanicky: bod.stav_stanicky,
       });
-      if (error) errors.push(`Chyba při vytváření bodu ${bod.cislo_bodu}: ${error.message}`);
+      if (error) return `Chyba při vytváření bodu ${bod.cislo_bodu}: ${error.message}`;
     }
+    return null;
+  });
+
+  // Uložit poznámku paralelně s body
+  if (poznamka !== undefined) {
+    promises.push(
+      updateProtokol(supabase, protokolId, {
+        poznamka: poznamka || null,
+      }).then(({ error }) =>
+        error ? `Chyba při ukládání poznámky: ${error.message}` : null,
+      ),
+    );
   }
+
+  const results = await Promise.all(promises);
+  const errors = results.filter((r): r is string => r !== null);
 
   if (errors.length > 0) {
     throw new Error(errors.join("; "));
   }
 
-  revalidatePath("/protokoly");
+  // Pouze revalidace specifické stránky (ne celý /protokoly list)
   revalidatePath(`/protokoly/${protokolId}`);
 }
 
 // ============================================================
-// Uložení poznámky
+// Uložení poznámky (standalone — pro zpětnou kompatibilitu)
 // ============================================================
 
 /**
  * Uloží poznámku k protokolu.
+ * POZNÁMKA: Preferuj saveDeratBodyAction s poznamka parametrem.
  */
 export async function saveProtokolPoznamkaAction(
   protokolId: string,
@@ -280,7 +293,6 @@ export async function saveProtokolPoznamkaAction(
 
   if (error) throw new Error(error.message);
 
-  revalidatePath("/protokoly");
   revalidatePath(`/protokoly/${protokolId}`);
 }
 

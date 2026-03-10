@@ -14,7 +14,6 @@ vi.mock("next/navigation", () => ({
 // Mock server actions
 vi.mock("../protokolActions", () => ({
   saveDeratBodyAction: vi.fn().mockResolvedValue(undefined),
-  saveProtokolPoznamkaAction: vi.fn().mockResolvedValue(undefined),
 }));
 
 const baseProtokolData = {

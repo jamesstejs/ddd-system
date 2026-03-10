@@ -10,6 +10,9 @@ import { notFound, redirect } from "next/navigation";
 import { DeratFormView } from "./DeratFormView";
 import type { AppRole } from "@/lib/auth";
 
+// Vercel Pro: 30s timeout (default 10s je málo pro chain DB queries)
+export const maxDuration = 30;
+
 export default async function ProtokolDetailPage({
   params,
 }: {
@@ -33,7 +36,7 @@ export default async function ProtokolDetailPage({
     redirect("/kalendar");
   }
 
-  // Načtení protokolu
+  // Načtení protokolu (potřebujeme pro ownership check + objekt ID)
   const { data: protokol, error } = await getProtokol(supabase, id);
   if (error || !protokol) {
     notFound();
@@ -44,24 +47,27 @@ export default async function ProtokolDetailPage({
     redirect("/kalendar");
   }
 
-  // Načtení deratizačních bodů
-  const { data: body } = await getProtokolDeratBody(supabase, id);
-
-  // Načtení okruhů pro objekt
+  // Extrakce objektId z nested relations
   const zasahy = protokol.zasahy as Record<string, unknown> | null;
   const zakazky = zasahy?.zakazky as Record<string, unknown> | null;
   const objekty = zakazky?.objekty as { id: string } | null;
   const objektId = objekty?.id;
 
-  let okruhy: { id: string; nazev: string }[] = [];
-  if (objektId) {
-    const { data: okruhyData } = await getOkruhy(supabase, objektId);
-    okruhy = (okruhyData || []).map((o) => ({ id: o.id, nazev: o.nazev }));
-  }
+  // PARALELNÍ načtení nezávislých dat (body + pripravky + okruhy)
+  const [bodyResult, pripravkyResult, okruhyResult] = await Promise.all([
+    getProtokolDeratBody(supabase, id),
+    getAktivniPripravky(supabase),
+    objektId
+      ? getOkruhy(supabase, objektId)
+      : Promise.resolve({ data: null, error: null }),
+  ]);
 
-  // Načtení rodenticidů
-  const { data: allPripravky } = await getAktivniPripravky(supabase);
-  const pripravky = (allPripravky || [])
+  const body = bodyResult.data;
+  const okruhy = (okruhyResult.data || []).map((o) => ({
+    id: o.id,
+    nazev: o.nazev,
+  }));
+  const pripravky = (pripravkyResult.data || [])
     .filter((p) => p.typ === "rodenticid")
     .map((p) => ({
       id: p.id,
@@ -81,7 +87,8 @@ export default async function ProtokolDetailPage({
   const klientName = klienti
     ? klienti.nazev || `${klienti.prijmeni} ${klienti.jmeno}`.trim()
     : "—";
-  const objektNazev = (objekty as Record<string, unknown>)?.nazev as string || "";
+  const objektNazev =
+    (objekty as Record<string, unknown>)?.nazev as string || "";
 
   return (
     <div className="mx-auto max-w-lg pb-24">

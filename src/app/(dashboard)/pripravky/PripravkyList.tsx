@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useTransition } from "react";
+import { useState, useMemo, useTransition, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -539,9 +539,9 @@ function PripravekFormSheet({
   const [aktivni, setAktivni] = useState(true);
   const [poznamka, setPoznamka] = useState("");
 
-  // Reset form when opening
-  const handleOpenChange = (newOpen: boolean) => {
-    if (newOpen) {
+  // Sync form state when sheet opens (Vaul doesn't call onOpenChange on programmatic open)
+  useEffect(() => {
+    if (open) {
       if (pripravek) {
         setNazev(pripravek.nazev);
         setUcinnaLatka(pripravek.ucinna_latka || "");
@@ -569,8 +569,7 @@ function PripravekFormSheet({
       }
       setError(null);
     }
-    onOpenChange(newOpen);
-  };
+  }, [open, pripravek]);
 
   function toggleProstor(p: string) {
     setProstory((prev) =>
@@ -619,7 +618,7 @@ function PripravekFormSheet({
   return (
     <BottomSheet
       open={open}
-      onOpenChange={handleOpenChange}
+      onOpenChange={onOpenChange}
       title={isEdit ? "Upravit přípravek" : "Nový přípravek"}
     >
       <div className="space-y-4 pb-4">

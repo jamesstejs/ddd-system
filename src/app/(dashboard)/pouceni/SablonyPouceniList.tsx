@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useTransition } from "react";
+import { useState, useMemo, useTransition, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -290,8 +290,9 @@ function SablonaFormSheet({
   const [obsah, setObsah] = useState("");
   const [aktivni, setAktivni] = useState(true);
 
-  const handleOpenChange = (newOpen: boolean) => {
-    if (newOpen) {
+  // Sync form state when sheet opens (Vaul doesn't call onOpenChange on programmatic open)
+  useEffect(() => {
+    if (open) {
       if (sablona) {
         setNazev(sablona.nazev);
         setTypZasahu(sablona.typ_zasahu || "");
@@ -307,8 +308,7 @@ function SablonaFormSheet({
       }
       setError(null);
     }
-    onOpenChange(newOpen);
-  };
+  }, [open, sablona]);
 
   function handleSubmit() {
     if (!nazev.trim()) {
@@ -345,7 +345,7 @@ function SablonaFormSheet({
   return (
     <BottomSheet
       open={open}
-      onOpenChange={handleOpenChange}
+      onOpenChange={onOpenChange}
       title={isEdit ? "Upravit šablonu" : "Nová šablona"}
     >
       <div className="space-y-4 pb-4">

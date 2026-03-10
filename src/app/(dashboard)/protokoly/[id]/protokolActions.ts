@@ -253,8 +253,9 @@ export async function saveDeratBodyAction(
     throw new Error(errors.join("; "));
   }
 
-  // Pouze revalidace specifické stránky (ne celý /protokoly list)
-  revalidatePath(`/protokoly/${protokolId}`);
+  // POZNÁMKA: revalidatePath NENÍ potřeba — stránka je dynamická (auth check)
+  // a DeratFormView je client component s vlastním state.
+  // revalidatePath způsoboval 503 timeout na Vercel (re-render chain queries).
 }
 
 // ============================================================
@@ -293,7 +294,7 @@ export async function saveProtokolPoznamkaAction(
 
   if (error) throw new Error(error.message);
 
-  revalidatePath(`/protokoly/${protokolId}`);
+  // POZNÁMKA: revalidatePath NENÍ potřeba (viz saveDeratBodyAction komentář)
 }
 
 // ============================================================

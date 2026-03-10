@@ -9,13 +9,22 @@ import {
   deleteProtokol,
   getProtokolDeratBody,
   createProtokolDeratBod,
+  updateProtokolDeratBod,
   deleteProtokolDeratBod,
   getProtokolDezinsBody,
   createProtokolDezinsBod,
+  updateProtokolDezinsBod,
+  deleteProtokolDezinsBod,
   getProtokolPostrik,
   createProtokolPostrik,
+  updateProtokolPostrik,
+  deleteProtokolPostrik,
+  createProtokolPostrikPripravek,
+  updateProtokolPostrikPripravek,
+  deleteProtokolPostrikPripravek,
   getProtokolFotky,
   createProtokolFotka,
+  updateProtokolFotka,
   deleteProtokolFotka,
 } from "../protokoly";
 
@@ -349,5 +358,149 @@ describe("deleteProtokolFotka", () => {
     expect(updateCall).toHaveProperty("deleted_at");
     expect(typeof updateCall.deleted_at).toBe("string");
     expect(new Date(updateCall.deleted_at).getTime()).not.toBeNaN();
+  });
+});
+
+// ============================================================
+// Nové testy po AI Review — chybějící funkce
+// ============================================================
+
+describe("updateProtokolDeratBod", () => {
+  it("updates derat bod by id", async () => {
+    const updateData = { pozer_procent: 75 };
+    const supabase = createMockSupabase({
+      data: { id: "db1", pozer_procent: 75 },
+      error: null,
+    });
+
+    await updateProtokolDeratBod(supabase, "db1", updateData as never);
+
+    expect(supabase.from).toHaveBeenCalledWith("protokol_deratizacni_body");
+    expect(supabase._chain.update).toHaveBeenCalledWith(updateData);
+    expect(supabase._chain.eq).toHaveBeenCalledWith("id", "db1");
+    expect(supabase._chain.is).toHaveBeenCalledWith("deleted_at", null);
+  });
+});
+
+describe("updateProtokolDezinsBod", () => {
+  it("updates dezins bod by id", async () => {
+    const updateData = { pocet: 10 };
+    const supabase = createMockSupabase({
+      data: { id: "zb1", pocet: 10 },
+      error: null,
+    });
+
+    await updateProtokolDezinsBod(supabase, "zb1", updateData as never);
+
+    expect(supabase.from).toHaveBeenCalledWith("protokol_dezinsekci_body");
+    expect(supabase._chain.update).toHaveBeenCalledWith(updateData);
+    expect(supabase._chain.eq).toHaveBeenCalledWith("id", "zb1");
+  });
+});
+
+describe("deleteProtokolDezinsBod", () => {
+  it("soft-deletes dezins bod", async () => {
+    const supabase = createMockSupabase({ data: null, error: null });
+
+    await deleteProtokolDezinsBod(supabase, "zb1");
+
+    expect(supabase.from).toHaveBeenCalledWith("protokol_dezinsekci_body");
+    expect(supabase._chain.eq).toHaveBeenCalledWith("id", "zb1");
+    const updateCall = supabase._chain.update.mock.calls[0][0];
+    expect(updateCall).toHaveProperty("deleted_at");
+  });
+});
+
+describe("updateProtokolPostrik", () => {
+  it("updates postrik by id", async () => {
+    const updateData = { skudce: "Potkan obecný", plocha_m2: 120 };
+    const supabase = createMockSupabase({
+      data: { id: "ps1", ...updateData },
+      error: null,
+    });
+
+    await updateProtokolPostrik(supabase, "ps1", updateData as never);
+
+    expect(supabase.from).toHaveBeenCalledWith("protokol_postrik");
+    expect(supabase._chain.update).toHaveBeenCalledWith(updateData);
+    expect(supabase._chain.eq).toHaveBeenCalledWith("id", "ps1");
+  });
+});
+
+describe("deleteProtokolPostrik", () => {
+  it("soft-deletes postrik record", async () => {
+    const supabase = createMockSupabase({ data: null, error: null });
+
+    await deleteProtokolPostrik(supabase, "ps1");
+
+    expect(supabase.from).toHaveBeenCalledWith("protokol_postrik");
+    expect(supabase._chain.eq).toHaveBeenCalledWith("id", "ps1");
+    const updateCall = supabase._chain.update.mock.calls[0][0];
+    expect(updateCall).toHaveProperty("deleted_at");
+  });
+});
+
+describe("createProtokolPostrikPripravek", () => {
+  it("inserts a new postrik pripravek", async () => {
+    const newPripravek = {
+      postrik_id: "ps1",
+      pripravek_id: "prep1",
+      spotreba: "2 l",
+      koncentrace_procent: 0.5,
+    };
+    const supabase = createMockSupabase({
+      data: { id: "pp-new", ...newPripravek },
+      error: null,
+    });
+
+    await createProtokolPostrikPripravek(supabase, newPripravek as never);
+
+    expect(supabase.from).toHaveBeenCalledWith("protokol_postrik_pripravky");
+    expect(supabase._chain.insert).toHaveBeenCalledWith(newPripravek);
+  });
+});
+
+describe("updateProtokolPostrikPripravek", () => {
+  it("updates postrik pripravek by id", async () => {
+    const updateData = { spotreba: "3 l", koncentrace_procent: 1.0 };
+    const supabase = createMockSupabase({
+      data: { id: "pp1", ...updateData },
+      error: null,
+    });
+
+    await updateProtokolPostrikPripravek(supabase, "pp1", updateData as never);
+
+    expect(supabase.from).toHaveBeenCalledWith("protokol_postrik_pripravky");
+    expect(supabase._chain.update).toHaveBeenCalledWith(updateData);
+    expect(supabase._chain.eq).toHaveBeenCalledWith("id", "pp1");
+  });
+});
+
+describe("deleteProtokolPostrikPripravek", () => {
+  it("soft-deletes postrik pripravek", async () => {
+    const supabase = createMockSupabase({ data: null, error: null });
+
+    await deleteProtokolPostrikPripravek(supabase, "pp1");
+
+    expect(supabase.from).toHaveBeenCalledWith("protokol_postrik_pripravky");
+    expect(supabase._chain.eq).toHaveBeenCalledWith("id", "pp1");
+    const updateCall = supabase._chain.update.mock.calls[0][0];
+    expect(updateCall).toHaveProperty("deleted_at");
+  });
+});
+
+describe("updateProtokolFotka", () => {
+  it("updates fotka description by id", async () => {
+    const updateData = { popis: "Nový popis" };
+    const supabase = createMockSupabase({
+      data: { id: "f1", popis: "Nový popis" },
+      error: null,
+    });
+
+    await updateProtokolFotka(supabase, "f1", updateData as never);
+
+    expect(supabase.from).toHaveBeenCalledWith("protokol_fotky");
+    expect(supabase._chain.update).toHaveBeenCalledWith(updateData);
+    expect(supabase._chain.eq).toHaveBeenCalledWith("id", "f1");
   });
 });

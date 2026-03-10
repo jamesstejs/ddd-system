@@ -51,7 +51,7 @@ export async function getProtokolyByStatus(
         id, jmeno, prijmeni
       ),
       zasahy!protokoly_zasah_id_fkey (
-        id, datum, cas_od, cas_do,
+        id, datum, cas_od, cas_do, status,
         zakazky (
           id, typ, typy_zasahu,
           objekty (
@@ -338,6 +338,68 @@ export async function createProtokolPostrikPripravek(
     .single();
 }
 
+/**
+ * Aktualizuje záznam postřiku.
+ */
+export async function updateProtokolPostrik(
+  supabase: TypedSupabase,
+  id: string,
+  data: Database["public"]["Tables"]["protokol_postrik"]["Update"],
+) {
+  return supabase
+    .from("protokol_postrik")
+    .update(data)
+    .eq("id", id)
+    .is("deleted_at", null)
+    .select()
+    .single();
+}
+
+/**
+ * Soft-delete záznamu postřiku.
+ */
+export async function deleteProtokolPostrik(
+  supabase: TypedSupabase,
+  id: string,
+) {
+  return supabase
+    .from("protokol_postrik")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id)
+    .is("deleted_at", null);
+}
+
+/**
+ * Aktualizuje přípravek k postřiku.
+ */
+export async function updateProtokolPostrikPripravek(
+  supabase: TypedSupabase,
+  id: string,
+  data: Database["public"]["Tables"]["protokol_postrik_pripravky"]["Update"],
+) {
+  return supabase
+    .from("protokol_postrik_pripravky")
+    .update(data)
+    .eq("id", id)
+    .is("deleted_at", null)
+    .select()
+    .single();
+}
+
+/**
+ * Soft-delete přípravku k postřiku.
+ */
+export async function deleteProtokolPostrikPripravek(
+  supabase: TypedSupabase,
+  id: string,
+) {
+  return supabase
+    .from("protokol_postrik_pripravky")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id)
+    .is("deleted_at", null);
+}
+
 // ============================================================
 // Fotky
 // ============================================================
@@ -367,6 +429,23 @@ export async function createProtokolFotka(
   return supabase
     .from("protokol_fotky")
     .insert(data)
+    .select()
+    .single();
+}
+
+/**
+ * Aktualizuje fotku (popis).
+ */
+export async function updateProtokolFotka(
+  supabase: TypedSupabase,
+  id: string,
+  data: Database["public"]["Tables"]["protokol_fotky"]["Update"],
+) {
+  return supabase
+    .from("protokol_fotky")
+    .update(data)
+    .eq("id", id)
+    .is("deleted_at", null)
     .select()
     .single();
 }

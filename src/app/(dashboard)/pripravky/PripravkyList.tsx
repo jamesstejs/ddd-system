@@ -183,7 +183,7 @@ export default function PripravkyList({
               key={val}
               variant={filterAktivni === val ? "default" : "outline"}
               size="sm"
-              className="min-h-[36px] text-xs"
+              className="min-h-[36px] text-sm"
               onClick={() => setFilterAktivni(val)}
             >
               {val === "all"

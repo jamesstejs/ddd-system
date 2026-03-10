@@ -75,7 +75,7 @@ export default async function VicePage() {
           <CardContent className="space-y-1 pt-6">
             <Link
               href="/dostupnost"
-              className="flex min-h-[44px] items-center text-sm font-medium hover:underline"
+              className="flex min-h-[44px] items-center text-sm font-medium underline-offset-4 hover:underline active:underline focus-visible:underline"
             >
               Moje dostupnost
             </Link>
@@ -88,19 +88,19 @@ export default async function VicePage() {
           <CardContent className="space-y-1 pt-6">
             <Link
               href="/uzivatele"
-              className="flex min-h-[44px] items-center text-sm font-medium hover:underline"
+              className="flex min-h-[44px] items-center text-sm font-medium underline-offset-4 hover:underline active:underline focus-visible:underline"
             >
               Správa uživatelů
             </Link>
             <Link
               href="/skudci"
-              className="flex min-h-[44px] items-center text-sm font-medium hover:underline"
+              className="flex min-h-[44px] items-center text-sm font-medium underline-offset-4 hover:underline active:underline focus-visible:underline"
             >
               Škůdci
             </Link>
             <Link
               href="/pripravky"
-              className="flex min-h-[44px] items-center text-sm font-medium hover:underline"
+              className="flex min-h-[44px] items-center text-sm font-medium underline-offset-4 hover:underline active:underline focus-visible:underline"
             >
               Přípravky
             </Link>
@@ -113,7 +113,7 @@ export default async function VicePage() {
           <CardContent className="pt-6">
             <Link
               href="/nastaveni"
-              className="flex min-h-[44px] items-center text-sm font-medium hover:underline"
+              className="flex min-h-[44px] items-center text-sm font-medium underline-offset-4 hover:underline active:underline focus-visible:underline"
             >
               Nastavení systému
             </Link>

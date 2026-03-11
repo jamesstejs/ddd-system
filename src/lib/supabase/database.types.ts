@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           id: string
           protokol_id: string | null
+          zasah_id: string | null
           prijemce: string
           predmet: string
           typ: Database["public"]["Enums"]["typ_emailu"]
@@ -32,6 +33,7 @@ export type Database = {
         Insert: {
           id?: string
           protokol_id?: string | null
+          zasah_id?: string | null
           prijemce: string
           predmet: string
           typ?: Database["public"]["Enums"]["typ_emailu"]
@@ -46,6 +48,7 @@ export type Database = {
         Update: {
           id?: string
           protokol_id?: string | null
+          zasah_id?: string | null
           prijemce?: string
           predmet?: string
           typ?: Database["public"]["Enums"]["typ_emailu"]
@@ -63,6 +66,13 @@ export type Database = {
             columns: ["protokol_id"]
             isOneToOne: false
             referencedRelation: "protokoly"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_log_zasah_id_fkey"
+            columns: ["zasah_id"]
+            isOneToOne: false
+            referencedRelation: "zasahy"
             referencedColumns: ["id"]
           },
         ]

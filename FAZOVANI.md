@@ -21,7 +21,7 @@ Po implementaci vždy:
 
 ---
 
-## Aktuální sprint: SPRINT 25
+## Aktuální sprint: SPRINT 26
 
 ---
 
@@ -394,11 +394,11 @@ Po implementaci vždy:
 ## Sprint 25 — Email před zásahem: BL + poučení
 **Cíl:** Klient dostane BL + poučení při potvrzení termínu
 
-- [ ] Trigger: při zapsání/potvrzení zásahu v kalendáři → email klientovi
-- [ ] Obsah: bezpečnostní listy přípravků (z zakázky) + text poučení (dle škůdce)
-- [ ] DB: log do `email_log`
-- [ ] Branded email template
-- [ ] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
+- [x] Trigger: při zapsání/potvrzení zásahu v kalendáři → email klientovi
+- [x] Obsah: bezpečnostní listy přípravků (z zakázky) + text poučení (dle škůdce)
+- [x] DB: log do `email_log`
+- [x] Branded email template
+- [x] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
 
 ---
 

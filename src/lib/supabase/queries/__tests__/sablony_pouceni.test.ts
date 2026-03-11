@@ -5,6 +5,7 @@ import {
   createSablonaPouceni,
   updateSablonaPouceni,
   deleteSablonaPouceni,
+  mapTypyZasahuToSablona,
 } from "../sablony_pouceni";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -123,5 +124,67 @@ describe("deleteSablonaPouceni", () => {
     expect(updateCall).toHaveProperty("deleted_at");
     expect(typeof updateCall.deleted_at).toBe("string");
     expect(new Date(updateCall.deleted_at).getTime()).not.toBeNaN();
+  });
+});
+
+// Sprint 25: mapTypyZasahuToSablona tests
+
+describe("mapTypyZasahuToSablona", () => {
+  it("maps vnitřní deratizace to deratizace", () => {
+    expect(mapTypyZasahuToSablona(["vnitřní deratizace"])).toEqual([
+      "deratizace",
+    ]);
+  });
+
+  it("maps vnější deratizace to deratizace", () => {
+    expect(mapTypyZasahuToSablona(["vnější deratizace"])).toEqual([
+      "deratizace",
+    ]);
+  });
+
+  it("maps vnitřní dezinsekce to dezinsekce", () => {
+    expect(mapTypyZasahuToSablona(["vnitřní dezinsekce"])).toEqual([
+      "dezinsekce",
+    ]);
+  });
+
+  it("maps postřik to postrik", () => {
+    expect(mapTypyZasahuToSablona(["postřik"])).toEqual(["postrik"]);
+  });
+
+  it("maps multiple types", () => {
+    const result = mapTypyZasahuToSablona([
+      "vnitřní deratizace",
+      "postřik",
+    ]);
+    expect(result).toContain("deratizace");
+    expect(result).toContain("postrik");
+    expect(result).toHaveLength(2);
+  });
+
+  it("deduplicates (vnitřní + vnější deratizace = 1 deratizace)", () => {
+    const result = mapTypyZasahuToSablona([
+      "vnitřní deratizace",
+      "vnější deratizace",
+    ]);
+    expect(result).toEqual(["deratizace"]);
+  });
+
+  it("handles empty array", () => {
+    expect(mapTypyZasahuToSablona([])).toEqual([]);
+  });
+
+  it("maps dezinfekce", () => {
+    expect(mapTypyZasahuToSablona(["dezinfekce"])).toEqual(["dezinfekce"]);
+  });
+
+  it("is case-insensitive", () => {
+    expect(mapTypyZasahuToSablona(["Vnitřní Deratizace"])).toEqual([
+      "deratizace",
+    ]);
+  });
+
+  it("handles unknown type gracefully (empty result)", () => {
+    expect(mapTypyZasahuToSablona(["neznámý typ"])).toEqual([]);
   });
 });

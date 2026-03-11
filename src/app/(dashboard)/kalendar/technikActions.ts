@@ -11,6 +11,7 @@ import { getKontaktniOsobyByKlientIds } from "@/lib/supabase/queries/kontaktni_o
 import { createPripominka } from "@/lib/supabase/queries/pripominky";
 import { TECHNIK_STATUS_TRANSITIONS } from "@/lib/utils/zasahUtils";
 import type { Database } from "@/lib/supabase/database.types";
+import { sendZasahPredEmail } from "@/lib/email/sendZasahPredEmail";
 
 const REVALIDATE_PATH = "/kalendar";
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
@@ -169,6 +170,13 @@ export async function createDalsiTerminAction(input: {
   });
 
   if (error) throw new Error(error.message);
+
+  // Sprint 25: Odeslat BL + poučení klientovi (fire-and-forget)
+  if (novyZasah?.id) {
+    sendZasahPredEmail(supabase, novyZasah.id).catch(() => {
+      // Email failure should not block zasah creation
+    });
+  }
 
   revalidatePath(REVALIDATE_PATH);
   revalidatePath("/");

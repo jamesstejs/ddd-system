@@ -14,6 +14,7 @@ import { getZakazky } from "@/lib/supabase/queries/zakazky";
 import { updatePripominka } from "@/lib/supabase/queries/pripominky";
 import type { Database } from "@/lib/supabase/database.types";
 import { ADMIN_STATUS_TRANSITIONS } from "@/lib/utils/zasahUtils";
+import { sendZasahPredEmail } from "@/lib/email/sendZasahPredEmail";
 
 const REVALIDATE_PATH = "/kalendar";
 
@@ -99,6 +100,13 @@ export async function createZasahAction(input: {
   });
 
   if (error) throw new Error(error.message);
+
+  // Sprint 25: Odeslat BL + poučení klientovi (fire-and-forget)
+  if (data?.id) {
+    sendZasahPredEmail(supabase, data.id).catch(() => {
+      // Email failure should not block zasah creation
+    });
+  }
 
   revalidatePath(REVALIDATE_PATH);
   revalidatePath("/");

@@ -29,6 +29,21 @@ export async function getEmailLogByProtokol(
 }
 
 /**
+ * Načte email logy pro konkrétní zásah (nejnovější první).
+ */
+export async function getEmailLogByZasah(
+  supabase: TypedSupabase,
+  zasahId: string,
+) {
+  return supabase
+    .from("email_log")
+    .select("*")
+    .eq("zasah_id", zasahId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false });
+}
+
+/**
  * Aktualizuje stav email logu.
  */
 export async function updateEmailLog(

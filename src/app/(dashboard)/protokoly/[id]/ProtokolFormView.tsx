@@ -150,16 +150,16 @@ type Props = {
 // ---------- Status labels ----------
 
 const STATUS_LABELS: Record<StatusProtokolu, string> = {
-  rozpracovany: "Rozpracovan\u00fd",
-  ke_schvaleni: "Ke schv\u00e1len\u00ed",
-  schvaleny: "Schv\u00e1len\u00fd",
-  odeslany: "Odeslan\u00fd",
+  rozpracovany: "Rozpracovaný",
+  ke_schvaleni: "Ke schválení",
+  schvaleny: "Schválený",
+  odeslany: "Odeslaný",
 };
 
 const TAB_LABELS: Record<TabType, string> = {
   deratizace: "Deratizace",
   dezinsekce: "Dezinsekce",
-  postrik: "Post\u0159ik",
+  postrik: "Postřik",
 };
 
 // ---------- Component ----------
@@ -199,7 +199,7 @@ export function ProtokolFormView({
   const forceEditable = isAdmin && isAdminEditing;
 
   const backUrl = isAdmin ? "/protokoly" : "/kalendar";
-  const backLabel = isAdmin ? "Zp\u011bt na protokoly" : "Zp\u011bt na kalend\u00e1\u0159";
+  const backLabel = isAdmin ? "Zpět na protokoly" : "Zpět na kalendář";
 
   const defaultTab = availableTabs[0] || "deratizace";
 
@@ -224,8 +224,8 @@ export function ProtokolFormView({
         await submitProtokolKeSchvaleniAction(protokol.id);
         router.push("/kalendar");
       } catch (err) {
-        console.error("Chyba p\u0159i odes\u00edl\u00e1n\u00ed:", err);
-        alert(err instanceof Error ? err.message : "Chyba p\u0159i odes\u00edl\u00e1n\u00ed");
+        console.error("Chyba při odesílání:", err);
+        alert(err instanceof Error ? err.message : "Chyba při odesílání");
         setShowSubmitConfirm(false);
       }
     });
@@ -238,7 +238,7 @@ export function ProtokolFormView({
         router.push("/protokoly");
         router.refresh();
       } catch (err) {
-        alert(err instanceof Error ? err.message : "Chyba p\u0159i schvalov\u00e1n\u00ed");
+        alert(err instanceof Error ? err.message : "Chyba při schvalování");
       }
     });
   }
@@ -250,7 +250,7 @@ export function ProtokolFormView({
         router.push("/protokoly");
         router.refresh();
       } catch (err) {
-        alert(err instanceof Error ? err.message : "Chyba p\u0159i vracen\u00ed");
+        alert(err instanceof Error ? err.message : "Chyba při vracení");
       }
     });
   }
@@ -315,7 +315,7 @@ export function ProtokolFormView({
           className="flex min-h-[44px] items-center gap-1 text-sm font-medium text-blue-600 active:opacity-70"
           aria-label={backLabel}
         >
-          <span aria-hidden="true">&larr;</span> Zp\u011bt
+          <span aria-hidden="true">&larr;</span> Zpět
         </button>
         <span className="text-sm font-bold text-foreground">
           {protokol.cislo_protokolu || "Protokol"}
@@ -340,12 +340,12 @@ export function ProtokolFormView({
         </CardContent>
       </Card>
 
-      {/* Admin koment\u00e1\u0159 — technik vid\u00ed kdy\u017e vr\u00e1ceno */}
+      {/* Admin komentář — technik vidí když vráceno */}
       {!isAdmin && protokol.admin_komentar && (
         <Card className="border-yellow-300 bg-yellow-50">
           <CardContent className="p-3">
             <p className="text-sm font-semibold text-yellow-800">
-              Koment\u00e1\u0159 od admina
+              Komentář od admina
             </p>
             <p className="mt-1 text-sm text-yellow-700">
               {protokol.admin_komentar}
@@ -373,7 +373,7 @@ export function ProtokolFormView({
                 onClick={handleApprove}
                 disabled={isApproving}
               >
-                {isApproving ? "Schvaluji\u2026" : "Schv\u00e1lit"}
+                {isApproving ? "Schvaluji\u2026" : "Schválit"}
               </Button>
               <Button
                 type="button"
@@ -382,7 +382,7 @@ export function ProtokolFormView({
                 onClick={() => setShowRejectForm(true)}
                 disabled={isRejecting}
               >
-                Vr\u00e1tit
+                Vrátit
               </Button>
             </div>
           )}
@@ -391,7 +391,7 @@ export function ProtokolFormView({
             <Card className="border-blue-300 bg-blue-50">
               <CardContent className="p-3">
                 <p className="text-sm font-medium text-blue-800">
-                  Re\u017eim editace &mdash; zm\u011bny se ukl\u00e1daj\u00ed p\u0159\u00edmo
+                  Režim editace &mdash; změny se ukládají přímo
                 </p>
                 <Button
                   type="button"
@@ -399,7 +399,7 @@ export function ProtokolFormView({
                   className="mt-2 min-h-[44px]"
                   onClick={() => setIsAdminEditing(false)}
                 >
-                  Ukon\u010dit editaci
+                  Ukončit editaci
                 </Button>
               </CardContent>
             </Card>
@@ -409,12 +409,12 @@ export function ProtokolFormView({
             <Card className="border-red-300 bg-red-50">
               <CardContent className="space-y-3 p-3">
                 <p className="text-sm font-semibold text-red-800">
-                  Vr\u00e1tit protokol technikovi
+                  Vrátit protokol technikovi
                 </p>
                 <Textarea
                   value={rejectKomentar}
                   onChange={(e) => setRejectKomentar(e.target.value)}
-                  placeholder="D\u016fvod vr\u00e1cen\u00ed (min. 10 znak\u016f)..."
+                  placeholder="Důvod vrácení (min. 10 znaků)..."
                   rows={3}
                   className="text-base"
                 />
@@ -429,7 +429,7 @@ export function ProtokolFormView({
                     }}
                     disabled={isRejecting}
                   >
-                    Zru\u0161it
+                    Zrušit
                   </Button>
                   <Button
                     type="button"
@@ -438,7 +438,7 @@ export function ProtokolFormView({
                     onClick={handleReject}
                     disabled={isRejecting || rejectKomentar.trim().length < 10}
                   >
-                    {isRejecting ? "Vrac\u00edm\u2026" : "Vr\u00e1tit technikovi"}
+                    {isRejecting ? "Vracím\u2026" : "Vrátit technikovi"}
                   </Button>
                 </div>
               </CardContent>
@@ -463,7 +463,7 @@ export function ProtokolFormView({
             <Card className="border-blue-300 bg-blue-50">
               <CardContent className="p-3">
                 <p className="text-sm font-medium text-blue-800">
-                  Re\u017eim editace &mdash; zm\u011bny se ukl\u00e1daj\u00ed p\u0159\u00edmo
+                  Režim editace &mdash; změny se ukládají přímo
                 </p>
                 <Button
                   type="button"
@@ -471,7 +471,7 @@ export function ProtokolFormView({
                   className="mt-2 min-h-[44px]"
                   onClick={() => setIsAdminEditing(false)}
                 >
-                  Ukon\u010dit editaci
+                  Ukončit editaci
                 </Button>
               </CardContent>
             </Card>
@@ -526,7 +526,7 @@ export function ProtokolFormView({
         dezinsStatistiky={dezinsStatistiky}
       />
 
-      {/* V\u011bta o \u00fa\u010dinnosti */}
+      {/* Věta o účinnosti */}
       <VetaUcinnostiSection
         protokolId={protokol.id}
         initialVetaUcinnosti={protokol.veta_ucinnosti}
@@ -548,7 +548,7 @@ export function ProtokolFormView({
         isReadonly={isReadonly}
       />
 
-      {/* PDF sekce — zobrazit pro schv\u00e1len\u00e9/odeslan\u00e9 protokoly s post\u0159ikem */}
+      {/* PDF sekce */}
       {(availableTabs.includes("postrik") || availableTabs.includes("deratizace") || availableTabs.includes("dezinsekce")) &&
         ["ke_schvaleni", "schvaleny", "odeslany"].includes(protokol.status) && (
           <PdfSection
@@ -560,23 +560,23 @@ export function ProtokolFormView({
           />
         )}
 
-      {/* Pozn\u00e1mka */}
+      {/* Poznámka */}
       <div className="space-y-1.5 pt-2">
         <Label htmlFor="poznamka" className="text-sm font-medium">
-          Pozn\u00e1mka
+          Poznámka
         </Label>
         <Textarea
           id="poznamka"
           value={poznamka}
           onChange={(e) => setPoznamka(e.target.value)}
-          placeholder="Pozn\u00e1mka k protokolu..."
+          placeholder="Poznámka k protokolu..."
           rows={3}
           className="text-base"
           disabled={isReadonly}
         />
       </div>
 
-      {/* Technik: odeslat ke schv\u00e1len\u00ed */}
+      {/* Technik: odeslat ke schválení */}
       {!isAdmin && !technikReadonly && (
         <div className="pt-4">
           {!showSubmitConfirm ? (
@@ -585,15 +585,15 @@ export function ProtokolFormView({
               className="min-h-[52px] w-full text-base font-semibold"
               onClick={() => setShowSubmitConfirm(true)}
             >
-              Odeslat ke schv\u00e1len\u00ed
+              Odeslat ke schválení
             </Button>
           ) : (
             <div className="space-y-3 rounded-lg border-2 border-blue-200 bg-blue-50 p-4">
               <p className="text-center text-sm font-medium text-foreground">
-                Opravdu odeslat protokol ke schv\u00e1len\u00ed?
+                Opravdu odeslat protokol ke schválení?
               </p>
               <p className="text-center text-xs text-muted-foreground">
-                Po odesl\u00e1n\u00ed nebude mo\u017en\u00e9 protokol editovat.
+                Po odeslání nebude možné protokol editovat.
               </p>
               <div className="flex gap-2">
                 <Button
@@ -603,7 +603,7 @@ export function ProtokolFormView({
                   onClick={() => setShowSubmitConfirm(false)}
                   disabled={isSubmitting}
                 >
-                  Zru\u0161it
+                  Zrušit
                 </Button>
                 <Button
                   type="button"
@@ -611,7 +611,7 @@ export function ProtokolFormView({
                   onClick={handleSubmit}
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Odes\u00edl\u00e1m\u2026" : "Ano, odeslat"}
+                  {isSubmitting ? "Odesílám\u2026" : "Ano, odeslat"}
                 </Button>
               </div>
             </div>

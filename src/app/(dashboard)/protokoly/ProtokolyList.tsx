@@ -205,7 +205,7 @@ export function ProtokolyList({ protokoly }: Props) {
           className="min-h-[44px] w-full"
           onClick={() => setVisibleCount((v) => v + PAGE_SIZE)}
         >
-          Zobrazit dal\u0161\u00ed ({filtered.length - visibleCount} zb\u00fdv\u00e1)
+          Zobrazit další ({filtered.length - visibleCount} zbývá)
         </Button>
       )}
     </div>

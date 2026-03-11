@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildDezinsekniPdfData } from "../dezinsekniProtokol";
+import type { DezinsekniProtokolPdfData } from "../dezinsekniProtokol";
 
 const BASE_PARAMS = {
   protokol: {
@@ -45,6 +46,10 @@ const BASE_PARAMS = {
   bezpecnostniListy: ["Bezpečnostní list: Cyperkill 25 EC"],
   dalsiZasah: { od: "15. 4. 2026", do: "30. 4. 2026" },
 };
+
+// ============================================================
+// buildDezinsekniPdfData — basic mapping
+// ============================================================
 
 describe("buildDezinsekniPdfData", () => {
   it("builds correct PDF data from params", () => {
@@ -448,5 +453,430 @@ describe("buildDezinsekniPdfData", () => {
     expect(result.postriky.length).toBeGreaterThan(0);
     expect(result.deratBody.length).toBeGreaterThan(0);
     expect(result.dezinsBody.length).toBeGreaterThan(0);
+  });
+});
+
+// ============================================================
+// Edge cases — klient name fallback
+// ============================================================
+
+describe("buildDezinsekniPdfData — klient name edge cases", () => {
+  it("falls back to '—' when nazev, jmeno, prijmeni are all null", () => {
+    const params = {
+      ...BASE_PARAMS,
+      klient: {
+        ...BASE_PARAMS.klient,
+        nazev: null,
+        jmeno: null,
+        prijmeni: null,
+      },
+    };
+    const result = buildDezinsekniPdfData(params);
+    expect(result.klient.nazev).toBe("—");
+  });
+
+  it("uses only prijmeni when jmeno is null", () => {
+    const params = {
+      ...BASE_PARAMS,
+      klient: {
+        ...BASE_PARAMS.klient,
+        nazev: null,
+        jmeno: null,
+        prijmeni: "Dvořák",
+      },
+    };
+    const result = buildDezinsekniPdfData(params);
+    expect(result.klient.nazev).toBe("Dvořák");
+  });
+
+  it("uses only jmeno when prijmeni is null", () => {
+    const params = {
+      ...BASE_PARAMS,
+      klient: {
+        ...BASE_PARAMS.klient,
+        nazev: null,
+        jmeno: "Marie",
+        prijmeni: null,
+      },
+    };
+    const result = buildDezinsekniPdfData(params);
+    expect(result.klient.nazev).toBe("Marie");
+  });
+
+  it("prefers nazev over jmeno+prijmeni", () => {
+    const params = {
+      ...BASE_PARAMS,
+      klient: {
+        ...BASE_PARAMS.klient,
+        nazev: "Firma XYZ",
+        jmeno: "Jan",
+        prijmeni: "Novák",
+      },
+    };
+    const result = buildDezinsekniPdfData(params);
+    expect(result.klient.nazev).toBe("Firma XYZ");
+  });
+
+  it("handles empty string nazev — falls back to jmeno+prijmeni", () => {
+    const params = {
+      ...BASE_PARAMS,
+      klient: {
+        ...BASE_PARAMS.klient,
+        nazev: "",
+        jmeno: "Petr",
+        prijmeni: "Černý",
+      },
+    };
+    const result = buildDezinsekniPdfData(params);
+    // Empty string is falsy, should fall back
+    expect(result.klient.nazev).toBe("Černý Petr");
+  });
+});
+
+// ============================================================
+// Edge cases — null/optional fields
+// ============================================================
+
+describe("buildDezinsekniPdfData — null field handling", () => {
+  it("passes through null klient fields", () => {
+    const params = {
+      ...BASE_PARAMS,
+      klient: {
+        nazev: "Test",
+        jmeno: null,
+        prijmeni: null,
+        ico: null,
+        dic: null,
+        adresa: null,
+        email: null,
+        telefon: null,
+      },
+    };
+    const result = buildDezinsekniPdfData(params);
+    expect(result.klient.ico).toBeNull();
+    expect(result.klient.dic).toBeNull();
+    expect(result.klient.adresa).toBeNull();
+    expect(result.klient.email).toBeNull();
+    expect(result.klient.telefon).toBeNull();
+  });
+
+  it("handles null objekt fields", () => {
+    const params = {
+      ...BASE_PARAMS,
+      objekt: { nazev: null, adresa: null },
+    };
+    const result = buildDezinsekniPdfData(params);
+    expect(result.objekt.nazev).toBe("");
+    expect(result.objekt.adresa).toBeNull();
+  });
+
+  it("handles null poznamka and veta_ucinnosti", () => {
+    const params = {
+      ...BASE_PARAMS,
+      protokol: {
+        ...BASE_PARAMS.protokol,
+        poznamka: null,
+        veta_ucinnosti: null,
+      },
+    };
+    const result = buildDezinsekniPdfData(params);
+    expect(result.poznamka).toBeNull();
+    expect(result.veta_ucinnosti).toBeNull();
+  });
+
+  it("handles empty bezpecnostniListy array", () => {
+    const params = { ...BASE_PARAMS, bezpecnostniListy: [] };
+    const result = buildDezinsekniPdfData(params);
+    expect(result.bezpecnostni_listy).toEqual([]);
+  });
+
+  it("handles dalsiZasah with only od", () => {
+    const params = {
+      ...BASE_PARAMS,
+      dalsiZasah: { od: "1. 5. 2026", do: null },
+    };
+    const result = buildDezinsekniPdfData(params);
+    expect(result.dalsi_zasah_od).toBe("1. 5. 2026");
+    expect(result.dalsi_zasah_do).toBeNull();
+  });
+
+  it("handles dalsiZasah with only do", () => {
+    const params = {
+      ...BASE_PARAMS,
+      dalsiZasah: { od: null, do: "15. 5. 2026" },
+    };
+    const result = buildDezinsekniPdfData(params);
+    expect(result.dalsi_zasah_od).toBeNull();
+    expect(result.dalsi_zasah_do).toBe("15. 5. 2026");
+  });
+});
+
+// ============================================================
+// Edge cases — postrik pripravky
+// ============================================================
+
+describe("buildDezinsekniPdfData — postrik edge cases", () => {
+  it("handles postrik with no pripravky", () => {
+    const params = {
+      ...BASE_PARAMS,
+      postriky: [
+        {
+          skudce: "Štěnice",
+          plocha_m2: 50,
+          typ_zakroku: "postrik",
+          poznamka: null,
+          pripravky: [],
+        },
+      ],
+    };
+    const result = buildDezinsekniPdfData(params);
+    expect(result.postriky[0].pripravky).toEqual([]);
+  });
+
+  it("handles postrik with multiple pripravky", () => {
+    const params = {
+      ...BASE_PARAMS,
+      postriky: [
+        {
+          skudce: "Šváb",
+          plocha_m2: 100,
+          typ_zakroku: "postrik",
+          poznamka: null,
+          pripravky: [
+            {
+              nazev: "Přípravek A",
+              ucinna_latka: "Látka A",
+              protilatka: null,
+              spotreba: "1 l",
+              koncentrace_procent: 5,
+            },
+            {
+              nazev: "Přípravek B",
+              ucinna_latka: null,
+              protilatka: "Protilátka B",
+              spotreba: null,
+              koncentrace_procent: null,
+            },
+          ],
+        },
+      ],
+    };
+    const result = buildDezinsekniPdfData(params);
+    expect(result.postriky[0].pripravky).toHaveLength(2);
+    expect(result.postriky[0].pripravky[0].nazev).toBe("Přípravek A");
+    expect(result.postriky[0].pripravky[1].nazev).toBe("Přípravek B");
+    expect(result.postriky[0].pripravky[1].ucinna_latka).toBeNull();
+    expect(result.postriky[0].pripravky[1].spotreba).toBeNull();
+    expect(result.postriky[0].pripravky[1].koncentrace_procent).toBeNull();
+  });
+
+  it("handles postrik with null skudce and plocha", () => {
+    const params = {
+      ...BASE_PARAMS,
+      postriky: [
+        {
+          skudce: null,
+          plocha_m2: null,
+          typ_zakroku: null,
+          poznamka: null,
+          pripravky: [],
+        },
+      ],
+    };
+    const result = buildDezinsekniPdfData(params);
+    expect(result.postriky[0].skudce).toBeNull();
+    expect(result.postriky[0].plocha_m2).toBeNull();
+    expect(result.postriky[0].typ_zakroku).toBeNull();
+  });
+
+  it("handles postrik with all typ_zakroku variants", () => {
+    const zakroky = ["postrik", "ulv", "poprash", "gelova_nastraha"];
+    const params = {
+      ...BASE_PARAMS,
+      postriky: zakroky.map((z) => ({
+        skudce: "Test",
+        plocha_m2: 10,
+        typ_zakroku: z,
+        poznamka: null,
+        pripravky: [],
+      })),
+    };
+    const result = buildDezinsekniPdfData(params);
+    expect(result.postriky).toHaveLength(4);
+    expect(result.postriky.map((p) => p.typ_zakroku)).toEqual(zakroky);
+  });
+});
+
+// ============================================================
+// Edge cases — large data sets
+// ============================================================
+
+describe("buildDezinsekniPdfData — large data sets", () => {
+  it("handles 120 deratBody items (full grid)", () => {
+    const params = {
+      ...BASE_PARAMS,
+      postriky: [],
+      deratBody: Array.from({ length: 120 }, (_, i) => ({
+        cislo_bodu: `B${i + 1}`,
+        typ_stanicky: i % 2 === 0 ? "mys" : "potkan",
+        pozer_procent: (i * 25) % 125, // cycles through 0, 25, 50, 75, 100
+        stav_stanicky: "ok",
+        pripravek_nazev: i < 60 ? "Brodifacoum" : null,
+        okruh_nazev: `Okruh ${Math.floor(i / 20) + 1}`,
+      })),
+    };
+    const result = buildDezinsekniPdfData(params);
+    expect(result.deratBody).toHaveLength(120);
+    expect(result.deratBody[0].cislo_bodu).toBe("B1");
+    expect(result.deratBody[119].cislo_bodu).toBe("B120");
+  });
+
+  it("handles many dezinsBody items", () => {
+    const params = {
+      ...BASE_PARAMS,
+      postriky: [],
+      dezinsBody: Array.from({ length: 50 }, (_, i) => ({
+        cislo_bodu: `D${i + 1}`,
+        typ_lapace: ["lezouci_hmyz", "letajici_hmyz", "lepova", "elektronicka"][i % 4],
+        druh_hmyzu: i % 3 === 0 ? "Šváb obecný" : null,
+        pocet: i + 1,
+        okruh_nazev: null,
+      })),
+    };
+    const result = buildDezinsekniPdfData(params);
+    expect(result.dezinsBody).toHaveLength(50);
+  });
+
+  it("handles many bezpecnostniListy", () => {
+    const bls = Array.from({ length: 10 }, (_, i) => `BL: Přípravek ${i + 1}`);
+    const params = { ...BASE_PARAMS, bezpecnostniListy: bls };
+    const result = buildDezinsekniPdfData(params);
+    expect(result.bezpecnostni_listy).toHaveLength(10);
+  });
+});
+
+// ============================================================
+// Edge cases — special characters (Czech diacritics)
+// ============================================================
+
+describe("buildDezinsekniPdfData — Czech diacritics", () => {
+  it("preserves háčky and čárky in all text fields", () => {
+    const params = {
+      ...BASE_PARAMS,
+      protokol: {
+        cislo_protokolu: "P-ŘÍŽ001-001",
+        poznamka: "Zvýšený výskyt škůdců — ploštice, švábi, řízky",
+        veta_ucinnosti: "Účinnost žádoucí, průběžně sledováno",
+        zodpovedny_technik: "Jiří Průšvihlář",
+      },
+      klient: {
+        nazev: "Dvořákův štukatérský ústav s.r.o.",
+        jmeno: null,
+        prijmeni: null,
+        ico: "99999999",
+        dic: "CZ99999999",
+        adresa: "Říčanská 42, Žďár nad Sázavou",
+        email: "info@štukatér.cz",
+        telefon: "777000111",
+      },
+    };
+    const result = buildDezinsekniPdfData(params);
+    expect(result.cislo_protokolu).toBe("P-ŘÍŽ001-001");
+    expect(result.poznamka).toContain("škůdců");
+    expect(result.klient.nazev).toContain("Dvořákův");
+    expect(result.klient.adresa).toContain("Žďár");
+    expect(result.zodpovedny_technik).toContain("Průšvihlář");
+  });
+});
+
+// ============================================================
+// Output shape — DezinsekniProtokolPdfData interface conformance
+// ============================================================
+
+describe("buildDezinsekniPdfData — output shape", () => {
+  it("returns all required fields of DezinsekniProtokolPdfData", () => {
+    const result = buildDezinsekniPdfData(BASE_PARAMS);
+
+    // Check every field exists with correct type
+    expect(typeof result.cislo_protokolu).toBe("string");
+    expect(typeof result.datum_provedeni).toBe("string");
+    expect(typeof result.zodpovedny_technik).toBe("string");
+
+    // Klient
+    expect(typeof result.klient.nazev).toBe("string");
+    expect(result.klient).toHaveProperty("ico");
+    expect(result.klient).toHaveProperty("dic");
+    expect(result.klient).toHaveProperty("adresa");
+    expect(result.klient).toHaveProperty("email");
+    expect(result.klient).toHaveProperty("telefon");
+
+    // Objekt
+    expect(typeof result.objekt.nazev).toBe("string");
+    expect(result.objekt).toHaveProperty("adresa");
+
+    // Arrays
+    expect(Array.isArray(result.postriky)).toBe(true);
+    expect(Array.isArray(result.deratBody)).toBe(true);
+    expect(Array.isArray(result.dezinsBody)).toBe(true);
+    expect(Array.isArray(result.bezpecnostni_listy)).toBe(true);
+
+    // Nullable fields
+    expect(result).toHaveProperty("poznamka");
+    expect(result).toHaveProperty("veta_ucinnosti");
+    expect(result).toHaveProperty("dalsi_zasah_od");
+    expect(result).toHaveProperty("dalsi_zasah_do");
+  });
+
+  it("satisfies DezinsekniProtokolPdfData type", () => {
+    const result: DezinsekniProtokolPdfData = buildDezinsekniPdfData(BASE_PARAMS);
+    // If this compiles, the type is correct
+    expect(result).toBeDefined();
+  });
+});
+
+// ============================================================
+// Protocol composition — all 8 combinations for title logic
+// ============================================================
+
+describe("buildDezinsekniPdfData — all 8 composition combos", () => {
+  const makeDeratBody = () => [{
+    cislo_bodu: "L1", typ_stanicky: "mys", pozer_procent: 0,
+    stav_stanicky: "ok", pripravek_nazev: null, okruh_nazev: null,
+  }];
+  const makeDezinsBody = () => [{
+    cislo_bodu: "D1", typ_lapace: "lepova",
+    druh_hmyzu: null, pocet: 1, okruh_nazev: null,
+  }];
+  const makePostrik = () => [{
+    skudce: "Test", plocha_m2: 10, typ_zakroku: "postrik",
+    poznamka: null, pripravky: [],
+  }];
+
+  // combo: [hasPostrik, hasDeratBody, hasDezinsBody]
+  const combos: [boolean, boolean, boolean, string][] = [
+    [false, false, false, "all-empty"],
+    [true, false, false, "postrik-only"],
+    [false, true, false, "derat-only"],
+    [false, false, true, "dezins-only"],
+    [true, true, false, "postrik+derat"],
+    [true, false, true, "postrik+dezins"],
+    [false, true, true, "derat+dezins"],
+    [true, true, true, "all-three"],
+  ];
+
+  combos.forEach(([hasP, hasD, hasDz, label]) => {
+    it(`combo: ${label}`, () => {
+      const params = {
+        ...BASE_PARAMS,
+        postriky: hasP ? makePostrik() : [],
+        deratBody: hasD ? makeDeratBody() : undefined,
+        dezinsBody: hasDz ? makeDezinsBody() : undefined,
+      };
+      const result = buildDezinsekniPdfData(params);
+
+      expect(result.postriky.length > 0).toBe(hasP);
+      expect(result.deratBody.length > 0).toBe(hasD);
+      expect(result.dezinsBody.length > 0).toBe(hasDz);
+    });
   });
 });

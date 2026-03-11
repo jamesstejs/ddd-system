@@ -59,7 +59,7 @@ async function ProtokolyKeSchvaleniWidget({
     <Link href="/protokoly">
       <Card className="transition-colors active:bg-muted/50">
         <CardHeader>
-          <CardTitle className="text-base">Protokoly ke schv\u00e1len\u00ed</CardTitle>
+          <CardTitle className="text-base">Protokoly ke schválení</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-2xl font-bold">{protokoly.length}</p>
@@ -67,17 +67,17 @@ async function ProtokolyKeSchvaleniWidget({
             <ul className="mt-2 space-y-1">
               {protokoly.slice(0, 3).map((p) => (
                 <li key={p.id} className="text-sm text-muted-foreground truncate">
-                  {p.cislo_protokolu || "Bez \u010d\u00edsla"} \u2013 {getKlientName(p)}
+                  {p.cislo_protokolu || "Bez čísla"} &ndash; {getKlientName(p)}
                 </li>
               ))}
               {protokoly.length > 3 && (
                 <li className="text-xs text-muted-foreground">
-                  +{protokoly.length - 3} dal\u0161\u00edch
+                  +{protokoly.length - 3} dalších
                 </li>
               )}
             </ul>
           ) : (
-            <p className="text-sm text-muted-foreground">\u017d\u00e1dn\u00e9 protokoly</p>
+            <p className="text-sm text-muted-foreground">Žádné protokoly</p>
           )}
         </CardContent>
       </Card>

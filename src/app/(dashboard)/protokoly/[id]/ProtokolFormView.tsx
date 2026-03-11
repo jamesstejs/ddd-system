@@ -25,6 +25,8 @@ import {
   adminApproveProtokolAction,
   adminRejectProtokolAction,
   sendProtokolEmailAction,
+  generateAiHodnoceniAction,
+  saveAiHodnoceniAction,
 } from "./protokolActions";
 import {
   computeDeratStatistiky,
@@ -50,6 +52,7 @@ type ProtokolData = {
   veta_ucinnosti: string | null;
   podpis_klient_url: string | null;
   admin_komentar: string | null;
+  ai_hodnoceni: string | null;
 };
 
 type TabType = "deratizace" | "dezinsekce" | "postrik";
@@ -208,6 +211,16 @@ export function ProtokolFormView({
     initialEmailLog || [],
   );
   const [emailError, setEmailError] = useState<string | null>(null);
+
+  // AI hodnocení state
+  const [aiHodnoceni, setAiHodnoceni] = useState(
+    protokol.ai_hodnoceni || "",
+  );
+  const [aiHodnoceniLoading, setAiHodnoceniLoading] = useState(false);
+  const [aiHodnoceniError, setAiHodnoceniError] = useState<string | null>(
+    null,
+  );
+  const [aiHodnoceniSaved, setAiHodnoceniSaved] = useState(false);
 
   // Readonly logic
   const technikReadonly = protokol.status !== "rozpracovany";
@@ -558,6 +571,105 @@ export function ProtokolFormView({
         deratStatistiky={deratStatistiky}
         dezinsStatistiky={dezinsStatistiky}
       />
+
+      {/* AI hodnocení */}
+      {isAdmin && (
+        <Card>
+          <CardContent className="space-y-3 p-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-semibold">AI hodnocení</Label>
+              {(protokol.status === "ke_schvaleni" ||
+                protokol.status === "schvaleny") && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="min-h-[44px]"
+                  disabled={aiHodnoceniLoading}
+                  onClick={async () => {
+                    setAiHodnoceniLoading(true);
+                    setAiHodnoceniError(null);
+                    setAiHodnoceniSaved(false);
+                    const res = await generateAiHodnoceniAction(protokol.id);
+                    setAiHodnoceniLoading(false);
+                    if (res.error) {
+                      setAiHodnoceniError(res.error);
+                    } else if (res.hodnoceni) {
+                      setAiHodnoceni(res.hodnoceni);
+                    }
+                  }}
+                >
+                  {aiHodnoceniLoading ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      Generuji…
+                    </span>
+                  ) : aiHodnoceni ? (
+                    "Přegenerovat"
+                  ) : (
+                    "Generovat AI hodnocení"
+                  )}
+                </Button>
+              )}
+            </div>
+
+            {aiHodnoceniError && (
+              <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">
+                {aiHodnoceniError}
+              </div>
+            )}
+
+            {aiHodnoceni ? (
+              <>
+                <Textarea
+                  value={aiHodnoceni}
+                  onChange={(e) => {
+                    setAiHodnoceni(e.target.value);
+                    setAiHodnoceniSaved(false);
+                  }}
+                  rows={4}
+                  className="min-h-[100px] text-[16px]"
+                  readOnly={protokol.status === "schvaleny"}
+                />
+                {protokol.status === "ke_schvaleni" && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="min-h-[44px]"
+                      disabled={aiHodnoceniSaved}
+                      onClick={async () => {
+                        try {
+                          await saveAiHodnoceniAction(
+                            protokol.id,
+                            aiHodnoceni,
+                          );
+                          setAiHodnoceniSaved(true);
+                        } catch (err) {
+                          setAiHodnoceniError(
+                            err instanceof Error
+                              ? err.message
+                              : "Chyba při ukládání",
+                          );
+                        }
+                      }}
+                    >
+                      {aiHodnoceniSaved ? "Uloženo ✓" : "Uložit hodnocení"}
+                    </Button>
+                  </div>
+                )}
+              </>
+            ) : (
+              !aiHodnoceniLoading && (
+                <p className="text-sm text-muted-foreground">
+                  Hodnocení zatím nebylo vygenerováno.
+                </p>
+              )
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Věta o účinnosti */}
       <VetaUcinnostiSection

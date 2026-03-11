@@ -17,7 +17,10 @@ import {
   TYP_ZAKROKU_LABELS,
   filterPripravkyForPostrik,
 } from "@/lib/utils/protokolUtils";
-import { savePostrikAction } from "./protokolActions";
+import {
+  savePostrikAction,
+  getAiPripravkyDoporuceniAction,
+} from "./protokolActions";
 import type { Database } from "@/lib/supabase/database.types";
 
 // ---------- Types ----------
@@ -139,6 +142,13 @@ export function PostrikFormView({
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // AI doporučení state
+  const [aiLoadingIdx, setAiLoadingIdx] = useState<number | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiDoporuceni, setAiDoporuceni] = useState<
+    Map<number, { pripravek_id: string; nazev: string; duvod: string }[]>
+  >(new Map());
+
   // Tracked IDs for delete detection
   const [originalPostrikIds] = useState<Set<string>>(
     new Set(initialPostriky.map((p) => p.id)),
@@ -219,6 +229,64 @@ export function PostrikFormView({
       });
     },
     [],
+  );
+
+  // ---------- AI doporučení ----------
+
+  const handleAiDoporuceni = useCallback(
+    async (pIdx: number, skudceNazev: string) => {
+      setAiLoadingIdx(pIdx);
+      setAiError(null);
+
+      try {
+        const result = await getAiPripravkyDoporuceniAction(
+          protokolId,
+          skudceNazev,
+        );
+
+        if (result.error) {
+          setAiError(result.error);
+          return;
+        }
+
+        if (result.doporuceni && result.doporuceni.length > 0) {
+          // Prefill přípravky z AI doporučení
+          setPostriky((prev) => {
+            const next = [...prev];
+            next[pIdx] = {
+              ...next[pIdx],
+              pripravky: result.doporuceni!.map((d) => ({
+                pripravek_id: d.pripravek_id,
+                spotreba: "",
+                koncentrace_procent: "",
+              })),
+            };
+            return next;
+          });
+
+          // Uložit důvody pro zobrazení
+          setAiDoporuceni((prev) => {
+            const next = new Map(prev);
+            next.set(
+              pIdx,
+              result.doporuceni!.map((d) => ({
+                pripravek_id: d.pripravek_id,
+                nazev: d.nazev,
+                duvod: d.duvod,
+              })),
+            );
+            return next;
+          });
+        } else {
+          setAiError("AI nenašlo žádné vhodné přípravky");
+        }
+      } catch {
+        setAiError("Chyba při komunikaci s AI");
+      } finally {
+        setAiLoadingIdx(null);
+      }
+    },
+    [protokolId],
   );
 
   // ---------- Save ----------
@@ -391,6 +459,48 @@ export function PostrikFormView({
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* AI doporučení tlačítko */}
+              {!isReadonly && postrik.skudce && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="min-h-[44px] w-full border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 active:bg-blue-150"
+                  onClick={() => handleAiDoporuceni(pIdx, postrik.skudce!)}
+                  disabled={aiLoadingIdx !== null}
+                >
+                  {aiLoadingIdx === pIdx ? (
+                    <span className="flex items-center gap-2">
+                      <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-blue-400 border-t-transparent" />
+                      AI analyzuje...
+                    </span>
+                  ) : (
+                    "AI doporučení přípravků"
+                  )}
+                </Button>
+              )}
+
+              {/* AI doporučení důvody */}
+              {aiDoporuceni.get(pIdx) && (
+                <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-3 space-y-1">
+                  <p className="text-xs font-medium text-blue-800">
+                    AI doporučení:
+                  </p>
+                  {aiDoporuceni.get(pIdx)!.map((d, dIdx) => (
+                    <p key={dIdx} className="text-xs text-blue-700">
+                      <span className="font-medium">{d.nazev}</span>
+                      {d.duvod && ` — ${d.duvod}`}
+                    </p>
+                  ))}
+                </div>
+              )}
+
+              {/* AI error */}
+              {aiError && aiLoadingIdx === null && (
+                <div className="rounded-lg bg-amber-50 border border-amber-200 p-2">
+                  <p className="text-xs text-amber-800">{aiError}</p>
+                </div>
+              )}
 
               {/* Plocha */}
               <div className="space-y-1.5">

@@ -320,6 +320,7 @@ export default async function ProtokolDetailPage({
           veta_ucinnosti: protokol.veta_ucinnosti,
           podpis_klient_url: protokol.podpis_klient_url,
           admin_komentar: protokol.admin_komentar,
+          ai_hodnoceni: protokol.ai_hodnoceni,
         }}
         klientName={klientName}
         objektNazev={objektNazev}

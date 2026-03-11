@@ -405,12 +405,12 @@ Po implementaci vždy:
 ## Sprint 26 — AI: doporučení přípravků + hodnocení
 **Cíl:** AI pomáhá s výběrem přípravků a komentáři
 
-- [ ] lib/ai/ — Anthropic API client
-- [ ] AI endpoint: doporučení přípravků dle škůdce + typ prostoru → seřazený seznam
-- [ ] UI: v postřikovém formuláři "AI doporučení" (předvyplní, technik potvrdí/změní)
-- [ ] AI endpoint: analýza trendů per objekt (požery v čase, počty hmyzu) → komentář
-- [ ] UI: na detailu protokolu AI komentář (admin vidí před schválením, může editovat)
-- [ ] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
+- [x] lib/ai/ — Anthropic API client (`client.ts`, `doporuceniPripravku.ts`, `analyzaTrendu.ts`)
+- [x] AI endpoint: doporučení přípravků dle škůdce + typ prostoru → seřazený seznam
+- [x] UI: v postřikovém formuláři "AI doporučení" (předvyplní, technik potvrdí/změní)
+- [x] AI endpoint: analýza trendů per objekt (požery v čase, počty hmyzu) → komentář
+- [x] UI: na detailu protokolu AI komentář (admin vidí před schválením, může editovat)
+- [x] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` (902 testů) + `npm run build` — vše čistě
 
 ---
 

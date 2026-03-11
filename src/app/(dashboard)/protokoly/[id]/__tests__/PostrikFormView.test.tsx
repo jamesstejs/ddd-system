@@ -3,8 +3,11 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { PostrikFormView } from "../PostrikFormView";
 
 // Mock server actions
+const mockGetAiDoporuceni = vi.fn();
 vi.mock("../protokolActions", () => ({
   savePostrikAction: vi.fn().mockResolvedValue(undefined),
+  getAiPripravkyDoporuceniAction: (...args: unknown[]) =>
+    mockGetAiDoporuceni(...args),
 }));
 
 const baseSkudci = [
@@ -144,5 +147,78 @@ describe("PostrikFormView", () => {
     fireEvent.click(addButton);
 
     expect(screen.getByText("Postřik 2")).toBeTruthy();
+  });
+
+  // --- AI doporučení přípravků tests ---
+
+  it("nevidíme AI tlačítko když není vybraný škůdce", () => {
+    render(
+      <PostrikFormView {...defaultProps} initialPostriky={[]} />,
+    );
+
+    // No škůdce selected → no AI button
+    expect(screen.queryByText("AI doporučení přípravků")).toBeNull();
+  });
+
+  it("zobrazuje AI tlačítko když je škůdce vybraný", () => {
+    render(
+      <PostrikFormView
+        {...defaultProps}
+        initialPostriky={[basePostrikFromDB]}
+      />,
+    );
+
+    // Škůdce = "Rus domácí" from basePostrikFromDB → AI button visible
+    expect(screen.getByText("AI doporučení přípravků")).toBeTruthy();
+  });
+
+  it("AI tlačítko není viditelné v readonly módu", () => {
+    render(
+      <PostrikFormView
+        {...defaultProps}
+        status="schvaleny"
+        initialPostriky={[basePostrikFromDB]}
+      />,
+    );
+
+    expect(screen.queryByText("AI doporučení přípravků")).toBeNull();
+  });
+
+  it("AI doporučení přípravků zobrazuje loading stav", async () => {
+    // Never resolve to keep loading state
+    mockGetAiDoporuceni.mockReturnValue(new Promise(() => {}));
+
+    render(
+      <PostrikFormView
+        {...defaultProps}
+        initialPostriky={[basePostrikFromDB]}
+      />,
+    );
+
+    const aiButton = screen.getByText("AI doporučení přípravků");
+    fireEvent.click(aiButton);
+
+    // Should show loading spinner text
+    expect(await screen.findByText("AI analyzuje...")).toBeTruthy();
+  });
+
+  it("AI doporučení přípravků zobrazuje chybu", async () => {
+    mockGetAiDoporuceni.mockResolvedValue({
+      error: "AI služba není dostupná",
+    });
+
+    render(
+      <PostrikFormView
+        {...defaultProps}
+        initialPostriky={[basePostrikFromDB]}
+      />,
+    );
+
+    const aiButton = screen.getByText("AI doporučení přípravků");
+    fireEvent.click(aiButton);
+
+    expect(
+      await screen.findByText("AI služba není dostupná"),
+    ).toBeTruthy();
   });
 });

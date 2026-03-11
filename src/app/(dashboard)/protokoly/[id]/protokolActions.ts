@@ -32,6 +32,9 @@ import { getAktivniPripravky } from "@/lib/supabase/queries/pripravky";
 import {
   prefillBodyFromPrevious,
   prefillDezinsBodyFromPrevious,
+  filterPripravkyForPostrik,
+  computeDeratStatistiky,
+  computeDezinsStatistiky,
 } from "@/lib/utils/protokolUtils";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -918,6 +921,11 @@ export async function submitProtokolKeSchvaleniAction(protokolId: string) {
   });
 
   if (error) throw new Error(error.message);
+
+  // Fire-and-forget: generování AI hodnocení (non-blocking)
+  generateAiHodnoceniAction(protokolId).catch(() => {
+    // AI failure should not block submit
+  });
 }
 
 // ============================================================
@@ -1278,4 +1286,224 @@ export async function sendProtokolEmailAction(
           : "Nepodařilo se odeslat email",
     };
   }
+}
+
+// ============================================================
+// AI: doporučení přípravků pro postřik
+// ============================================================
+
+export type AiDoporuceniResult = {
+  pripravek_id: string;
+  nazev: string;
+  duvod: string;
+  priorita: number;
+};
+
+/**
+ * AI doporučí přípravky pro daného škůdce v kontextu protokolu.
+ * Non-throwing: vrací { doporuceni } nebo { error }.
+ */
+export async function getAiPripravkyDoporuceniAction(
+  protokolId: string,
+  skudceNazev: string,
+): Promise<{ doporuceni?: AiDoporuceniResult[]; error?: string }> {
+  try {
+    if (!UUID_REGEX.test(protokolId)) {
+      return { error: "Neplatný formát ID protokolu" };
+    }
+    if (!skudceNazev || skudceNazev.trim().length === 0) {
+      return { error: "Škůdce nebyl zadán" };
+    }
+
+    const { supabase, protokol } = await requireProtokolEditor(protokolId);
+
+    // Načíst typObjektu přes chain: protokol → zasah → zakázka → objekt
+    const zasahy = protokol.zasahy as Record<string, unknown> | null;
+    const zakazky = zasahy?.zakazky as Record<string, unknown> | null;
+    const objekty = zakazky?.objekty as Record<string, unknown> | null;
+    const typObjektu = (objekty?.typ_objektu as string) || null;
+
+    // Načíst aktivní přípravky a filtrovat
+    const { data: allPripravky } = await getAktivniPripravky(supabase);
+    const filtered = filterPripravkyForPostrik(
+      (allPripravky || []).map((p) => ({
+        id: p.id,
+        nazev: p.nazev,
+        ucinna_latka: p.ucinna_latka,
+        protilatka: p.protilatka,
+        typ: p.typ,
+        cilovy_skudce: p.cilovy_skudce,
+        omezeni_prostor: p.omezeni_prostor,
+      })),
+      skudceNazev,
+      typObjektu,
+    );
+
+    if (filtered.length === 0) {
+      return { doporuceni: [] };
+    }
+
+    // Dynamický import AI modulu (nechceme zatěžovat cold start)
+    const { getAiDoporuceniPripravku } = await import(
+      "@/lib/ai/doporuceniPripravku"
+    );
+
+    const doporuceni = await getAiDoporuceniPripravku({
+      skudceNazev,
+      typObjektu,
+      dostupnePripravky: filtered.map((p) => ({
+        id: p.id,
+        nazev: p.nazev,
+        ucinna_latka: p.ucinna_latka,
+        typ: p.typ,
+        cilovy_skudce: p.cilovy_skudce,
+        omezeni_prostor: p.omezeni_prostor,
+      })),
+    });
+
+    return { doporuceni };
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err.message : "AI doporučení selhalo",
+    };
+  }
+}
+
+// ============================================================
+// AI: generování hodnocení trendu
+// ============================================================
+
+/**
+ * Generuje AI hodnocení situace na objektu a uloží do protokolu.
+ * Non-throwing: vrací { hodnoceni } nebo { error }.
+ */
+export async function generateAiHodnoceniAction(
+  protokolId: string,
+): Promise<{ hodnoceni?: string; error?: string }> {
+  try {
+    if (!UUID_REGEX.test(protokolId)) {
+      return { error: "Neplatný formát ID protokolu" };
+    }
+
+    const { supabase, protokol } = await requireProtokolEditor(protokolId);
+
+    // Načíst data pro hodnocení
+    const zasahy = protokol.zasahy as Record<string, unknown> | null;
+    const zakazky = zasahy?.zakazky as Record<string, unknown> | null;
+    const objekty = zakazky?.objekty as Record<string, unknown> | null;
+    const objektNazev = (objekty?.nazev as string) || "Neznámý objekt";
+    const typObjektu = (objekty?.typ_objektu as string) || null;
+    const objektId = (objekty?.id as string) || null;
+
+    // Načíst aktuální body
+    const [deratResult, dezinsResult] = await Promise.all([
+      getProtokolDeratBody(supabase, protokolId),
+      getProtokolDezinsBody(supabase, protokolId),
+    ]);
+
+    const currentDeratBody = (deratResult.data || []).map((d) => ({
+      cislo_bodu: d.cislo_bodu,
+      pozer_procent: d.pozer_procent,
+      typ_stanicky: d.typ_stanicky,
+    }));
+
+    const currentDezinsBody = (dezinsResult.data || []).map((d) => ({
+      cislo_bodu: d.cislo_bodu,
+      pocet: d.pocet,
+      druh_hmyzu: d.druh_hmyzu,
+    }));
+
+    // Načíst předchozí body pro statistiky
+    let previousDeratBody: { pozer_procent: number }[] | null = null;
+    let previousDezinsBody: { pocet: number }[] | null = null;
+
+    if (objektId) {
+      const { data: recentProtokoly } = await getLatestProtokolForObjekt(
+        supabase,
+        objektId,
+      );
+
+      if (recentProtokoly && recentProtokoly.length > 0) {
+        // Najdi předchozí protokol (ne ten aktuální)
+        const prevProtokol = recentProtokoly.find((p) => {
+          const z = p.zasahy as Record<string, unknown> | null;
+          const zk = z?.zakazky as Record<string, unknown> | null;
+          const o = zk?.objekty as { id: string } | null;
+          return o?.id === objektId && p.id !== protokolId;
+        });
+
+        if (prevProtokol) {
+          const [prevDerat, prevDezins] = await Promise.all([
+            getProtokolDeratBody(supabase, prevProtokol.id),
+            getProtokolDezinsBody(supabase, prevProtokol.id),
+          ]);
+          previousDeratBody = (prevDerat.data || []).map((d) => ({
+            pozer_procent: d.pozer_procent,
+          }));
+          previousDezinsBody = (prevDezins.data || []).map((d) => ({
+            pocet: d.pocet,
+          }));
+        }
+      }
+    }
+
+    // Compute statistiky
+    const deratStatistiky =
+      currentDeratBody.length > 0
+        ? computeDeratStatistiky(currentDeratBody, previousDeratBody || [])
+        : null;
+    const dezinsStatistiky =
+      currentDezinsBody.length > 0
+        ? computeDezinsStatistiky(currentDezinsBody, previousDezinsBody || [])
+        : null;
+
+    // Dynamický import AI modulu
+    const { generateAiHodnoceni } = await import("@/lib/ai/analyzaTrendu");
+
+    const hodnoceni = await generateAiHodnoceni({
+      objektNazev,
+      typObjektu,
+      deratStatistiky,
+      dezinsStatistiky,
+      currentDeratBody,
+      currentDezinsBody,
+      previousDeratBody,
+      previousDezinsBody,
+    });
+
+    // Uložit do DB
+    await updateProtokol(supabase, protokolId, {
+      ai_hodnoceni: hodnoceni,
+    });
+
+    return { hodnoceni };
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err.message : "AI hodnocení selhalo",
+    };
+  }
+}
+
+// ============================================================
+// AI: uložení editovaného hodnocení
+// ============================================================
+
+/**
+ * Uloží ručně editované AI hodnocení do protokolu.
+ */
+export async function saveAiHodnoceniAction(
+  protokolId: string,
+  hodnoceni: string,
+) {
+  if (!UUID_REGEX.test(protokolId)) {
+    throw new Error("Neplatný formát ID protokolu");
+  }
+
+  const { supabase } = await requireProtokolEditor(protokolId);
+
+  const { error } = await updateProtokol(supabase, protokolId, {
+    ai_hodnoceni: hodnoceni || null,
+  });
+
+  if (error) throw new Error(error.message);
 }

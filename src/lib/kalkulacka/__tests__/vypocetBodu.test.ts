@@ -207,6 +207,32 @@ describe("vypocetBodu", () => {
     });
   });
 
+  describe("multi-type batch pattern (used by batch action)", () => {
+    it("returns independent results for different typ_zasahu on same plocha", () => {
+      const deratResult = vypocetBodu(allSablony, "gastro", 100, "vnitrni_deratizace");
+      const dezinsResult = vypocetBodu(allSablony, "gastro", 100, "vnitrni_dezinsekce");
+
+      // Deratizace → hlodavci body
+      expect(deratResult).not.toBeNull();
+      expect(deratResult!.bod_s_mys).toBe(3);
+      expect(deratResult!.letajici).toBe(0);
+
+      // Dezinsekce → hmyz body
+      expect(dezinsResult).not.toBeNull();
+      expect(dezinsResult!.bod_s_mys).toBe(0);
+      expect(dezinsResult!.letajici).toBe(2);
+      expect(dezinsResult!.lezouci).toBe(3);
+    });
+
+    it("returns null for typ_zasahu without templates while others succeed", () => {
+      const deratResult = vypocetBodu(allSablony, "gastro", 100, "vnitrni_deratizace");
+      const postrikResult = vypocetBodu(allSablony, "gastro", 100, "postrik");
+
+      expect(deratResult).not.toBeNull();
+      expect(postrikResult).toBeNull(); // no postrik templates in test data
+    });
+  });
+
   describe("boundary values", () => {
     it("1m² falls in first range (0-50)", () => {
       const result = vypocetBodu(allSablony, "gastro", 1, "vnitrni_deratizace");

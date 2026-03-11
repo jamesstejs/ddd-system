@@ -2,47 +2,35 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { DeratBodSummary } from "./DeratBodSummary";
-import { DeratBodForm, type DeratBodFormData } from "./DeratBodForm";
-import {
-  prumernyPozer,
-  getNextCisloBodu,
-  POZER_COLORS,
-} from "@/lib/utils/protokolUtils";
-import { saveDeratBodyAction } from "./protokolActions";
+import { DezinsBodSummary } from "./DezinsBodSummary";
+import { DezinsBodForm, type DezinsBodFormData } from "./DezinsBodForm";
+import { getNextCisloBodu } from "@/lib/utils/protokolUtils";
+import { saveDezinsBodyAction } from "./protokolActions";
 import type { Database } from "@/lib/supabase/database.types";
 
 // ---------- Types ----------
 
-type TypStanicky = Database["public"]["Enums"]["typ_stanicky"];
-type StavStanicky = Database["public"]["Enums"]["stav_stanicky"];
+type TypLapace = Database["public"]["Enums"]["typ_lapace"];
 type StatusProtokolu = Database["public"]["Enums"]["status_protokolu"];
 
 type BodData = {
   id?: string;
   cislo_bodu: string;
   okruh_id: string | null;
-  typ_stanicky: TypStanicky;
-  pripravek_id: string | null;
-  pozer_procent: number;
-  stav_stanicky: StavStanicky;
+  typ_lapace: TypLapace;
+  druh_hmyzu: string | null;
+  pocet: number;
 };
 
 type Okruh = { id: string; nazev: string };
-type Pripravek = {
-  id: string;
-  nazev: string;
-  ucinna_latka: string | null;
-  protilatka: string | null;
-};
+type Skudce = { id: string; nazev: string; typ: string };
 
 type Props = {
   protokolId: string;
   status: StatusProtokolu;
   initialBody: BodData[];
   okruhy: Okruh[];
-  pripravky: Pripravek[];
+  skudci: Skudce[];
   poznamka: string;
   onPoznamkaChange: (v: string) => void;
   forceEditable?: boolean;
@@ -50,12 +38,12 @@ type Props = {
 
 // ---------- Component ----------
 
-export function DeratFormView({
+export function DezinsFormView({
   protokolId,
   status,
   initialBody,
   okruhy,
-  pripravky,
+  skudci,
   poznamka,
   onPoznamkaChange,
   forceEditable,
@@ -63,7 +51,7 @@ export function DeratFormView({
   const topRef = useRef<HTMLDivElement>(null);
 
   // State
-  const [body, setBody] = useState<DeratBodFormData[]>(
+  const [body, setBody] = useState<DezinsBodFormData[]>(
     initialBody.map((b) => ({ ...b })),
   );
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -88,7 +76,7 @@ export function DeratFormView({
   // ---------- Body operations ----------
 
   const handleBodChange = useCallback(
-    (index: number, updated: DeratBodFormData) => {
+    (index: number, updated: DezinsBodFormData) => {
       setBody((prev) => {
         const next = [...prev];
         next[index] = updated;
@@ -99,30 +87,28 @@ export function DeratFormView({
   );
 
   const handleAddBod = useCallback(() => {
-    // Detect prefix from existing bods
     let prefix = "";
     if (body.length > 0) {
       const match = body[0].cislo_bodu.match(/^([A-Za-z]+)/);
       if (match) prefix = match[1];
     }
 
-    const newBod: DeratBodFormData = {
+    const newBod: DezinsBodFormData = {
       cislo_bodu: getNextCisloBodu(body, prefix),
       okruh_id: null,
-      typ_stanicky: "mys" as TypStanicky,
-      pripravek_id: null,
-      pozer_procent: 0,
-      stav_stanicky: "ok" as StavStanicky,
+      typ_lapace: "lezouci_hmyz" as TypLapace,
+      druh_hmyzu: null,
+      pocet: 0,
     };
 
     setBody((prev) => [...prev, newBod]);
-    setActiveIndex(body.length); // navigate to new bod
+    setActiveIndex(body.length);
   }, [body]);
 
   const handleDeleteBod = useCallback(
     (index: number) => {
       setBody((prev) => prev.filter((_, i) => i !== index));
-      setActiveIndex(null); // back to overview
+      setActiveIndex(null);
     },
     [],
   );
@@ -135,11 +121,9 @@ export function DeratFormView({
     setSaveMessage(null);
 
     try {
-      // Find deleted bods (were in original, not in current)
       const currentIds = new Set(body.filter((b) => b.id).map((b) => b.id!));
       const deletedIds = [...originalIds].filter((id) => !currentIds.has(id));
 
-      // Build body list including deletions
       const bodyToSave = [
         ...body,
         ...deletedIds.map((id) => ({
@@ -147,14 +131,13 @@ export function DeratFormView({
           _deleted: true as const,
           cislo_bodu: "",
           okruh_id: null,
-          typ_stanicky: "mys" as TypStanicky,
-          pripravek_id: null,
-          pozer_procent: 0,
-          stav_stanicky: "ok" as StavStanicky,
+          typ_lapace: "lezouci_hmyz" as TypLapace,
+          druh_hmyzu: null,
+          pocet: 0,
         })),
       ];
 
-      await saveDeratBodyAction(
+      await saveDezinsBodyAction(
         protokolId,
         bodyToSave,
         poznamka,
@@ -171,21 +154,6 @@ export function DeratFormView({
 
   // ---------- Computed ----------
 
-  const avgPozer = prumernyPozer(body);
-  const avgPozerColor =
-    POZER_COLORS[
-      avgPozer === 0
-        ? 0
-        : avgPozer <= 25
-          ? 25
-          : avgPozer <= 50
-            ? 50
-            : avgPozer <= 75
-              ? 75
-              : 100
-    ];
-
-  // Dirty state — technik má neuložené změny
   const isDirty = (() => {
     if (body.length !== initialBody.length) return true;
     return body.some((b, i) => {
@@ -194,10 +162,9 @@ export function DeratFormView({
       return (
         b.cislo_bodu !== orig.cislo_bodu ||
         b.okruh_id !== orig.okruh_id ||
-        b.typ_stanicky !== orig.typ_stanicky ||
-        b.pripravek_id !== orig.pripravek_id ||
-        b.pozer_procent !== orig.pozer_procent ||
-        b.stav_stanicky !== orig.stav_stanicky
+        b.typ_lapace !== orig.typ_lapace ||
+        b.druh_hmyzu !== orig.druh_hmyzu ||
+        b.pocet !== orig.pocet
       );
     });
   })();
@@ -212,10 +179,10 @@ export function DeratFormView({
     return (
       <div className="space-y-4">
         <div ref={topRef} />
-        <DeratBodForm
+        <DezinsBodForm
           bod={currentBod}
           okruhy={okruhy}
-          pripravky={pripravky}
+          skudci={skudci}
           onChange={(updated) => handleBodChange(activeIndex, updated)}
           onDelete={() => handleDeleteBod(activeIndex)}
           onPrev={activeIndex > 0 ? () => setActiveIndex(activeIndex - 1) : null}
@@ -240,22 +207,6 @@ export function DeratFormView({
     <div className="space-y-4">
       <div ref={topRef} />
 
-      {/* Průměrný požer */}
-      {body.length > 0 && (
-        <div className="flex items-center justify-center gap-2 rounded-lg bg-muted/30 p-3">
-          <span className="text-sm text-muted-foreground">Průměrný požer:</span>
-          <Badge
-            className={`${avgPozerColor.bg} ${avgPozerColor.text} text-sm font-bold px-3 py-0.5`}
-          >
-            {avgPozer}%
-          </Badge>
-          <span className="text-xs text-muted-foreground">
-            ({body.length}{" "}
-            {body.length === 1 ? "bod" : body.length < 5 ? "body" : "bodů"})
-          </span>
-        </div>
-      )}
-
       {/* Body seznam */}
       <div className="space-y-1.5">
         {body.length === 0 && (
@@ -264,12 +215,12 @@ export function DeratFormView({
           </p>
         )}
         {body.map((b, idx) => (
-          <DeratBodSummary
+          <DezinsBodSummary
             key={b.id || `new-${idx}`}
             cislo_bodu={b.cislo_bodu}
-            typ_stanicky={b.typ_stanicky}
-            pozer_procent={b.pozer_procent}
-            stav_stanicky={b.stav_stanicky}
+            typ_lapace={b.typ_lapace}
+            druh_hmyzu={b.druh_hmyzu}
+            pocet={b.pocet}
             onTap={() => setActiveIndex(idx)}
             readonly={isReadonly}
           />
@@ -287,24 +238,21 @@ export function DeratFormView({
         </Button>
       )}
 
-      {/* Save section — messages + button */}
+      {/* Save section */}
       {!isReadonly && (
         <div className="space-y-2 pt-2">
-          {/* Error */}
           {error && (
             <div className="rounded-lg bg-destructive/10 p-3" role="alert">
               <p className="text-sm text-destructive">{error}</p>
             </div>
           )}
 
-          {/* Success message */}
           {saveMessage && (
             <div className="rounded-lg bg-emerald-50 p-3">
               <p className="text-sm font-medium text-emerald-800">{saveMessage}</p>
             </div>
           )}
 
-          {/* Save button */}
           <Button
             className={`min-h-[48px] w-full text-base font-semibold ${
               isDirty
@@ -321,7 +269,6 @@ export function DeratFormView({
                 : "Uloženo"}
           </Button>
 
-          {/* Dirty state hint */}
           {isDirty && !isSaving && !saveMessage && (
             <p className="text-center text-xs text-muted-foreground">
               Máte neuložené změny

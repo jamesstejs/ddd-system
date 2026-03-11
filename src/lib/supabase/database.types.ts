@@ -916,6 +916,7 @@ export type Database = {
           status: Database["public"]["Enums"]["status_protokolu"]
           technik_id: string
           updated_at: string
+          veta_ucinnosti: string | null
           zasah_id: string
           zodpovedny_technik: string
         }
@@ -931,6 +932,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["status_protokolu"]
           technik_id: string
           updated_at?: string
+          veta_ucinnosti?: string | null
           zasah_id: string
           zodpovedny_technik?: string
         }
@@ -946,6 +948,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["status_protokolu"]
           technik_id?: string
           updated_at?: string
+          veta_ucinnosti?: string | null
           zasah_id?: string
           zodpovedny_technik?: string
         }

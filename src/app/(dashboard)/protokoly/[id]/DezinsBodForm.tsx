@@ -11,40 +11,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  TYP_STANICKY_LABELS,
-  STAV_STANICKY_LABELS,
-  POZER_OPTIONS,
-  POZER_COLORS,
-} from "@/lib/utils/protokolUtils";
+import { TYP_LAPACE_LABELS } from "@/lib/utils/protokolUtils";
 import type { Database } from "@/lib/supabase/database.types";
 
-type TypStanicky = Database["public"]["Enums"]["typ_stanicky"];
-type StavStanicky = Database["public"]["Enums"]["stav_stanicky"];
+type TypLapace = Database["public"]["Enums"]["typ_lapace"];
 
-export type DeratBodFormData = {
+export type DezinsBodFormData = {
   id?: string;
   cislo_bodu: string;
   okruh_id: string | null;
-  typ_stanicky: TypStanicky;
-  pripravek_id: string | null;
-  pozer_procent: number;
-  stav_stanicky: StavStanicky;
+  typ_lapace: TypLapace;
+  druh_hmyzu: string | null;
+  pocet: number;
 };
 
 type Okruh = { id: string; nazev: string };
-type Pripravek = {
+type Skudce = {
   id: string;
   nazev: string;
-  ucinna_latka: string | null;
-  protilatka: string | null;
+  typ: string;
 };
 
 type Props = {
-  bod: DeratBodFormData;
+  bod: DezinsBodFormData;
   okruhy: Okruh[];
-  pripravky: Pripravek[];
-  onChange: (updated: DeratBodFormData) => void;
+  skudci: Skudce[];
+  onChange: (updated: DezinsBodFormData) => void;
   onDelete: () => void;
   onPrev: (() => void) | null;
   onNext: (() => void) | null;
@@ -53,20 +45,34 @@ type Props = {
   totalCount: number;
 };
 
-const TYP_STANICKY_OPTIONS = Object.entries(TYP_STANICKY_LABELS) as [
-  TypStanicky,
+const TYP_LAPACE_OPTIONS = Object.entries(TYP_LAPACE_LABELS) as [
+  TypLapace,
   string,
 ][];
 
-const STAV_STANICKY_OPTIONS = Object.entries(STAV_STANICKY_LABELS) as [
-  StavStanicky,
-  string,
-][];
+/**
+ * Filtruje škůdce dle typu lapače:
+ * - lezouci_hmyz → jen lezouci_hmyz
+ * - letajici_hmyz → jen letajici_hmyz
+ * - lepova/elektronicka → oba typy hmyzu
+ */
+function filterSkudciByLapac(skudci: Skudce[], typLapace: TypLapace): Skudce[] {
+  if (typLapace === "lezouci_hmyz") {
+    return skudci.filter((s) => s.typ === "lezouci_hmyz");
+  }
+  if (typLapace === "letajici_hmyz") {
+    return skudci.filter((s) => s.typ === "letajici_hmyz");
+  }
+  // lepova, elektronicka → oba typy
+  return skudci.filter(
+    (s) => s.typ === "lezouci_hmyz" || s.typ === "letajici_hmyz",
+  );
+}
 
-export function DeratBodForm({
+export function DezinsBodForm({
   bod,
   okruhy,
-  pripravky,
+  skudci,
   onChange,
   onDelete,
   onPrev,
@@ -77,9 +83,11 @@ export function DeratBodForm({
 }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  function update(partial: Partial<DeratBodFormData>) {
+  function update(partial: Partial<DezinsBodFormData>) {
     onChange({ ...bod, ...partial });
   }
+
+  const filteredSkudci = filterSkudciByLapac(skudci, bod.typ_lapace);
 
   return (
     <div className="space-y-5">
@@ -100,14 +108,14 @@ export function DeratBodForm({
 
       {/* Číslo bodu */}
       <div className="space-y-1.5">
-        <Label htmlFor="cislo_bodu" className="text-sm font-medium">
+        <Label htmlFor="dezins_cislo_bodu" className="text-sm font-medium">
           Číslo bodu
         </Label>
         <Input
-          id="cislo_bodu"
+          id="dezins_cislo_bodu"
           value={bod.cislo_bodu}
           onChange={(e) => update({ cislo_bodu: e.target.value })}
-          placeholder="např. L1, H3, P5"
+          placeholder="např. D1, D2"
           className="min-h-[44px] text-base"
         />
       </div>
@@ -137,18 +145,20 @@ export function DeratBodForm({
         </div>
       )}
 
-      {/* Typ staničky */}
+      {/* Typ lapače */}
       <div className="space-y-1.5">
-        <Label className="text-sm font-medium">Typ staničky</Label>
+        <Label className="text-sm font-medium">Typ lapače</Label>
         <Select
-          value={bod.typ_stanicky}
-          onValueChange={(v) => update({ typ_stanicky: v as TypStanicky })}
+          value={bod.typ_lapace}
+          onValueChange={(v) => {
+            update({ typ_lapace: v as TypLapace, druh_hmyzu: null });
+          }}
         >
           <SelectTrigger className="min-h-[44px] text-base active:bg-muted/30">
             <SelectValue placeholder="Vyberte typ" />
           </SelectTrigger>
           <SelectContent>
-            {TYP_STANICKY_OPTIONS.map(([value, label]) => (
+            {TYP_LAPACE_OPTIONS.map(([value, label]) => (
               <SelectItem key={value} value={value}>
                 {label}
               </SelectItem>
@@ -157,74 +167,44 @@ export function DeratBodForm({
         </Select>
       </div>
 
-      {/* Přípravek */}
+      {/* Druh hmyzu */}
       <div className="space-y-1.5">
-        <Label className="text-sm font-medium">Přípravek</Label>
+        <Label className="text-sm font-medium">Druh hmyzu</Label>
         <Select
-          value={bod.pripravek_id || "__none__"}
+          value={bod.druh_hmyzu || "__none__"}
           onValueChange={(v) =>
-            update({ pripravek_id: v === "__none__" ? null : v })
+            update({ druh_hmyzu: v === "__none__" ? null : v })
           }
         >
           <SelectTrigger className="min-h-[44px] text-base active:bg-muted/30">
-            <SelectValue placeholder="Bez přípravku" />
+            <SelectValue placeholder="Neurčeno" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="__none__">Bez přípravku</SelectItem>
-            {pripravky.map((p) => (
-              <SelectItem key={p.id} value={p.id}>
-                {p.nazev}
+            <SelectItem value="__none__">Neurčeno</SelectItem>
+            {filteredSkudci.map((s) => (
+              <SelectItem key={s.id} value={s.nazev}>
+                {s.nazev}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      {/* Stav staničky */}
+      {/* Počet */}
       <div className="space-y-1.5">
-        <Label className="text-sm font-medium">Stav</Label>
-        <Select
-          value={bod.stav_stanicky}
-          onValueChange={(v) => update({ stav_stanicky: v as StavStanicky })}
-        >
-          <SelectTrigger className="min-h-[44px] text-base active:bg-muted/30">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {STAV_STANICKY_OPTIONS.map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Požer — 5 velkých tlačítek */}
-      <div className="space-y-1.5">
-        <Label className="text-sm font-medium">Požer</Label>
-        <div className="grid grid-cols-5 gap-2">
-          {POZER_OPTIONS.map((value) => {
-            const isActive = bod.pozer_procent === value;
-            const colors = POZER_COLORS[value];
-            return (
-              <button
-                key={value}
-                type="button"
-                onClick={() => update({ pozer_procent: value })}
-                className={`flex min-h-[52px] items-center justify-center rounded-lg border-2 text-base font-bold transition-all ${
-                  isActive
-                    ? `${colors.bg} ${colors.text} border-current ring-2 ring-current ring-offset-1`
-                    : "border-muted bg-white text-muted-foreground hover:border-muted-foreground/30 active:bg-muted/50 active:border-muted-foreground/40"
-                }`}
-                aria-label={`Požer ${value}%`}
-                aria-pressed={isActive}
-              >
-                {value}%
-              </button>
-            );
-          })}
-        </div>
+        <Label htmlFor="dezins_pocet" className="text-sm font-medium">
+          Počet kusů
+        </Label>
+        <Input
+          id="dezins_pocet"
+          type="number"
+          min={0}
+          value={bod.pocet}
+          onChange={(e) =>
+            update({ pocet: Math.max(0, parseInt(e.target.value, 10) || 0) })
+          }
+          className="min-h-[44px] text-base"
+        />
       </div>
 
       {/* Prev / Next navigace */}

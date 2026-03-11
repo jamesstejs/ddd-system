@@ -16,13 +16,7 @@ import {
 } from "@/components/ui/card";
 import { BottomSheet } from "@/components/layout/BottomSheet";
 import { ConfirmDeleteSheet } from "@/components/layout/ConfirmDeleteSheet";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+// Select removed — kalkulačka uses checkboxes for multi-select
 import {
   ArrowLeft,
   MapPin,
@@ -43,7 +37,7 @@ import {
   updateOkruhAction,
   deleteOkruhAction,
 } from "../actions";
-import { vypocitejBodyAction } from "../kalkulacka-actions";
+import { vypocitejBodyBatchAction } from "../kalkulacka-actions";
 import type { VysledekKalkulacky } from "@/lib/kalkulacka/vypocetBodu";
 import type { Tables } from "@/lib/supabase/database.types";
 import type { Database } from "@/lib/supabase/database.types";
@@ -104,11 +98,11 @@ export function ObjektDetail({
   const [deleteOkruhState, setDeleteOkruhState] = useState<Okruh | null>(null);
 
   // Kalkulačka bodů
-  const [kalkulackaTypZasahu, setKalkulackaTypZasahu] = useState<TypZasahuKalkulacka>("vnitrni_deratizace");
+  const [kalkulackaTypyZasahu, setKalkulackaTypyZasahu] = useState<TypZasahuKalkulacka[]>(["vnitrni_deratizace"]);
   const [kalkulackaPlocha, setKalkulackaPlocha] = useState<string>(
     objekt.plocha_m2 ? String(objekt.plocha_m2) : ""
   );
-  const [kalkulackaVysledek, setKalkulackaVysledek] = useState<VysledekKalkulacky | null>(null);
+  const [kalkulackaVysledky, setKalkulackaVysledky] = useState<Record<string, VysledekKalkulacky | null> | null>(null);
   const [kalkulackaError, setKalkulackaError] = useState<string | null>(null);
 
   // --- Objekt handlers ---
@@ -148,28 +142,43 @@ export function ObjektDetail({
 
   // --- Kalkulačka handler ---
 
+  function handleToggleTypZasahu(typ: TypZasahuKalkulacka) {
+    setKalkulackaTypyZasahu((prev) => {
+      const next = prev.includes(typ) ? prev.filter((t) => t !== typ) : [...prev, typ];
+      return next;
+    });
+    setKalkulackaVysledky(null);
+    setKalkulackaError(null);
+  }
+
   function handleVypocitatBody() {
+    if (kalkulackaTypyZasahu.length === 0) {
+      setKalkulackaError("Vyberte alespoň jeden typ zásahu");
+      setKalkulackaVysledky(null);
+      return;
+    }
     const plocha = Number(kalkulackaPlocha);
     if (!plocha || plocha <= 0) {
       setKalkulackaError("Zadejte platnou plochu v m²");
-      setKalkulackaVysledek(null);
+      setKalkulackaVysledky(null);
       return;
     }
     setKalkulackaError(null);
     startTransition(async () => {
       try {
-        const result = await vypocitejBodyAction(
+        const results = await vypocitejBodyBatchAction(
           objekt.typ_objektu,
           plocha,
-          kalkulackaTypZasahu,
+          kalkulackaTypyZasahu,
         );
-        setKalkulackaVysledek(result);
-        if (!result) {
+        setKalkulackaVysledky(results);
+        const hasAny = Object.values(results).some((r) => r !== null);
+        if (!hasAny) {
           setKalkulackaError("Pro tento typ objektu a zásahu nejsou šablony");
         }
       } catch (err) {
         setKalkulackaError(err instanceof Error ? err.message : "Chyba výpočtu");
-        setKalkulackaVysledek(null);
+        setKalkulackaVysledky(null);
       }
     });
   }
@@ -421,30 +430,27 @@ export function ObjektDetail({
             </Badge>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="kalkulacka-typ-zasahu">Typ zásahu</Label>
-            <Select
-              value={kalkulackaTypZasahu}
-              onValueChange={(v) => {
-                setKalkulackaTypZasahu(v as TypZasahuKalkulacka);
-                setKalkulackaVysledek(null);
-                setKalkulackaError(null);
-              }}
-            >
-              <SelectTrigger id="kalkulacka-typ-zasahu" className="min-h-[44px]">
-                <SelectValue placeholder="Vyberte typ zásahu" />
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.entries(TYP_ZASAHU_LABELS) as [TypZasahuKalkulacka, string][]).map(
-                  ([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ),
-                )}
-              </SelectContent>
-            </Select>
-          </div>
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium">Typ zásahu</legend>
+            <div className="space-y-1">
+              {(Object.entries(TYP_ZASAHU_LABELS) as [TypZasahuKalkulacka, string][]).map(
+                ([value, label]) => (
+                  <label
+                    key={value}
+                    className="flex min-h-[44px] cursor-pointer items-center gap-3 rounded-md border px-3 py-2 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={kalkulackaTypyZasahu.includes(value)}
+                      onChange={() => handleToggleTypZasahu(value)}
+                      className="size-5 accent-primary"
+                    />
+                    {label}
+                  </label>
+                ),
+              )}
+            </div>
+          </fieldset>
 
           <div className="space-y-2">
             <Label htmlFor="kalkulacka-plocha">Plocha (m²)</Label>
@@ -456,7 +462,7 @@ export function ObjektDetail({
               value={kalkulackaPlocha}
               onChange={(e) => {
                 setKalkulackaPlocha(e.target.value);
-                setKalkulackaVysledek(null);
+                setKalkulackaVysledky(null);
                 setKalkulackaError(null);
               }}
               placeholder="Zadejte plochu v m²"
@@ -479,48 +485,52 @@ export function ObjektDetail({
             </p>
           )}
 
-          {kalkulackaVysledek && (
-            <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
-              <p className="text-sm font-medium text-center">
-                Doporučený počet bodů
-                {kalkulackaVysledek.pouzit_vzorec && (
-                  <span className="text-muted-foreground font-normal"> (vzorec)</span>
-                )}
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                {kalkulackaVysledek.bod_s_mys > 0 && (
-                  <div className="rounded-md border bg-background p-3 text-center">
-                    <p className="text-2xl font-bold">{kalkulackaVysledek.bod_s_mys}</p>
-                    <p className="text-xs text-muted-foreground">Bod S (myš)</p>
-                  </div>
-                )}
-                {kalkulackaVysledek.bod_l_potkan > 0 && (
-                  <div className="rounded-md border bg-background p-3 text-center">
-                    <p className="text-2xl font-bold">{kalkulackaVysledek.bod_l_potkan}</p>
-                    <p className="text-xs text-muted-foreground">Bod L (potkan)</p>
-                  </div>
-                )}
-                {kalkulackaVysledek.zivolovna > 0 && (
-                  <div className="rounded-md border bg-background p-3 text-center">
-                    <p className="text-2xl font-bold">{kalkulackaVysledek.zivolovna}</p>
-                    <p className="text-xs text-muted-foreground">Živolovná past</p>
-                  </div>
-                )}
-                {kalkulackaVysledek.letajici > 0 && (
-                  <div className="rounded-md border bg-background p-3 text-center">
-                    <p className="text-2xl font-bold">{kalkulackaVysledek.letajici}</p>
-                    <p className="text-xs text-muted-foreground">Létající hmyz</p>
-                  </div>
-                )}
-                {kalkulackaVysledek.lezouci > 0 && (
-                  <div className="rounded-md border bg-background p-3 text-center">
-                    <p className="text-2xl font-bold">{kalkulackaVysledek.lezouci}</p>
-                    <p className="text-xs text-muted-foreground">Lezoucí hmyz</p>
-                  </div>
-                )}
+          {kalkulackaVysledky && Object.entries(kalkulackaVysledky).map(([typ, vysledek]) => {
+            if (!vysledek) return null;
+            const label = TYP_ZASAHU_LABELS[typ as TypZasahuKalkulacka] || typ;
+            return (
+              <div key={typ} className="rounded-lg border bg-muted/50 p-4 space-y-3">
+                <p className="text-sm font-medium text-center">
+                  {label}
+                  {vysledek.pouzit_vzorec && (
+                    <span className="text-muted-foreground font-normal"> (vzorec)</span>
+                  )}
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  {vysledek.bod_s_mys > 0 && (
+                    <div className="rounded-md border bg-background p-3 text-center">
+                      <p className="text-2xl font-bold">{vysledek.bod_s_mys}</p>
+                      <p className="text-xs text-muted-foreground">Bod S (myš)</p>
+                    </div>
+                  )}
+                  {vysledek.bod_l_potkan > 0 && (
+                    <div className="rounded-md border bg-background p-3 text-center">
+                      <p className="text-2xl font-bold">{vysledek.bod_l_potkan}</p>
+                      <p className="text-xs text-muted-foreground">Bod L (potkan)</p>
+                    </div>
+                  )}
+                  {vysledek.zivolovna > 0 && (
+                    <div className="rounded-md border bg-background p-3 text-center">
+                      <p className="text-2xl font-bold">{vysledek.zivolovna}</p>
+                      <p className="text-xs text-muted-foreground">Živolovná past</p>
+                    </div>
+                  )}
+                  {vysledek.letajici > 0 && (
+                    <div className="rounded-md border bg-background p-3 text-center">
+                      <p className="text-2xl font-bold">{vysledek.letajici}</p>
+                      <p className="text-xs text-muted-foreground">Létající hmyz</p>
+                    </div>
+                  )}
+                  {vysledek.lezouci > 0 && (
+                    <div className="rounded-md border bg-background p-3 text-center">
+                      <p className="text-2xl font-bold">{vysledek.lezouci}</p>
+                      <p className="text-xs text-muted-foreground">Lezoucí hmyz</p>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })}
         </CardContent>
       </Card>
 

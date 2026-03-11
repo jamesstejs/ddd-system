@@ -2,13 +2,25 @@ import { describe, it, expect } from "vitest";
 import {
   prumernyPozer,
   prefillBodyFromPrevious,
+  prefillDezinsBodyFromPrevious,
   getNextCisloBodu,
   validateBod,
+  filterPripravkyForPostrik,
+  mapObjektTypToTypProstoru,
+  determineTrend,
+  computeDeratStatistiky,
+  computeDezinsStatistiky,
   TYP_STANICKY_LABELS,
   STAV_STANICKY_LABELS,
+  TYP_LAPACE_LABELS,
+  TYP_ZAKROKU_LABELS,
   POZER_OPTIONS,
   POZER_COLORS,
+  TREND_LABELS,
+  TREND_ICONS,
+  TREND_COLORS,
 } from "../protokolUtils";
+import type { PripravekForFilter } from "../protokolUtils";
 
 // ---------- prumernyPozer ----------
 
@@ -316,6 +328,367 @@ describe("POZER_COLORS", () => {
       expect(POZER_COLORS[opt]).toBeDefined();
       expect(POZER_COLORS[opt].bg).toBeTruthy();
       expect(POZER_COLORS[opt].text).toBeTruthy();
+    }
+  });
+});
+
+// ---------- TYP_LAPACE_LABELS ----------
+
+describe("TYP_LAPACE_LABELS", () => {
+  it("obsahuje všechny 4 typy", () => {
+    expect(Object.keys(TYP_LAPACE_LABELS)).toHaveLength(4);
+    expect(TYP_LAPACE_LABELS.lezouci_hmyz).toBe("Lezoucí hmyz");
+    expect(TYP_LAPACE_LABELS.letajici_hmyz).toBe("Létající hmyz");
+    expect(TYP_LAPACE_LABELS.lepova).toBe("Lepová");
+    expect(TYP_LAPACE_LABELS.elektronicka).toBe("Elektronická");
+  });
+});
+
+// ---------- TYP_ZAKROKU_LABELS ----------
+
+describe("TYP_ZAKROKU_LABELS", () => {
+  it("obsahuje všechny 4 typy", () => {
+    expect(Object.keys(TYP_ZAKROKU_LABELS)).toHaveLength(4);
+    expect(TYP_ZAKROKU_LABELS.postrik).toBe("Postřik");
+    expect(TYP_ZAKROKU_LABELS.ulv).toBe("ULV");
+    expect(TYP_ZAKROKU_LABELS.poprash).toBe("Popraš");
+    expect(TYP_ZAKROKU_LABELS.gelova_nastraha).toBe("Gelová nástraha");
+  });
+});
+
+// ---------- prefillDezinsBodyFromPrevious ----------
+
+describe("prefillDezinsBodyFromPrevious", () => {
+  it("vrátí prázdné pole pro prázdný vstup", () => {
+    expect(prefillDezinsBodyFromPrevious([])).toEqual([]);
+  });
+
+  it("kopíruje cislo_bodu, okruh_id, typ_lapace, druh_hmyzu", () => {
+    const prev = [
+      {
+        cislo_bodu: "D1",
+        okruh_id: "okr-1",
+        typ_lapace: "lezouci_hmyz" as const,
+        druh_hmyzu: "Rus domácí",
+        pocet: 5,
+      },
+    ];
+    const result = prefillDezinsBodyFromPrevious(prev);
+    expect(result).toHaveLength(1);
+    expect(result[0].cislo_bodu).toBe("D1");
+    expect(result[0].okruh_id).toBe("okr-1");
+    expect(result[0].typ_lapace).toBe("lezouci_hmyz");
+    expect(result[0].druh_hmyzu).toBe("Rus domácí");
+  });
+
+  it("resetuje pocet na 0", () => {
+    const prev = [
+      {
+        cislo_bodu: "D1",
+        okruh_id: null,
+        typ_lapace: "letajici_hmyz" as const,
+        druh_hmyzu: null,
+        pocet: 12,
+      },
+    ];
+    const result = prefillDezinsBodyFromPrevious(prev);
+    expect(result[0].pocet).toBe(0);
+  });
+
+  it("nemá id na výstupu (nové body)", () => {
+    const prev = [
+      {
+        cislo_bodu: "D1",
+        okruh_id: null,
+        typ_lapace: "lepova" as const,
+        druh_hmyzu: null,
+        pocet: 3,
+      },
+    ];
+    const result = prefillDezinsBodyFromPrevious(prev);
+    expect(result[0]).not.toHaveProperty("id");
+  });
+});
+
+// ---------- mapObjektTypToTypProstoru ----------
+
+describe("mapObjektTypToTypProstoru", () => {
+  it("gastro → potravinarsky", () => {
+    expect(mapObjektTypToTypProstoru("gastro")).toBe("potravinarsky");
+  });
+
+  it("sklad_zivocisna → potravinarsky", () => {
+    expect(mapObjektTypToTypProstoru("sklad_zivocisna")).toBe("potravinarsky");
+  });
+
+  it("domacnost → domacnost", () => {
+    expect(mapObjektTypToTypProstoru("domacnost")).toBe("domacnost");
+  });
+
+  it("ubytovna → domacnost", () => {
+    expect(mapObjektTypToTypProstoru("ubytovna")).toBe("domacnost");
+  });
+
+  it("kancelar → prumysl", () => {
+    expect(mapObjektTypToTypProstoru("kancelar")).toBe("prumysl");
+  });
+
+  it("vyrobni_hala → prumysl", () => {
+    expect(mapObjektTypToTypProstoru("vyrobni_hala")).toBe("prumysl");
+  });
+
+  it("null → null", () => {
+    expect(mapObjektTypToTypProstoru(null)).toBeNull();
+  });
+
+  it("undefined → null", () => {
+    expect(mapObjektTypToTypProstoru(undefined)).toBeNull();
+  });
+
+  it("neznámý typ → null", () => {
+    expect(mapObjektTypToTypProstoru("neexistujici")).toBeNull();
+  });
+});
+
+// ---------- filterPripravkyForPostrik ----------
+
+describe("filterPripravkyForPostrik", () => {
+  const basePripravky: PripravekForFilter[] = [
+    {
+      id: "1",
+      nazev: "Demand CS",
+      ucinna_latka: "lambda-cyhalothrin",
+      protilatka: null,
+      typ: "insekticid",
+      cilovy_skudce: ["Rus domácí", "Šváb obecný"],
+      omezeni_prostor: ["potravinarsky", "prumysl"],
+    },
+    {
+      id: "2",
+      nazev: "Brodifacoum",
+      ucinna_latka: "brodifacoum",
+      protilatka: "Vitamin K1",
+      typ: "rodenticid",
+      cilovy_skudce: null,
+      omezeni_prostor: null,
+    },
+    {
+      id: "3",
+      nazev: "Biocid X",
+      ucinna_latka: "aktivní chlor",
+      protilatka: null,
+      typ: "biocid",
+      cilovy_skudce: null,
+      omezeni_prostor: null,
+    },
+    {
+      id: "4",
+      nazev: "Insekticid domácí",
+      ucinna_latka: "pyrethroid",
+      protilatka: null,
+      typ: "insekticid",
+      cilovy_skudce: ["Moucha domácí"],
+      omezeni_prostor: ["domacnost"],
+    },
+  ];
+
+  it("filtruje jen insekticidy a biocidy", () => {
+    const result = filterPripravkyForPostrik(basePripravky);
+    expect(result.map((p) => p.id)).toEqual(["1", "3", "4"]);
+  });
+
+  it("filtruje dle škůdce", () => {
+    const result = filterPripravkyForPostrik(basePripravky, "Rus domácí");
+    // id=1: cilovy_skudce includes "Rus domácí" → YES
+    // id=3: cilovy_skudce is null → YES (no restriction)
+    // id=4: cilovy_skudce = ["Moucha domácí"] → NO
+    expect(result.map((p) => p.id)).toEqual(["1", "3"]);
+  });
+
+  it("filtruje dle typu objektu", () => {
+    const result = filterPripravkyForPostrik(
+      basePripravky,
+      null,
+      "domacnost",
+    );
+    // id=1: omezeni_prostor = ["potravinarsky", "prumysl"] → NO
+    // id=3: omezeni_prostor is null → YES (no restriction)
+    // id=4: omezeni_prostor = ["domacnost"] → YES
+    expect(result.map((p) => p.id)).toEqual(["3", "4"]);
+  });
+
+  it("filtruje dle škůdce i typu objektu", () => {
+    const result = filterPripravkyForPostrik(
+      basePripravky,
+      "Rus domácí",
+      "gastro",
+    );
+    // id=1: skudce OK + omezeni_prostor includes "potravinarsky" → YES
+    // id=3: skudce null→OK + omezeni_prostor null→OK → YES
+    // id=4: skudce "Moucha domácí"→NO
+    expect(result.map((p) => p.id)).toEqual(["1", "3"]);
+  });
+
+  it("vrátí prázdné pole pokud žádný přípravek neprojde filtrem", () => {
+    const result = filterPripravkyForPostrik(
+      [basePripravky[1]], // only rodenticid
+    );
+    expect(result).toHaveLength(0);
+  });
+});
+
+// ---------- determineTrend ----------
+
+describe("determineTrend", () => {
+  it("vrátí 'stabilni' když obě hodnoty jsou 0", () => {
+    expect(determineTrend(0, 0)).toBe("stabilni");
+  });
+
+  it("vrátí 'stoupajici' z nuly na kladnou hodnotu", () => {
+    expect(determineTrend(25, 0)).toBe("stoupajici");
+  });
+
+  it("vrátí 'klesajici' když aktuální < předchozí", () => {
+    expect(determineTrend(20, 50)).toBe("klesajici");
+  });
+
+  it("vrátí 'stoupajici' když aktuální > předchozí nad tolerancí", () => {
+    expect(determineTrend(60, 50)).toBe("stoupajici");
+  });
+
+  it("vrátí 'stabilni' v rámci 5% tolerance", () => {
+    // 5% z 100 = 5, diff = 4 → stabilní
+    expect(determineTrend(104, 100)).toBe("stabilni");
+    expect(determineTrend(96, 100)).toBe("stabilni");
+  });
+
+  it("vrátí 'stoupajici' na hranici tolerance", () => {
+    // 5% z 100 = 5, diff = 6 → stoupající
+    expect(determineTrend(106, 100)).toBe("stoupajici");
+  });
+
+  it("vrátí 'klesajici' na hranici tolerance", () => {
+    // 5% z 100 = 5, diff = -6 → klesající
+    expect(determineTrend(94, 100)).toBe("klesajici");
+  });
+});
+
+// ---------- computeDeratStatistiky ----------
+
+describe("computeDeratStatistiky", () => {
+  it("vrátí null trend bez předchozích dat", () => {
+    const result = computeDeratStatistiky(
+      [{ pozer_procent: 25 }, { pozer_procent: 50 }],
+      null,
+    );
+    expect(result.currentAvgPozer).toBe(37.5);
+    expect(result.previousAvgPozer).toBeNull();
+    expect(result.trend).toBeNull();
+    expect(result.currentBodyCount).toBe(2);
+    expect(result.previousBodyCount).toBeNull();
+  });
+
+  it("vrátí null trend pro prázdné předchozí body", () => {
+    const result = computeDeratStatistiky(
+      [{ pozer_procent: 50 }],
+      [],
+    );
+    expect(result.previousAvgPozer).toBeNull();
+    expect(result.trend).toBeNull();
+  });
+
+  it("vypočítá správné průměry a klesající trend", () => {
+    const result = computeDeratStatistiky(
+      [{ pozer_procent: 0 }, { pozer_procent: 25 }],
+      [{ pozer_procent: 50 }, { pozer_procent: 75 }],
+    );
+    expect(result.currentAvgPozer).toBe(12.5);
+    expect(result.previousAvgPozer).toBe(62.5);
+    expect(result.trend).toBe("klesajici");
+    expect(result.currentBodyCount).toBe(2);
+    expect(result.previousBodyCount).toBe(2);
+  });
+
+  it("vypočítá stoupající trend", () => {
+    const result = computeDeratStatistiky(
+      [{ pozer_procent: 75 }],
+      [{ pozer_procent: 25 }],
+    );
+    expect(result.trend).toBe("stoupajici");
+  });
+
+  it("zvládne prázdné aktuální body", () => {
+    const result = computeDeratStatistiky(
+      [],
+      [{ pozer_procent: 50 }],
+    );
+    expect(result.currentAvgPozer).toBe(0);
+    expect(result.trend).toBe("klesajici");
+  });
+});
+
+// ---------- computeDezinsStatistiky ----------
+
+describe("computeDezinsStatistiky", () => {
+  it("vrátí null trend bez předchozích dat", () => {
+    const result = computeDezinsStatistiky(
+      [{ pocet: 5 }, { pocet: 10 }],
+      null,
+    );
+    expect(result.currentTotalPocet).toBe(15);
+    expect(result.previousTotalPocet).toBeNull();
+    expect(result.trend).toBeNull();
+  });
+
+  it("vypočítá klesající trend", () => {
+    const result = computeDezinsStatistiky(
+      [{ pocet: 2 }, { pocet: 3 }],
+      [{ pocet: 10 }, { pocet: 15 }],
+    );
+    expect(result.currentTotalPocet).toBe(5);
+    expect(result.previousTotalPocet).toBe(25);
+    expect(result.trend).toBe("klesajici");
+  });
+
+  it("vypočítá stoupající trend", () => {
+    const result = computeDezinsStatistiky(
+      [{ pocet: 20 }],
+      [{ pocet: 5 }],
+    );
+    expect(result.trend).toBe("stoupajici");
+  });
+
+  it("zvládne nulové počty na obou stranách", () => {
+    const result = computeDezinsStatistiky(
+      [{ pocet: 0 }],
+      [{ pocet: 0 }],
+    );
+    expect(result.currentTotalPocet).toBe(0);
+    expect(result.previousTotalPocet).toBe(0);
+    expect(result.trend).toBe("stabilni");
+  });
+});
+
+// ---------- TREND_LABELS, TREND_ICONS, TREND_COLORS ----------
+
+describe("TREND constants", () => {
+  it("TREND_LABELS má 3 směry", () => {
+    expect(Object.keys(TREND_LABELS)).toHaveLength(3);
+    expect(TREND_LABELS.klesajici).toBe("Klesající");
+    expect(TREND_LABELS.stoupajici).toBe("Stoupající");
+    expect(TREND_LABELS.stabilni).toBe("Stabilní");
+  });
+
+  it("TREND_ICONS má šipky pro každý směr", () => {
+    expect(TREND_ICONS.klesajici).toBe("↓");
+    expect(TREND_ICONS.stoupajici).toBe("↑");
+    expect(TREND_ICONS.stabilni).toBe("→");
+  });
+
+  it("TREND_COLORS má barvy pro každý směr", () => {
+    for (const key of Object.keys(TREND_COLORS)) {
+      expect(TREND_COLORS[key as keyof typeof TREND_COLORS].bg).toBeTruthy();
+      expect(TREND_COLORS[key as keyof typeof TREND_COLORS].text).toBeTruthy();
     }
   });
 });

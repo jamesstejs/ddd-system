@@ -16,14 +16,6 @@ vi.mock("../protokolActions", () => ({
   saveDeratBodyAction: vi.fn().mockResolvedValue(undefined),
 }));
 
-const baseProtokolData = {
-  id: "prot-1",
-  cislo_protokolu: "P-ABC-001",
-  status: "rozpracovany" as const,
-  poznamka: null,
-  zasah_id: "z-1",
-};
-
 const baseBod = {
   id: "bod-1",
   cislo_bodu: "L1",
@@ -48,24 +40,14 @@ const baseOkruhy = [
   { id: "okr-2", nazev: "Sklad" },
 ];
 
+const defaultProps = {
+  protokolId: "prot-1",
+  status: "rozpracovany" as const,
+  poznamka: "",
+  onPoznamkaChange: vi.fn(),
+};
+
 describe("DeratFormView", () => {
-  it("renderuje číslo protokolu a klient info", () => {
-    render(
-      <DeratFormView
-        protokol={baseProtokolData}
-        initialBody={[baseBod]}
-        okruhy={baseOkruhy}
-        pripravky={basePripravky}
-        klientName="Test Klient"
-        objektNazev="Provozovna"
-      />,
-    );
-
-    expect(screen.getByText("P-ABC-001")).toBeTruthy();
-    expect(screen.getByText("Test Klient")).toBeTruthy();
-    expect(screen.getByText("Provozovna")).toBeTruthy();
-  });
-
   it("renderuje seznam bodů v overview", () => {
     const body = [
       baseBod,
@@ -87,12 +69,10 @@ describe("DeratFormView", () => {
 
     render(
       <DeratFormView
-        protokol={baseProtokolData}
+        {...defaultProps}
         initialBody={body}
         okruhy={[]}
         pripravky={basePripravky}
-        klientName="Test"
-        objektNazev=""
       />,
     );
 
@@ -109,12 +89,10 @@ describe("DeratFormView", () => {
 
     render(
       <DeratFormView
-        protokol={baseProtokolData}
+        {...defaultProps}
         initialBody={body}
         okruhy={[]}
         pripravky={basePripravky}
-        klientName="Test"
-        objektNazev=""
       />,
     );
 
@@ -124,12 +102,10 @@ describe("DeratFormView", () => {
   it("klik na bod přepne do edit mode", () => {
     render(
       <DeratFormView
-        protokol={baseProtokolData}
+        {...defaultProps}
         initialBody={[baseBod]}
         okruhy={baseOkruhy}
         pripravky={basePripravky}
-        klientName="Test"
-        objektNazev=""
       />,
     );
 
@@ -139,7 +115,7 @@ describe("DeratFormView", () => {
     fireEvent.click(bodButton!);
 
     // Edit mode — vidíme "Přehled" zpět tlačítko
-    expect(screen.getByText("← Přehled")).toBeTruthy();
+    expect(screen.getByLabelText("Zpět na přehled")).toBeTruthy();
     // A číslo bodu input
     expect(screen.getByLabelText("Číslo bodu")).toBeTruthy();
   });
@@ -147,12 +123,10 @@ describe("DeratFormView", () => {
   it("klik na 'Přidat bod' přidá nový bod", () => {
     render(
       <DeratFormView
-        protokol={baseProtokolData}
+        {...defaultProps}
         initialBody={[baseBod]}
         okruhy={[]}
         pripravky={basePripravky}
-        klientName="Test"
-        objektNazev=""
       />,
     );
 
@@ -161,18 +135,16 @@ describe("DeratFormView", () => {
     fireEvent.click(addButton);
 
     // Nový bod by měl otevřít edit mode — vidíme "Přehled" zpět
-    expect(screen.getByText("← Přehled")).toBeTruthy();
+    expect(screen.getByLabelText("Zpět na přehled")).toBeTruthy();
   });
 
   it("zobrazuje prázdný stav bez bodů", () => {
     render(
       <DeratFormView
-        protokol={baseProtokolData}
+        {...defaultProps}
         initialBody={[]}
         okruhy={[]}
         pripravky={basePripravky}
-        klientName="Test"
-        objektNazev=""
       />,
     );
 
@@ -182,26 +154,21 @@ describe("DeratFormView", () => {
   });
 
   it("readonly mode skrývá editační tlačítka", () => {
-    const readonlyProtokol = {
-      ...baseProtokolData,
-      status: "schvaleny" as const,
-    };
-
     render(
       <DeratFormView
-        protokol={readonlyProtokol}
+        {...defaultProps}
+        status="schvaleny"
         initialBody={[baseBod]}
         okruhy={[]}
         pripravky={basePripravky}
-        klientName="Test"
-        objektNazev=""
       />,
     );
 
     // "Přidat bod" by nemělo být vidět
     expect(screen.queryByText("+ Přidat bod")).toBeNull();
-    // "Uložit" by nemělo být vidět
-    expect(screen.queryByText("Uložit rozpracovaný")).toBeNull();
+    // "Uložit" by nemělo být vidět (obě varianty textu)
+    expect(screen.queryByText("Uložit změny")).toBeNull();
+    expect(screen.queryByText("Uloženo")).toBeNull();
   });
 
   it("požer barvy se správně zobrazují", () => {
@@ -212,12 +179,10 @@ describe("DeratFormView", () => {
 
     render(
       <DeratFormView
-        protokol={baseProtokolData}
+        {...defaultProps}
         initialBody={body}
         okruhy={[]}
         pripravky={basePripravky}
-        klientName="Test"
-        objektNazev=""
       />,
     );
 
@@ -226,25 +191,35 @@ describe("DeratFormView", () => {
     expect(screen.getByText("100%")).toBeTruthy();
   });
 
-  it("zobrazuje poznámku textarea", () => {
-    const protokolWithNote = {
-      ...baseProtokolData,
-      poznamka: "Testovací poznámka",
-    };
-
+  it("forceEditable p\u0159episuje readonly u ke_schvaleni", () => {
     render(
       <DeratFormView
-        protokol={protokolWithNote}
-        initialBody={[]}
+        {...defaultProps}
+        status="ke_schvaleni"
+        initialBody={[baseBod]}
         okruhy={[]}
         pripravky={basePripravky}
-        klientName="Test"
-        objektNazev=""
+        forceEditable={true}
       />,
     );
 
-    const textarea = screen.getByLabelText("Poznámka") as HTMLTextAreaElement;
-    expect(textarea).toBeTruthy();
-    expect(textarea.value).toBe("Testovací poznámka");
+    // "P\u0159idat bod" by m\u011blo b\u00fdt viditelné (admin editace)
+    expect(screen.getByText("+ P\u0159idat bod")).toBeTruthy();
+  });
+
+  it("forceEditable=false zachov\u00e1v\u00e1 readonly", () => {
+    render(
+      <DeratFormView
+        {...defaultProps}
+        status="ke_schvaleni"
+        initialBody={[baseBod]}
+        okruhy={[]}
+        pripravky={basePripravky}
+        forceEditable={false}
+      />,
+    );
+
+    // "P\u0159idat bod" by nem\u011blo b\u00fdt viditelné
+    expect(screen.queryByText("+ P\u0159idat bod")).toBeNull();
   });
 });

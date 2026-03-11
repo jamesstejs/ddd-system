@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ObjektDetail } from "../ObjektDetail";
 import type { Tables } from "@/lib/supabase/database.types";
 
@@ -27,6 +28,10 @@ vi.mock("../../actions", () => ({
   createOkruhAction: vi.fn(),
   updateOkruhAction: vi.fn(),
   deleteOkruhAction: vi.fn(),
+}));
+
+vi.mock("../../kalkulacka-actions", () => ({
+  vypocitejBodyBatchAction: vi.fn(),
 }));
 
 const testKlient: Klient = {
@@ -189,5 +194,65 @@ describe("ObjektDetail", () => {
     // Objekt has edit + 2 okruhy each have edit
     expect(editButtons.length).toBeGreaterThanOrEqual(2);
     expect(deleteButtons.length).toBeGreaterThanOrEqual(2);
+  });
+
+  describe("Kalkulačka bodů — multi-select typ zásahu", () => {
+    it("renders all 4 checkbox options", () => {
+      render(<ObjektDetail klient={testKlient} objekt={testObjekt} okruhy={[]} />);
+
+      expect(screen.getByText("Vnitřní deratizace")).toBeInTheDocument();
+      expect(screen.getByText("Vnější deratizace")).toBeInTheDocument();
+      expect(screen.getByText("Vnitřní dezinsekce")).toBeInTheDocument();
+      expect(screen.getByText("Postřik")).toBeInTheDocument();
+    });
+
+    it("uses checkboxes, not a select dropdown", () => {
+      render(<ObjektDetail klient={testKlient} objekt={testObjekt} okruhy={[]} />);
+
+      const checkboxes = screen.getAllByRole("checkbox");
+      expect(checkboxes.length).toBe(4);
+    });
+
+    it("has 'Vnitřní deratizace' checked by default", () => {
+      render(<ObjektDetail klient={testKlient} objekt={testObjekt} okruhy={[]} />);
+
+      const checkboxes = screen.getAllByRole("checkbox");
+      // First checkbox = Vnitřní deratizace (checked by default)
+      expect(checkboxes[0]).toBeChecked();
+      // Others unchecked
+      expect(checkboxes[1]).not.toBeChecked();
+      expect(checkboxes[2]).not.toBeChecked();
+      expect(checkboxes[3]).not.toBeChecked();
+    });
+
+    it("allows toggling multiple checkboxes", async () => {
+      const user = userEvent.setup();
+      render(<ObjektDetail klient={testKlient} objekt={testObjekt} okruhy={[]} />);
+
+      const checkboxes = screen.getAllByRole("checkbox");
+
+      // Check dezinsekce (index 2)
+      await user.click(checkboxes[2]);
+      expect(checkboxes[0]).toBeChecked(); // deratizace still checked
+      expect(checkboxes[2]).toBeChecked(); // dezinsekce now checked
+
+      // Uncheck deratizace (index 0)
+      await user.click(checkboxes[0]);
+      expect(checkboxes[0]).not.toBeChecked();
+      expect(checkboxes[2]).toBeChecked();
+    });
+
+    it("pre-fills plocha from objekt", () => {
+      render(<ObjektDetail klient={testKlient} objekt={testObjekt} okruhy={[]} />);
+
+      const plochaInput = screen.getByPlaceholderText("Zadejte plochu v m²");
+      expect(plochaInput).toHaveValue(150);
+    });
+
+    it("shows 'Spočítat body' button", () => {
+      render(<ObjektDetail klient={testKlient} objekt={testObjekt} okruhy={[]} />);
+
+      expect(screen.getByText("Spočítat body")).toBeInTheDocument();
+    });
   });
 });

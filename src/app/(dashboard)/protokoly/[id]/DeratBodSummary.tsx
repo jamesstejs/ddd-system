@@ -17,6 +17,7 @@ type Props = {
   pozer_procent: number;
   stav_stanicky: StavStanicky;
   onTap: () => void;
+  readonly?: boolean;
 };
 
 const STAV_ICONS: Partial<Record<StavStanicky, string>> = {
@@ -32,17 +33,13 @@ export function DeratBodSummary({
   pozer_procent,
   stav_stanicky,
   onTap,
+  readonly,
 }: Props) {
   const pozerColor = POZER_COLORS[pozer_procent] || POZER_COLORS[0];
   const stavIcon = STAV_ICONS[stav_stanicky];
 
-  return (
-    <button
-      type="button"
-      onClick={onTap}
-      className="flex min-h-[44px] w-full items-center gap-3 rounded-lg border bg-white p-3 text-left transition-colors active:bg-muted/50"
-      aria-label={`Bod ${cislo_bodu}, ${TYP_STANICKY_LABELS[typ_stanicky]}, požer ${pozer_procent}%`}
-    >
+  const content = (
+    <>
       {/* Číslo bodu */}
       <span className="min-w-[36px] text-center text-sm font-bold text-foreground">
         {cislo_bodu}
@@ -67,8 +64,30 @@ export function DeratBodSummary({
         {pozer_procent}%
       </Badge>
 
-      {/* Arrow */}
-      <span className="text-muted-foreground">›</span>
+      {/* Arrow — only when interactive */}
+      {!readonly && <span className="text-muted-foreground">›</span>}
+    </>
+  );
+
+  if (readonly) {
+    return (
+      <div
+        className="flex min-h-[44px] w-full items-center gap-3 rounded-lg border bg-white p-3 text-left opacity-70"
+        aria-label={`Bod ${cislo_bodu}, ${TYP_STANICKY_LABELS[typ_stanicky]}, požer ${pozer_procent}%`}
+      >
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onTap}
+      className="flex min-h-[44px] w-full items-center gap-3 rounded-lg border bg-white p-3 text-left transition-colors active:bg-muted/50"
+      aria-label={`Bod ${cislo_bodu}, ${TYP_STANICKY_LABELS[typ_stanicky]}, požer ${pozer_procent}%`}
+    >
+      {content}
     </button>
   );
 }

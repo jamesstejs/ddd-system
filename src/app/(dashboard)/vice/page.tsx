@@ -87,6 +87,12 @@ export default async function VicePage() {
         <Card>
           <CardContent className="space-y-1 pt-6">
             <Link
+              href="/protokoly"
+              className="flex min-h-[44px] items-center text-sm font-medium underline-offset-4 hover:underline active:underline focus-visible:underline"
+            >
+              Protokoly
+            </Link>
+            <Link
               href="/uzivatele"
               className="flex min-h-[44px] items-center text-sm font-medium underline-offset-4 hover:underline active:underline focus-visible:underline"
             >

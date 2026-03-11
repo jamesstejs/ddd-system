@@ -1,24 +1,10 @@
 import { test, expect } from "@playwright/test";
+import path from "path";
 
-// ---------- Helpers ----------
+const TECHNIK_STORAGE = path.join(__dirname, ".auth/technik.json");
+const SUPERADMIN_STORAGE = path.join(__dirname, ".auth/superadmin.json");
 
-async function login(
-  page: import("@playwright/test").Page,
-  email: string,
-  password: string,
-) {
-  await page.goto("/login");
-  await page.waitForLoadState("networkidle");
-  await page.fill('input[type="email"]', email);
-  await page.fill('input[type="password"]', password);
-  await page.click('button[type="submit"]');
-  // Wait for redirect away from login page (longer timeout for slower mobile browsers)
-  await page.waitForURL((url) => !url.pathname.includes("/login"), {
-    timeout: 20000,
-  });
-}
-
-// ---------- Basic ----------
+// ---------- Basic (unauthenticated) ----------
 
 test("homepage redirects to login when not authenticated", async ({
   page,
@@ -38,11 +24,11 @@ test("login page loads", async ({ page }) => {
 // ---------- Super Admin flow ----------
 
 test.describe("Super Admin", () => {
-  test.beforeEach(async ({ page }) => {
-    await login(page, "superadmin@deraplus.cz", "Test1234");
-  });
+  test.use({ storageState: SUPERADMIN_STORAGE });
 
   test("sees admin dashboard with real data", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
     await expect(page).toHaveURL("/");
     // Admin dashboard cards
     await expect(page.getByText("Protokoly ke schválení")).toBeVisible();
@@ -54,6 +40,8 @@ test.describe("Super Admin", () => {
   });
 
   test("admin bottom nav has correct items", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
     await expect(page.getByRole("link", { name: "Dashboard" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Klienti" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Zakázky" })).toBeVisible();
@@ -62,8 +50,8 @@ test.describe("Super Admin", () => {
   });
 
   test("kalendar shows admin week view with zasahy", async ({ page }) => {
-    await page.click('a[href="/kalendar"]');
-    await page.waitForURL("**/kalendar");
+    await page.goto("/kalendar");
+    await page.waitForLoadState("networkidle");
     // View mode toggles
     await expect(page.getByRole("button", { name: "Měsíc" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Týden" })).toBeVisible();
@@ -74,6 +62,7 @@ test.describe("Super Admin", () => {
 
   test("kalendar month view works", async ({ page }) => {
     await page.goto("/kalendar");
+    await page.waitForLoadState("networkidle");
     await page.click('button:has-text("Měsíc")');
     // Month grid should have day names
     await expect(page.getByText("Po")).toBeVisible();
@@ -82,13 +71,15 @@ test.describe("Super Admin", () => {
 
   test("kalendar day view works", async ({ page }) => {
     await page.goto("/kalendar");
+    await page.waitForLoadState("networkidle");
     await page.click('button:has-text("Den"):not(:has-text("Týden"))');
-    // Day view should show add button (text includes date, e.g. "Přidat zásah na 9. 3. 2026")
+    // Day view should show add button
     await expect(page.getByText(/Přidat zásah na/)).toBeVisible();
   });
 
   test("vice page shows admin profile", async ({ page }) => {
     await page.goto("/vice");
+    await page.waitForLoadState("networkidle");
     await expect(page.getByText("superadmin@deraplus.cz")).toBeVisible();
     await expect(page.getByRole("main").getByText("Super Admin")).toBeVisible();
     await expect(page.getByText("Správa uživatelů")).toBeVisible();
@@ -99,11 +90,11 @@ test.describe("Super Admin", () => {
 // ---------- Technik flow ----------
 
 test.describe("Technik", () => {
-  test.beforeEach(async ({ page }) => {
-    await login(page, "technik@deraplus.cz", "Test1234");
-  });
+  test.use({ storageState: TECHNIK_STORAGE });
 
   test("sees technik dashboard with Můj den card", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
     await expect(page).toHaveURL("/");
     await expect(page.getByText("Můj den")).toBeVisible();
     await expect(page.getByText("Klienti k domluvení", { exact: true })).toBeVisible();
@@ -114,6 +105,8 @@ test.describe("Technik", () => {
   test("technik bottom nav has correct items (no Klienti)", async ({
     page,
   }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
     await expect(page.getByRole("link", { name: "Dashboard" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Zakázky" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Kalendář" })).toBeVisible();
@@ -125,8 +118,8 @@ test.describe("Technik", () => {
   });
 
   test("kalendar shows technik Můj den view", async ({ page }) => {
-    await page.click('a[href="/kalendar"]');
-    await page.waitForURL("**/kalendar");
+    await page.goto("/kalendar");
+    await page.waitForLoadState("networkidle");
     // Should show day navigation
     await expect(
       page.getByRole("button", { name: "Předchozí den" }),
@@ -145,9 +138,10 @@ test.describe("Technik", () => {
 
   test("technik can navigate between days", async ({ page }) => {
     await page.goto("/kalendar");
+    await page.waitForLoadState("networkidle");
     // Click next day
     await page.click('button[aria-label="Další den"]');
-    // Wait for content to update (might show empty or different day)
+    // Wait for content to update
     await page.waitForTimeout(1000);
     // Navigation should still be present
     await expect(
@@ -157,6 +151,7 @@ test.describe("Technik", () => {
 
   test("vice page shows technik profile", async ({ page }) => {
     await page.goto("/vice");
+    await page.waitForLoadState("networkidle");
     await expect(page.getByText("technik@deraplus.cz")).toBeVisible();
     await expect(page.getByText("Technik", { exact: true })).toBeVisible();
     await expect(page.getByText("Moje dostupnost")).toBeVisible();
@@ -171,7 +166,6 @@ test.describe("Technik", () => {
 test.describe("Mobile UI", () => {
   test("login form inputs have 16px font on mobile (prevent iOS zoom)", async ({
     page,
-    browserName,
   }, testInfo) => {
     // This check only matters for mobile (iOS zoom prevention)
     if (testInfo.project.name.includes("desktop")) {
@@ -187,15 +181,20 @@ test.describe("Mobile UI", () => {
     expect(size).toBeGreaterThanOrEqual(16);
   });
 
-  test("bottom nav buttons are at least 44px tall", async ({ page }) => {
-    await login(page, "superadmin@deraplus.cz", "Test1234");
-    const navLinks = page.locator("nav a");
-    const count = await navLinks.count();
-    for (let i = 0; i < count; i++) {
-      const box = await navLinks.nth(i).boundingBox();
-      if (box) {
-        expect(box.height).toBeGreaterThanOrEqual(44);
+  test.describe("bottom nav", () => {
+    test.use({ storageState: SUPERADMIN_STORAGE });
+
+    test("bottom nav buttons are at least 44px tall", async ({ page }) => {
+      await page.goto("/");
+      await page.waitForLoadState("networkidle");
+      const navLinks = page.locator("nav a");
+      const count = await navLinks.count();
+      for (let i = 0; i < count; i++) {
+        const box = await navLinks.nth(i).boundingBox();
+        if (box) {
+          expect(box.height).toBeGreaterThanOrEqual(44);
+        }
       }
-    }
+    });
   });
 });

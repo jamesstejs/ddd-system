@@ -25,4 +25,5 @@ export const PAGE_TITLES: Record<string, string> = {
   "/vice": "Více",
   "/uzivatele": "Uživatelé",
   "/nastaveni": "Nastavení",
+  "/protokoly": "Protokoly",
 };

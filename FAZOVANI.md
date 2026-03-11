@@ -21,7 +21,7 @@ Po implementaci vždy:
 
 ---
 
-## Aktuální sprint: SPRINT 19
+## Aktuální sprint: SPRINT 21
 
 ---
 
@@ -295,42 +295,53 @@ Po implementaci vždy:
 
 ---
 
-## Sprint 19 — Protokoly: dezinsekční formulář + postřik
+## Sprint 19 — Protokoly: dezinsekční formulář + postřik ✅
 **Cíl:** Technik vyplní dezinsekci a postřik
 
-- [ ] UI: dezinsekční bod (číslo, okruh, typ lapače, hmyz ze seznamu, počet)
-- [ ] Předvyplnění z předchozího protokolu
-- [ ] UI: postřik (škůdce, plocha, typ zákroku: postřik/ULV/popraš/gel, přípravky, spotřeba, koncentrace)
-- [ ] Výběr přípravku: filtrovaný dle škůdce + typu prostoru objektu
-- [ ] Účinná látka + protilátka se zobrazí automaticky
-- [ ] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
+- [x] UI: dezinsekční bod (číslo, okruh, typ lapače, hmyz ze seznamu filtrovaný dle lapače, počet) — `DezinsBodForm.tsx` + `DezinsBodSummary.tsx` + `DezinsFormView.tsx` wizard
+- [x] Předvyplnění z předchozího protokolu — `getPrefilledDezinsBodyAction` + `prefillDezinsBodyFromPrevious()`
+- [x] UI: postřik (škůdce, plocha, typ zákroku: postřik/ULV/popraš/gel, přípravky, spotřeba, koncentrace) — `PostrikFormView.tsx`
+- [x] Výběr přípravku: filtrovaný dle škůdce + typu prostoru objektu — `filterPripravkyForPostrik()` s `mapObjektTypToTypProstoru()`
+- [x] Účinná látka + protilátka se zobrazí automaticky po výběru přípravku
+- [x] Tab-based navigace: `ProtokolFormView.tsx` wrapper se shadcn Tabs (Deratizace/Dezinsekce/Postřik dle `typy_zasahu`)
+- [x] Refaktor `DeratFormView.tsx` (extrakce header/poznámka do sdíleného wrapperu)
+- [x] Server actions: `saveDezinsBodyAction` + `savePostrikAction` + `getPrefilledDezinsBodyAction`
+- [x] Utility labels: `TYP_LAPACE_LABELS`, `TYP_ZAKROKU_LABELS`
+- [x] Testy: 30 nových (15 protokolUtils + 6 DezinsFormView + 6 PostrikFormView + 3 updated DeratFormView) — celkem 464/464
+- [x] E2E: 70 Playwright testů (69 passed + 1 skipped, 0 failed, ~48s) — auth-setup pattern eliminuje rate-limiting
+- [x] **Kontrola:** `npx tsc --noEmit` ✅ + `npx vitest run` 464/464 ✅ + `npm run build` ✅ + `npx playwright test` 69+1 ✅ + mobile audit ✅ + wiring check ✅ + AI review ✅
 
 ---
 
-## Sprint 20 — Protokoly: fotky + podpis + odeslání
+## Sprint 20 — Protokoly: fotky + podpis + odeslání ✅
 **Cíl:** Kompletace protokolu na místě
 
-- [ ] Supabase Storage bucket: `protokol-fotky`
-- [ ] UI: fotodokumentace (capture kamerou nebo upload)
-- [ ] UI: podpis klienta (canvas, touch-friendly → PNG do Storage)
-- [ ] Poznámka k protokolu (textarea)
-- [ ] Statistiky: automatické porovnání s předchozím protokolem (požer trend, počty hmyzu)
-- [ ] Věta o účinnosti: výběr z template (admin definuje texty)
-- [ ] Tlačítko "Odeslat ke schválení" → status = ke_schvaleni
-- [ ] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
+- [x] Supabase Storage bucket: `protokol-fotky`
+- [x] UI: fotodokumentace (capture kamerou nebo upload)
+- [x] UI: podpis klienta (canvas, touch-friendly → PNG do Storage)
+- [x] Poznámka k protokolu (textarea)
+- [x] Statistiky: automatické porovnání s předchozím protokolem (požer trend, počty hmyzu)
+- [x] Věta o účinnosti: výběr z template (admin definuje texty)
+- [x] Tlačítko "Odeslat ke schválení" → status = ke_schvaleni
+- [x] Fix: protokol-fotky bucket musí být public (migrace 20260320000001)
+- [x] Fix: Unicode escape sekvence v JSX textech ProtokolFormView
+- [x] Fix: SelectItem tap target pod 44px → min-h-[44px]
+- [x] **Kontrola:** `npx tsc --noEmit` ✅ + `npx vitest run` 506/506 ✅ + `npm run build` ✅ + `npx playwright test` 70+1 ✅ + mobile audit ✅ + wiring check ✅
 
 ---
 
 ## Sprint 21 — Protokoly: admin schválení + editace
 **Cíl:** Admin kontroluje, edituje, schvaluje
 
-- [ ] UI: admin seznam protokolů (filtr: ke_schvaleni / schvaleny / odeslany)
-- [ ] UI: detail protokolu — zobrazení všech dat, fotek, podpisu, statistik
-- [ ] Admin může **editovat** libovolné pole protokolu
-- [ ] Tlačítko "Schválit" → status = schvaleny
-- [ ] Tlačítko "Vrátit" + komentář → status = rozpracovany (technik vidí komentář)
-- [ ] Dashboard: "Protokoly ke schválení" widget
-- [ ] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
+- [x] UI: admin seznam protokolů (filtr: ke_schvaleni / schvaleny / odeslany / rozpracovany / vše) + vyhledávání
+- [x] UI: detail protokolu — dual-role přístup (admin vidí vše, technik jen své)
+- [x] Admin může **editovat** libovolné pole protokolu (toggle "Upravit" → forceEditable)
+- [x] Tlačítko "Schválit" → status = schvaleny (adminApproveProtokolAction)
+- [x] Tlačítko "Vrátit" + komentář min 10 znaků → status = rozpracovany (technik vidí žlutý komentář)
+- [x] Dashboard: "Protokoly ke schválení" widget s reálnými daty + 3 preview
+- [x] Navigace: Více → Protokoly link pro admin
+- [x] requireProtokolEditor wrapper pro sdílené save akce (admin i technik)
+- [x] **Kontrola:** `npx tsc --noEmit` ✅ + `npx vitest run` 523/523 ✅ + `npm run build` ✅
 
 ---
 

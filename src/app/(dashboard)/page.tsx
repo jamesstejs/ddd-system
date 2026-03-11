@@ -24,12 +24,65 @@ import {
   getAktivniPripominky,
   getAktivniPripominkyTechnik,
 } from "@/lib/supabase/queries/pripominky";
+import { getProtokolyByStatus } from "@/lib/supabase/queries/protokoly";
 import { formatCasCz, formatDatumCzLong } from "@/lib/utils/dostupnostUtils";
 
 /** Format YYYY-MM-DD → "9. 3." (short Czech date) */
 function formatDatumShort(datum: string): string {
   const [, m, d] = datum.split("-").map(Number);
   return `${d}. ${m}.`;
+}
+
+async function ProtokolyKeSchvaleniWidget({
+  supabase,
+}: {
+  supabase: Awaited<ReturnType<typeof createClient>>;
+}) {
+  let protokoly: { id: string; cislo_protokolu: string | null; zasahy: unknown }[] = [];
+  try {
+    const { data } = await getProtokolyByStatus(supabase, "ke_schvaleni");
+    protokoly = (data ?? []) as typeof protokoly;
+  } catch {
+    // fallback
+  }
+
+  function getKlientName(p: { zasahy: unknown }): string {
+    const zasahy = p.zasahy as Record<string, unknown> | null;
+    const zakazky = zasahy?.zakazky as Record<string, unknown> | null;
+    const objekty = zakazky?.objekty as Record<string, unknown> | null;
+    const klient = objekty?.klienti as { nazev?: string; jmeno?: string; prijmeni?: string } | null;
+    if (!klient) return "\u2014";
+    return klient.nazev || `${klient.prijmeni ?? ""} ${klient.jmeno ?? ""}`.trim() || "\u2014";
+  }
+
+  return (
+    <Link href="/protokoly">
+      <Card className="transition-colors active:bg-muted/50">
+        <CardHeader>
+          <CardTitle className="text-base">Protokoly ke schv\u00e1len\u00ed</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-2xl font-bold">{protokoly.length}</p>
+          {protokoly.length > 0 ? (
+            <ul className="mt-2 space-y-1">
+              {protokoly.slice(0, 3).map((p) => (
+                <li key={p.id} className="text-sm text-muted-foreground truncate">
+                  {p.cislo_protokolu || "Bez \u010d\u00edsla"} \u2013 {getKlientName(p)}
+                </li>
+              ))}
+              {protokoly.length > 3 && (
+                <li className="text-xs text-muted-foreground">
+                  +{protokoly.length - 3} dal\u0161\u00edch
+                </li>
+              )}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">\u017d\u00e1dn\u00e9 protokoly</p>
+          )}
+        </CardContent>
+      </Card>
+    </Link>
+  );
 }
 
 async function AdminDashboard({
@@ -80,17 +133,7 @@ async function AdminDashboard({
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Protokoly ke schválení</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-2xl font-bold">0</p>
-          <p className="text-sm text-muted-foreground">
-            Bude implementováno ve sprintu 21
-          </p>
-        </CardContent>
-      </Card>
+      <ProtokolyKeSchvaleniWidget supabase={supabase} />
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Nedomluvené termíny</CardTitle>

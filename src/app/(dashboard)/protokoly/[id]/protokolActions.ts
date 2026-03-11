@@ -984,3 +984,298 @@ export async function adminRejectProtokolAction(
 
   if (error) throw new Error(error.message);
 }
+
+// ============================================================
+// Admin: odeslání protokolu klientovi emailem
+// ============================================================
+
+/**
+ * Admin odešle protokol klientovi emailem (status schvaleny → odeslany).
+ * Generuje PDF, přiloží BL přípravků, odešle přes Resend.
+ */
+export async function sendProtokolEmailAction(
+  protokolId: string,
+): Promise<{ success: boolean; error?: string }> {
+  if (!UUID_REGEX.test(protokolId)) {
+    return { success: false, error: "Neplatný formát ID protokolu" };
+  }
+
+  const { supabase } = await requireAdmin();
+
+  // Načtení protokolu
+  const { data: protokol } = await getProtokol(supabase, protokolId);
+  if (!protokol) {
+    return { success: false, error: "Protokol nenalezen" };
+  }
+  if (protokol.status !== "schvaleny") {
+    return {
+      success: false,
+      error: "Odeslat lze pouze schválený protokol",
+    };
+  }
+
+  // Extrakce klient dat
+  const zasahy = protokol.zasahy as Record<string, unknown> | null;
+  const zakazky = zasahy?.zakazky as Record<string, unknown> | null;
+  const objekty = zakazky?.objekty as Record<string, unknown> | null;
+  const klienti = objekty?.klienti as Record<string, unknown> | null;
+
+  const klientEmail = klienti?.email as string | null;
+  if (!klientEmail) {
+    return {
+      success: false,
+      error: "Klient nemá zadaný email. Doplňte email v kartě klienta.",
+    };
+  }
+
+  const klientName =
+    (klienti?.nazev as string) ||
+    `${(klienti?.prijmeni as string) || ""} ${(klienti?.jmeno as string) || ""}`.trim() ||
+    "Klient";
+  const objektNazev = (objekty?.nazev as string) || "";
+  const datumZasahu = (zasahy?.datum as string) || "";
+
+  try {
+    // Dynamické importy — nechceme zatěžovat cold start pro ostatní akce
+    const [
+      { renderToBuffer },
+      { DezinsekniProtokolPdf, buildDezinsekniPdfData },
+      { renderProtokolEmailHtml },
+      { sendProtokolEmail },
+      { createEmailLog },
+      { getBezpecnostniListy },
+      pathModule,
+    ] = await Promise.all([
+      import("@react-pdf/renderer"),
+      import("@/lib/pdf/dezinsekniProtokol"),
+      import("@/lib/email/templates/ProtokolEmail"),
+      import("@/lib/email/resend"),
+      import("@/lib/supabase/queries/email_log"),
+      import("@/lib/supabase/queries/bezpecnostni_listy"),
+      import("path"),
+    ]);
+
+    // Načtení dat pro PDF (stejný pattern jako API route)
+    const [{ data: postrikData }, { data: deratData }, { data: dezinsData }] =
+      await Promise.all([
+        getProtokolPostrik(supabase, protokolId),
+        getProtokolDeratBody(supabase, protokolId),
+        getProtokolDezinsBody(supabase, protokolId),
+      ]);
+
+    const postriky = (postrikData || []).map((p) => {
+      const pripravkyArr =
+        (
+          (p as Record<string, unknown>).protokol_postrik_pripravky as
+            | {
+                spotreba: string | null;
+                koncentrace_procent: number | null;
+                pripravky: {
+                  id: string;
+                  nazev: string;
+                  ucinna_latka: string | null;
+                  protilatka: string | null;
+                };
+              }[]
+            | null
+        ) || [];
+
+      return {
+        skudce: p.skudce,
+        plocha_m2: p.plocha_m2,
+        typ_zakroku: p.typ_zakroku,
+        poznamka: p.poznamka,
+        pripravky: pripravkyArr.map((pp) => ({
+          nazev: pp.pripravky.nazev,
+          ucinna_latka: pp.pripravky.ucinna_latka,
+          protilatka: pp.pripravky.protilatka,
+          spotreba: pp.spotreba,
+          koncentrace_procent: pp.koncentrace_procent,
+        })),
+      };
+    });
+
+    const deratBody = (deratData || []).map((d) => {
+      const pripravky = d.pripravky as { nazev: string } | null;
+      const okruhy = d.okruhy as { nazev: string } | null;
+      return {
+        cislo_bodu: d.cislo_bodu,
+        typ_stanicky: d.typ_stanicky,
+        pozer_procent: d.pozer_procent,
+        stav_stanicky: d.stav_stanicky,
+        pripravek_nazev: pripravky?.nazev ?? null,
+        okruh_nazev: okruhy?.nazev ?? null,
+      };
+    });
+
+    const dezinsBody = (dezinsData || []).map((d) => {
+      const okruhy = d.okruhy as { nazev: string } | null;
+      return {
+        cislo_bodu: d.cislo_bodu,
+        typ_lapace: d.typ_lapace,
+        druh_hmyzu: d.druh_hmyzu,
+        pocet: d.pocet,
+        okruh_nazev: okruhy?.nazev ?? null,
+      };
+    });
+
+    // Unikátní přípravky pro BL sekci + fetch BL souborů
+    const pripravekIds = new Set<string>();
+    const pripravekNames: string[] = [];
+
+    for (const p of postriky) {
+      for (const pp of p.pripravky) {
+        if (!pripravekNames.includes(pp.nazev)) {
+          pripravekNames.push(pp.nazev);
+        }
+      }
+    }
+
+    // Získat ID přípravků pro BL fetch
+    for (const p of postrikData || []) {
+      const pripravkyArr =
+        (
+          (p as Record<string, unknown>).protokol_postrik_pripravky as
+            | { pripravky: { id: string } }[]
+            | null
+        ) || [];
+      for (const pp of pripravkyArr) {
+        pripravekIds.add(pp.pripravky.id);
+      }
+    }
+
+    // Fetch BL souborů
+    const blAttachments: { filename: string; content: Buffer }[] = [];
+    for (const pripravekId of pripravekIds) {
+      const { data: blData } = await getBezpecnostniListy(
+        supabase,
+        pripravekId,
+      );
+      for (const bl of blData || []) {
+        try {
+          const res = await fetch(bl.soubor_url);
+          if (res.ok) {
+            const arrayBuffer = await res.arrayBuffer();
+            blAttachments.push({
+              filename: bl.nazev_souboru,
+              content: Buffer.from(arrayBuffer),
+            });
+          }
+        } catch {
+          // Skip broken BL files silently
+        }
+      }
+    }
+
+    const bezpecnostniListyNames = pripravekNames.map(
+      (name) => `Bezpečnostní list: ${name}`,
+    );
+
+    // Build + render PDF
+    const pdfData = buildDezinsekniPdfData({
+      protokol: {
+        cislo_protokolu: protokol.cislo_protokolu,
+        poznamka: protokol.poznamka,
+        veta_ucinnosti: protokol.veta_ucinnosti,
+        zodpovedny_technik: protokol.zodpovedny_technik,
+      },
+      zasah: { datum: datumZasahu },
+      klient: {
+        nazev: (klienti?.nazev as string) ?? null,
+        jmeno: (klienti?.jmeno as string) ?? null,
+        prijmeni: (klienti?.prijmeni as string) ?? null,
+        ico: (klienti?.ico as string) ?? null,
+        dic: (klienti?.dic as string) ?? null,
+        adresa: (klienti?.adresa as string) ?? null,
+        email: klientEmail,
+        telefon: (klienti?.telefon as string) ?? null,
+      },
+      objekt: {
+        nazev: objektNazev,
+        adresa: (objekty?.adresa as string) ?? null,
+      },
+      postriky,
+      deratBody,
+      dezinsBody,
+      bezpecnostniListy: bezpecnostniListyNames,
+      dalsiZasah: null,
+    });
+
+    const logoPath = pathModule.join(process.cwd(), "public", "logo.png");
+    const pdfBuffer = await renderToBuffer(
+      DezinsekniProtokolPdf({ data: pdfData, logoPath }),
+    );
+
+    const pdfFilename = `${pdfData.cislo_protokolu || "protokol"}.pdf`;
+
+    // Render email HTML
+    const formattedDate = datumZasahu
+      ? new Date(datumZasahu).toLocaleDateString("cs-CZ")
+      : "—";
+
+    const html = renderProtokolEmailHtml({
+      cisloProtokolu: protokol.cislo_protokolu || "—",
+      datumZasahu: formattedDate,
+      klientName,
+      objektNazev: objektNazev || "—",
+      bezpecnostniListy: blAttachments.map((a) => a.filename),
+    });
+
+    const subject = `Protokol ${protokol.cislo_protokolu || ""} — Deraplus`;
+
+    // Odeslání emailu
+    const resendId = await sendProtokolEmail({
+      to: klientEmail,
+      subject,
+      html,
+      attachments: [
+        { filename: pdfFilename, content: Buffer.from(pdfBuffer) },
+        ...blAttachments,
+      ],
+    });
+
+    // Záznam do email_log
+    await createEmailLog(supabase, {
+      protokol_id: protokolId,
+      prijemce: klientEmail,
+      predmet: subject,
+      typ: "protokol",
+      stav: "odeslano",
+      resend_id: resendId,
+      odeslano_at: new Date().toISOString(),
+    });
+
+    // Update status na odeslany
+    await updateProtokol(supabase, protokolId, {
+      status: "odeslany",
+    });
+
+    return { success: true };
+  } catch (err) {
+    // Log chyby do email_log
+    try {
+      const { createEmailLog: createLog } = await import(
+        "@/lib/supabase/queries/email_log"
+      );
+      await createLog(supabase, {
+        protokol_id: protokolId,
+        prijemce: klientEmail,
+        predmet: `Protokol ${protokol.cislo_protokolu || ""} — Deraplus`,
+        typ: "protokol",
+        stav: "chyba",
+        chyba_detail:
+          err instanceof Error ? err.message : "Neznámá chyba",
+      });
+    } catch {
+      // Ignore logging error
+    }
+
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Nepodařilo se odeslat email",
+    };
+  }
+}

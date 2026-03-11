@@ -14,6 +14,59 @@ export type Database = {
   }
   public: {
     Tables: {
+      email_log: {
+        Row: {
+          id: string
+          protokol_id: string | null
+          prijemce: string
+          predmet: string
+          typ: Database["public"]["Enums"]["typ_emailu"]
+          stav: Database["public"]["Enums"]["stav_emailu"]
+          resend_id: string | null
+          chyba_detail: string | null
+          odeslano_at: string | null
+          created_at: string
+          updated_at: string
+          deleted_at: string | null
+        }
+        Insert: {
+          id?: string
+          protokol_id?: string | null
+          prijemce: string
+          predmet: string
+          typ?: Database["public"]["Enums"]["typ_emailu"]
+          stav?: Database["public"]["Enums"]["stav_emailu"]
+          resend_id?: string | null
+          chyba_detail?: string | null
+          odeslano_at?: string | null
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Update: {
+          id?: string
+          protokol_id?: string | null
+          prijemce?: string
+          predmet?: string
+          typ?: Database["public"]["Enums"]["typ_emailu"]
+          stav?: Database["public"]["Enums"]["stav_emailu"]
+          resend_id?: string | null
+          chyba_detail?: string | null
+          odeslano_at?: string | null
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_log_protokol_id_fkey"
+            columns: ["protokol_id"]
+            isOneToOne: false
+            referencedRelation: "protokoly"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bezpecnostni_listy: {
         Row: {
           created_at: string
@@ -1371,6 +1424,8 @@ export type Database = {
         | "voskovy_blok"
         | "mikrokapsule"
         | "jiny"
+      stav_emailu: "odeslano" | "doruceno" | "chyba" | "cekajici"
+      typ_emailu: "protokol" | "faktura" | "terminy" | "pripominky"
       status_protokolu:
         | "rozpracovany"
         | "ke_schvaleni"
@@ -1573,6 +1628,8 @@ export const Constants = {
         "mikrokapsule",
         "jiny",
       ],
+      stav_emailu: ["odeslano", "doruceno", "chyba", "cekajici"],
+      typ_emailu: ["protokol", "faktura", "terminy", "pripominky"],
       status_protokolu: [
         "rozpracovany",
         "ke_schvaleni",

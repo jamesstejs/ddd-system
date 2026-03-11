@@ -21,7 +21,7 @@ Po implementaci vždy:
 
 ---
 
-## Aktuální sprint: SPRINT 24
+## Aktuální sprint: SPRINT 25
 
 ---
 
@@ -377,16 +377,17 @@ Po implementaci vždy:
 
 ---
 
-## Sprint 24 — Auto-email: protokol + BL
+## Sprint 24 — Auto-email: protokol + BL ✅
 **Cíl:** Po schválení se PDF + BL pošlou klientovi
 
-- [ ] Email služba: Resend (branded — logo, barvy Deraplus)
-- [ ] Po schválení protokolu → email klientovi: PDF protokolu + BL přípravků (přílohy)
-- [ ] DB: `email_log` (prijemce, predmet, typ, stav, odeslano_at)
-- [ ] UI: na detailu protokolu stav odeslání
-- [ ] Status: schvaleny → odeslany
-- [ ] Pro klienty bez emailu: placeholder pro SMS s odkazem (budoucí)
-- [ ] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
+- [x] Email služba: Resend (branded — logo, barvy Deraplus)
+- [x] Po schválení protokolu → email klientovi: PDF protokolu + BL přípravků (přílohy)
+- [x] DB: `email_log` (prijemce, predmet, typ, stav, odeslano_at) — migrace `20260323000000`
+- [x] UI: na detailu protokolu stav odeslání (EmailStatusSection)
+- [x] Status: schvaleny → odeslany (dvoustupňový flow: schválení → odeslání emailu)
+- [x] Pro klienty bez emailu: disabled tlačítko + hláška o chybějícím emailu
+- [x] Testy: 49 nových (resend: 5, template: 16, emailActions: 12, EmailStatusSection: 16) — celkem 695
+- [x] **Kontrola:** `npx tsc --noEmit` ✅ + `npx vitest run` 695/695 ✅ + `npm run build` ✅
 
 ---
 

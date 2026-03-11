@@ -17,9 +17,14 @@ import { FotoSection } from "./FotoSection";
 import { PodpisCanvas } from "./PodpisCanvas";
 import { PdfSection } from "./PdfSection";
 import {
+  EmailStatusSection,
+  type EmailLogEntry,
+} from "./EmailStatusSection";
+import {
   submitProtokolKeSchvaleniAction,
   adminApproveProtokolAction,
   adminRejectProtokolAction,
+  sendProtokolEmailAction,
 } from "./protokolActions";
 import {
   computeDeratStatistiky,
@@ -145,6 +150,9 @@ type Props = {
   // Admin props
   userRole: "admin" | "technik";
   technikName?: string;
+  // Email props
+  klientEmail?: string | null;
+  emailLog?: EmailLogEntry[];
 };
 
 // ---------- Status labels ----------
@@ -178,6 +186,8 @@ export function ProtokolFormView({
   previousDezinsBody,
   userRole,
   technikName,
+  klientEmail,
+  emailLog: initialEmailLog,
 }: Props) {
   const router = useRouter();
   const [poznamka, setPoznamka] = useState(protokol.poznamka || "");
@@ -191,6 +201,13 @@ export function ProtokolFormView({
   const [rejectKomentar, setRejectKomentar] = useState("");
   const [isApproving, startApproveTransition] = useTransition();
   const [isRejecting, startRejectTransition] = useTransition();
+
+  // Email state
+  const [isSendingEmail, startEmailTransition] = useTransition();
+  const [emailLog, setEmailLog] = useState<EmailLogEntry[]>(
+    initialEmailLog || [],
+  );
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   // Readonly logic
   const technikReadonly = protokol.status !== "rozpracovany";
@@ -253,6 +270,22 @@ export function ProtokolFormView({
         alert(err instanceof Error ? err.message : "Chyba při vracení");
       }
     });
+  }
+
+  function handleSendEmail() {
+    setEmailError(null);
+    startEmailTransition(async () => {
+      const result = await sendProtokolEmailAction(protokol.id);
+      if (result.success) {
+        router.refresh();
+      } else {
+        setEmailError(result.error || "Nepodařilo se odeslat email");
+      }
+    });
+  }
+
+  function handleRetryEmail() {
+    handleSendEmail();
   }
 
   // Render form view with forceEditable prop
@@ -559,6 +592,52 @@ export function ProtokolFormView({
             hasDezinsBody={availableTabs.includes("dezinsekce")}
           />
         )}
+
+      {/* Email: Odeslat klientovi (admin, status=schvaleny) */}
+      {isAdmin && protokol.status === "schvaleny" && (
+        <div className="space-y-2">
+          {emailLog.length > 0 && (
+            <EmailStatusSection
+              emailLog={emailLog}
+              onRetry={handleRetryEmail}
+              isRetrying={isSendingEmail}
+            />
+          )}
+          {emailLog.length === 0 && (
+            <>
+              <Button
+                type="button"
+                className="min-h-[52px] w-full bg-green-600 text-base font-semibold hover:bg-green-700"
+                onClick={handleSendEmail}
+                disabled={isSendingEmail || !klientEmail}
+              >
+                {isSendingEmail
+                  ? "Odesílám email..."
+                  : "Odeslat klientovi"}
+              </Button>
+              {!klientEmail && (
+                <p className="text-center text-xs text-muted-foreground">
+                  Klient nemá zadaný email. Doplňte email v kartě klienta.
+                </p>
+              )}
+              {emailError && (
+                <p className="text-center text-sm text-red-600">
+                  {emailError}
+                </p>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Email status (admin/technik, status=odeslany) */}
+      {protokol.status === "odeslany" && emailLog.length > 0 && (
+        <EmailStatusSection
+          emailLog={emailLog}
+          onRetry={isAdmin ? handleRetryEmail : undefined}
+          isRetrying={isSendingEmail}
+        />
+      )}
 
       {/* Poznámka */}
       <div className="space-y-1.5 pt-2">

@@ -11,6 +11,7 @@ import {
 import { getOkruhy } from "@/lib/supabase/queries/okruhy";
 import { getAktivniPripravky } from "@/lib/supabase/queries/pripravky";
 import { getSkudci } from "@/lib/supabase/queries/skudci";
+import { getEmailLogByProtokol } from "@/lib/supabase/queries/email_log";
 import { notFound, redirect } from "next/navigation";
 import { ProtokolFormView } from "./ProtokolFormView";
 import type { AppRole } from "@/lib/auth";
@@ -118,6 +119,7 @@ export default async function ProtokolDetailPage({
     fotkyResult,
     vetyUcinnostiResult,
     previousProtokolyResult,
+    emailLogResult,
   ] = await Promise.all([
     getProtokolDeratBody(supabase, id),
     getAktivniPripravky(supabase),
@@ -141,6 +143,7 @@ export default async function ProtokolDetailPage({
       .eq("aktivni", true)
       .is("deleted_at", null),
     previousProtokolPromise,
+    getEmailLogByProtokol(supabase, id),
   ]);
 
   // Načíst body předchozího protokolu pro statistiky
@@ -291,6 +294,20 @@ export default async function ProtokolDetailPage({
     ? `${technikProfile.jmeno ?? ""} ${technikProfile.prijmeni ?? ""}`.trim()
     : undefined;
 
+  // Email data
+  const klientEmail = (klienti as Record<string, unknown> | null)?.email as
+    | string
+    | null;
+  const emailLog = (emailLogResult.data || []).map((e) => ({
+    id: e.id,
+    prijemce: e.prijemce,
+    predmet: e.predmet,
+    stav: e.stav,
+    chyba_detail: e.chyba_detail,
+    odeslano_at: e.odeslano_at,
+    created_at: e.created_at,
+  }));
+
   return (
     <div className="mx-auto max-w-lg pb-24">
       <ProtokolFormView
@@ -341,6 +358,8 @@ export default async function ProtokolDetailPage({
         previousDezinsBody={previousDezinsBody}
         userRole={userRole}
         technikName={technikName}
+        klientEmail={klientEmail}
+        emailLog={emailLog}
       />
     </div>
   );

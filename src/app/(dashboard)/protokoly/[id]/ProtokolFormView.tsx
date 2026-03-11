@@ -15,6 +15,7 @@ import { StatistikySection } from "./StatistikySection";
 import { VetaUcinnostiSection } from "./VetaUcinnostiSection";
 import { FotoSection } from "./FotoSection";
 import { PodpisCanvas } from "./PodpisCanvas";
+import { PdfSection } from "./PdfSection";
 import {
   submitProtokolKeSchvaleniAction,
   adminApproveProtokolAction,
@@ -546,6 +547,18 @@ export function ProtokolFormView({
         initialPodpisUrl={protokol.podpis_klient_url}
         isReadonly={isReadonly}
       />
+
+      {/* PDF sekce — zobrazit pro schv\u00e1len\u00e9/odeslan\u00e9 protokoly s post\u0159ikem */}
+      {(availableTabs.includes("postrik") || availableTabs.includes("deratizace") || availableTabs.includes("dezinsekce")) &&
+        ["ke_schvaleni", "schvaleny", "odeslany"].includes(protokol.status) && (
+          <PdfSection
+            protokolId={protokol.id}
+            cisloProtokolu={protokol.cislo_protokolu}
+            hasPostrik={availableTabs.includes("postrik")}
+            hasDeratBody={availableTabs.includes("deratizace")}
+            hasDezinsBody={availableTabs.includes("dezinsekce")}
+          />
+        )}
 
       {/* Pozn\u00e1mka */}
       <div className="space-y-1.5 pt-2">

@@ -101,7 +101,7 @@ export async function getProtokol(supabase: TypedSupabase, id: string) {
           objekty (
             id, nazev, adresa, typ_objektu, plocha_m2,
             klienti (
-              id, nazev, jmeno, prijmeni, kod, email, telefon
+              id, nazev, jmeno, prijmeni, kod, ico, dic, adresa, email, telefon
             )
           )
         )

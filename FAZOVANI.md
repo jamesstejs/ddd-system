@@ -21,7 +21,7 @@ Po implementaci vždy:
 
 ---
 
-## Aktuální sprint: SPRINT 21
+## Aktuální sprint: SPRINT 24
 
 ---
 
@@ -345,23 +345,35 @@ Po implementaci vždy:
 
 ---
 
-## Sprint 22 — PDF: dezinsekční protokol
+## Sprint 22 — PDF: dezinsekční protokol ✅
 **Cíl:** PDF pro postřikové protokoly (dle vzoru)
 
-- [ ] PDF šablona — dezinsekční: hlavička s logem "DEZINSEKČNÍ PROTOKOL", dodavatel/odběratel, další zásah (zelený text), škůdce, přípravek, účinná látka, protilátka, zákrok, množství+koncentrace, poznámka, BL odkazy, patička
-- [ ] Generování: API route (html → PDF)
-- [ ] PDF uložení: Supabase Storage bucket `protokoly-pdf`
-- [ ] UI: na detailu protokolu "Náhled PDF" / "Stáhnout"
-- [ ] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
+- [x] PDF šablona — dezinsekční: hlavička s logem "DEZINSEKČNÍ PROTOKOL", dodavatel/odběratel, další zásah (zelený text), škůdce, přípravek, účinná látka, protilátka, zákrok, množství+koncentrace, poznámka, BL odkazy, patička — `src/lib/pdf/dezinsekniProtokol.tsx` (@react-pdf/renderer)
+- [x] Generování: API route `/api/protokoly/[id]/pdf` — autorizace (admin/technik), načte data z DB, renderuje PDF
+- [x] PDF uložení: Supabase Storage bucket `protokoly-pdf` (migrace 20260322000000)
+- [x] UI: na detailu protokolu "Náhled PDF" / "Stáhnout" — `PdfSection.tsx`, zobrazeno pro postřikové protokoly se statusem ke_schvaleni/schvaleny/odeslany
+- [x] Rozšíření getProtokol query o klient ICO/DIČ/adresa pro PDF
+- [x] buildDezinsekniPdfData helper pro mapping DB → PDF data
+- [x] Testy: 18 nových (13 buildPdfData + 5 PdfSection component) — celkem 549/549
+- [x] **Kontrola:** `npx tsc --noEmit` ✅ + `npx vitest run` 549/549 ✅ + `npm run build` ✅ + mobile audit ✅ + wiring check ✅
 
 ---
 
-## Sprint 23 — PDF: deratizační protokol
+## Sprint 23 — PDF: deratizační protokol ✅
 **Cíl:** PDF pro deratizační protokoly (dle vzoru)
 
-- [ ] PDF šablona — deratizační: hlavička "DERATIZAČNÍ PROTOKOL", dodavatel/odběratel, rodenticid+účinná látka+protilátka+počet staniček+průměrný požer, další kontrola (zelený text), **mřížka 120 polí** (č. | požer — aktivní body vyplněné), BL seznam, patička
-- [ ] Podpora pro dezinsekční body (pokud protokol má obojí)
-- [ ] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
+- [x] PDF šablona — dynamický titul: "DERATIZAČNÍ PROTOKOL" (derat-only) / "DEZINSEKČNÍ PROTOKOL" (jinak)
+- [x] Rodenticid summary box: přípravek, počet staniček, průměrný požer (%)
+- [x] Dynamický label: "Další kontrola proběhne" (derat-only) / "Další zásah proběhne" (jinak)
+- [x] Mřížka deratizačních bodů (120 polí — aktivní body vyplněné s požerem)
+- [x] Dezinsekční monitoring tabulka: č. bodu, typ lapače, druh hmyzu, počet ks, okruh
+- [x] `PdfDezinsBod` interface + `TYP_LAPACE_LABELS` + `buildDezinsekniPdfData` rozšíření
+- [x] API route: `getProtokolDezinsBody` parallel loading + mapping
+- [x] PdfSection: `hasDezinsBody` prop, dynamický subtitle pro všechny kombinace (postřik/deratizace/dezinsekce)
+- [x] ProtokolFormView: předání `hasDezinsBody` do PdfSection
+- [x] Testy: 20 nových (8 dezinsBody builder + 4 composition + 3 PdfSection + 5 existing updated) — celkem 569/569
+- [x] Browser clickthrough: 3 taby, PdfSection, PDF content (17/17 checks pass)
+- [x] **Kontrola:** `npx tsc --noEmit` ✅ + `npx vitest run` 569/569 ✅ + `npm run build` ✅ + mobile audit ✅ + wiring check ✅
 
 ---
 

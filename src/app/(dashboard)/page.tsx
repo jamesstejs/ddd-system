@@ -27,7 +27,8 @@ import {
 import { getProtokolyByStatus } from "@/lib/supabase/queries/protokoly";
 import { sumNeuhrazeneFaktury } from "@/lib/supabase/queries/faktury";
 import { formatCasCz, formatDatumCzLong } from "@/lib/utils/dostupnostUtils";
-import { getBonusySummary, getCurrentMonthStart } from "@/lib/supabase/queries/bonusy";
+import { getBonusySummary, getAllBonusySummary, getCurrentMonthStart } from "@/lib/supabase/queries/bonusy";
+import { getOverdueZasahy } from "@/lib/supabase/queries/zasahy";
 
 /** Format YYYY-MM-DD → "9. 3." (short Czech date) */
 function formatDatumShort(datum: string): string {
@@ -195,12 +196,153 @@ async function MojePremieWidget({
   );
 }
 
+async function ProtokolyKOdeslaniWidget({
+  supabase,
+}: {
+  supabase: Awaited<ReturnType<typeof createClient>>;
+}) {
+  let protokoly: { id: string; cislo_protokolu: string | null; zasahy: unknown }[] = [];
+  try {
+    const { data } = await getProtokolyByStatus(supabase, "schvaleny");
+    protokoly = (data ?? []) as typeof protokoly;
+  } catch {
+    // fallback
+  }
+
+  return (
+    <Link href="/protokoly">
+      <Card className={`transition-colors active:bg-muted/50 ${protokoly.length > 0 ? "border-blue-200 bg-blue-50" : ""}`}>
+        <CardHeader>
+          <CardTitle className="text-base">Protokoly k odeslání</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className={`text-2xl font-bold ${protokoly.length > 0 ? "text-blue-700" : ""}`}>{protokoly.length}</p>
+          <p className="text-sm text-muted-foreground">
+            {protokoly.length > 0 ? "Schválené, čekají na odeslání" : "Vše odesláno"}
+          </p>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
+
+async function VeciVeZpozdeniWidget({
+  supabase,
+}: {
+  supabase: Awaited<ReturnType<typeof createClient>>;
+}) {
+  const dnes = toDateString(new Date());
+  type OverdueRow = {
+    id: string;
+    datum: string;
+    cas_od: string;
+    status: string;
+    profiles: { jmeno: string | null; prijmeni: string | null } | null;
+    zakazky: { objekty: { nazev: string; klienti: { nazev: string; jmeno: string; prijmeni: string; typ: string } } } | null;
+  };
+  let overdueZasahy: OverdueRow[] = [];
+  try {
+    const { data } = await getOverdueZasahy(supabase, dnes);
+    overdueZasahy = (data ?? []) as OverdueRow[];
+  } catch {
+    // fallback
+  }
+
+  function getKlient(z: OverdueRow): string {
+    const klient = z.zakazky?.objekty?.klienti;
+    if (!klient) return "\u2014";
+    if (klient.typ === "firma") return klient.nazev;
+    return `${klient.prijmeni} ${klient.jmeno}`.trim();
+  }
+
+  const count = overdueZasahy.length;
+
+  return (
+    <Link href="/kalendar">
+      <Card className={`transition-colors active:bg-muted/50 ${count > 0 ? "border-red-200 bg-red-50" : ""}`}>
+        <CardHeader>
+          <CardTitle className="text-base">Věci ve zpoždění</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className={`text-2xl font-bold ${count > 0 ? "text-red-700" : ""}`}>{count}</p>
+          {count > 0 ? (
+            <div className="mt-1 space-y-1">
+              {overdueZasahy.slice(0, 3).map((z) => (
+                <p key={z.id} className="text-sm text-red-600 truncate">
+                  {formatDatumShort(z.datum)} — {getKlient(z)}
+                  {z.profiles && <span className="text-xs"> ({z.profiles.jmeno})</span>}
+                </p>
+              ))}
+              {count > 3 && (
+                <p className="text-xs text-muted-foreground">+{count - 3} dalších</p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Nic ve zpoždění</p>
+          )}
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
+
+async function PrehledOdmenVsechWidget({
+  supabase,
+}: {
+  supabase: Awaited<ReturnType<typeof createClient>>;
+}) {
+  const mesic = getCurrentMonthStart();
+  let summary = { pending: 0, proplaceno: 0, celkem: 0, pocet: 0 };
+  try {
+    summary = await getAllBonusySummary(supabase, mesic);
+  } catch {
+    // fallback
+  }
+
+  const formattedCelkem = new Intl.NumberFormat("cs-CZ", {
+    style: "currency",
+    currency: "CZK",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(summary.celkem);
+
+  const formattedPending = new Intl.NumberFormat("cs-CZ", {
+    style: "currency",
+    currency: "CZK",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(summary.pending);
+
+  return (
+    <Link href="/premie">
+      <Card className="transition-colors active:bg-muted/50">
+        <CardHeader>
+          <CardTitle className="text-base">Odměny celkem (všichni)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-2xl font-bold">{formattedCelkem}</p>
+          <p className="text-sm text-muted-foreground">
+            {summary.pocet} {summary.pocet === 1 ? "bonus" : summary.pocet < 5 ? "bonusy" : "bonusů"}
+            {summary.pending > 0 && (
+              <span className="text-amber-600 ml-1">
+                ({formattedPending} k proplacení)
+              </span>
+            )}
+          </p>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
+
 async function AdminDashboard({
   supabase,
   userId,
+  isSuperAdmin = false,
 }: {
   supabase: Awaited<ReturnType<typeof createClient>>;
   userId: string;
+  isSuperAdmin?: boolean;
 }) {
   // Technici bez směn — reálná data
   const today = new Date();
@@ -305,7 +447,51 @@ async function AdminDashboard({
         </CardContent>
       </Card>
       <NeuhrazeneFakturyWidget supabase={supabase} />
+      <ProtokolyKOdeslaniWidget supabase={supabase} />
+      <VeciVeZpozdeniWidget supabase={supabase} />
       <MojePremieWidget supabase={supabase} userId={userId} />
+      {isSuperAdmin && <PrehledOdmenVsechWidget supabase={supabase} />}
+
+      {/* Quick Actions */}
+      <Card className="sm:col-span-2">
+        <CardHeader>
+          <CardTitle className="text-base">Rychlé akce</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/zakazky"
+              className="inline-flex min-h-[44px] items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 active:bg-primary/80"
+            >
+              + Nová zakázka
+            </Link>
+            <Link
+              href="/klienti"
+              className="inline-flex min-h-[44px] items-center rounded-md bg-secondary px-4 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/70"
+            >
+              + Nový klient
+            </Link>
+            <Link
+              href="/kalendar"
+              className="inline-flex min-h-[44px] items-center rounded-md bg-secondary px-4 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/70"
+            >
+              Kalendář
+            </Link>
+            <Link
+              href="/protokoly"
+              className="inline-flex min-h-[44px] items-center rounded-md bg-secondary px-4 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/70"
+            >
+              Protokoly
+            </Link>
+            <Link
+              href="/faktury"
+              className="inline-flex min-h-[44px] items-center rounded-md bg-secondary px-4 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/70"
+            >
+              Faktury
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -466,6 +652,35 @@ async function TechnikDashboard({
         </Card>
       </Link>
       <MojePremieWidget supabase={supabase} userId={userId} />
+
+      {/* Quick Actions */}
+      <Card className="sm:col-span-2">
+        <CardHeader>
+          <CardTitle className="text-base">Rychlé akce</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/kalendar"
+              className="inline-flex min-h-[44px] items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 active:bg-primary/80"
+            >
+              Můj den
+            </Link>
+            <Link
+              href="/dostupnost"
+              className="inline-flex min-h-[44px] items-center rounded-md bg-secondary px-4 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/70"
+            >
+              Dostupnost
+            </Link>
+            <Link
+              href="/premie"
+              className="inline-flex min-h-[44px] items-center rounded-md bg-secondary px-4 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/70"
+            >
+              Prémie
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -517,7 +732,7 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-4">
       {(role === "admin" || role === "super_admin") && (
-        <AdminDashboard supabase={supabase} userId={user.id} />
+        <AdminDashboard supabase={supabase} userId={user.id} isSuperAdmin={role === "super_admin"} />
       )}
       {role === "technik" && (
         <TechnikDashboard supabase={supabase} userId={user.id} />

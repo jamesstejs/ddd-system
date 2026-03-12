@@ -88,6 +88,44 @@ export async function getBonusySummary(
 }
 
 /**
+ * Summary of ALL bonuses for a month (super_admin dashboard widget).
+ */
+export async function getAllBonusySummary(
+  supabase: TypedSupabase,
+  mesic: string,
+): Promise<{
+  pending: number;
+  proplaceno: number;
+  celkem: number;
+  pocet: number;
+}> {
+  const { data } = await supabase
+    .from("bonusy")
+    .select("castka, stav")
+    .eq("obdobi_mesic", mesic)
+    .is("deleted_at", null);
+
+  if (!data || data.length === 0) {
+    return { pending: 0, proplaceno: 0, celkem: 0, pocet: 0 };
+  }
+
+  let pending = 0;
+  let proplaceno = 0;
+  for (const b of data) {
+    const castka = Number(b.castka) || 0;
+    if (b.stav === "pending") pending += castka;
+    else proplaceno += castka;
+  }
+
+  return {
+    pending,
+    proplaceno,
+    celkem: pending + proplaceno,
+    pocet: data.length,
+  };
+}
+
+/**
  * Přehled bonusů všech uživatelů za měsíc (super_admin).
  */
 export async function getAllBonusy(

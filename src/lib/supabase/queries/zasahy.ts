@@ -212,3 +212,32 @@ export async function getTechnici(supabase: TypedSupabase) {
     .is("deleted_at", null)
     .order("prijmeni", { ascending: true });
 }
+
+/**
+ * Get overdue zasahy — past date, not completed (status != hotovo, zruseno).
+ * Used for admin dashboard "Věci ve zpoždění" widget.
+ */
+export async function getOverdueZasahy(
+  supabase: TypedSupabase,
+  beforeDate: string,
+) {
+  return supabase
+    .from("zasahy")
+    .select(
+      `
+      id, datum, cas_od, status,
+      profiles!zasahy_technik_id_fkey ( jmeno, prijmeni ),
+      zakazky!zasahy_zakazka_id_fkey (
+        objekty (
+          nazev,
+          klienti ( nazev, jmeno, prijmeni, typ )
+        )
+      )
+    `,
+    )
+    .lt("datum", beforeDate)
+    .not("status", "in", '("hotovo","zruseno")')
+    .is("deleted_at", null)
+    .order("datum", { ascending: true })
+    .limit(20);
+}

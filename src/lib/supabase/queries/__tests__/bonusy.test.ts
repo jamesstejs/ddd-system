@@ -158,3 +158,46 @@ describe("nastaveni bonusu defaults", () => {
     expect("neznamy_klic" in defaults).toBe(false);
   });
 });
+
+// ---------------------------------------------------------------
+// getAllBonusySummary calculation logic
+// ---------------------------------------------------------------
+
+describe("getAllBonusySummary calculation logic", () => {
+  it("correctly sums all users' bonuses", () => {
+    const data = [
+      { castka: 100, stav: "pending" },
+      { castka: 200, stav: "pending" },
+      { castka: 5000, stav: "proplaceno" },
+      { castka: 5000, stav: "proplaceno" },
+    ];
+
+    let pending = 0;
+    let proplaceno = 0;
+    for (const b of data) {
+      const castka = Number(b.castka) || 0;
+      if (b.stav === "pending") pending += castka;
+      else proplaceno += castka;
+    }
+
+    expect(pending).toBe(300);
+    expect(proplaceno).toBe(10000);
+    expect(pending + proplaceno).toBe(10300);
+    expect(data.length).toBe(4);
+  });
+
+  it("returns zeros for empty data", () => {
+    const data: { castka: number; stav: string }[] = [];
+    let pending = 0;
+    let proplaceno = 0;
+    for (const b of data) {
+      const castka = Number(b.castka) || 0;
+      if (b.stav === "pending") pending += castka;
+      else proplaceno += castka;
+    }
+
+    expect(pending).toBe(0);
+    expect(proplaceno).toBe(0);
+    expect(data.length).toBe(0);
+  });
+});

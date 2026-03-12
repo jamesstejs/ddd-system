@@ -21,7 +21,7 @@ Po implementaci vždy:
 
 ---
 
-## Aktuální sprint: SPRINT 28
+## Aktuální sprint: SPRINT 29
 
 ---
 
@@ -446,14 +446,15 @@ Po implementaci vždy:
 
 ---
 
-## Sprint 29 — Faktury: seznam + platby
+## Sprint 29 — Faktury: seznam + platby ✅
 **Cíl:** Admin vidí faktury, párování plateb
 
-- [ ] UI: seznam faktur (filtr: uhrazeno/neuhrazeno/po_splatnosti)
-- [ ] UI: detail faktury (odkaz na Fakturoid, položky, stav)
-- [ ] Polling: sync stavu plateb z Fakturoidu (banka napojená)
-- [ ] Dashboard: "Neuhrazené faktury" widget (počet + suma)
-- [ ] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
+- [x] UI: seznam faktur (filtr: uhrazeno/neuhrazeno/po_splatnosti) — mega-filtr "Neuhrazené" + sumární karta
+- [x] UI: detail faktury (odkaz na Fakturoid, položky, stav) — "Zkontrolovat platbu" i pro běžné faktury
+- [x] Polling: sync stavu plateb z Fakturoidu (banka napojená) — `syncFakturoidPaymentsAction` + `checkSinglePaymentAction`
+- [x] Dashboard: "Neuhrazené faktury" widget (počet + suma) — reálná data z `sumNeuhrazeneFaktury`
+- [x] 17 nových testů (syncFakturoidPayments, checkSinglePayment, overdue detection)
+- [x] **Kontrola:** `npx tsc --noEmit` ✅ + `npx vitest run` (990 testů) ✅ + `npm run build` ✅
 
 ---
 

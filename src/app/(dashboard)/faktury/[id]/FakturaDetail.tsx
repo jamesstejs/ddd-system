@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { sendFakturaAction } from "@/app/(dashboard)/protokoly/[id]/protokolActions";
 import { checkProformaPaymentAction } from "@/app/(dashboard)/kalendar/proformaActions";
+import { checkSinglePaymentAction } from "@/app/(dashboard)/faktury/actions";
 import { QRCodeSVG } from "qrcode.react";
 import { buildSpdString, getCompanyIban, extractDigits } from "@/lib/utils/qrPayment";
 
@@ -132,7 +133,7 @@ export function FakturaDetail({
     }
   }
 
-  async function handleCheckPayment() {
+  async function handleCheckProformaPayment() {
     setChecking(true);
     setCheckMsg(null);
     try {
@@ -141,6 +142,31 @@ export function FakturaDetail({
         if (result.paid) {
           setStav("uhrazena");
           setCheckMsg("Platba přijata!");
+        } else {
+          setCheckMsg("Platba zatím nebyla přijata.");
+        }
+      } else {
+        setCheckMsg(result.error || "Nepodařilo se zkontrolovat");
+      }
+    } catch {
+      setCheckMsg("Nepodařilo se zkontrolovat platbu");
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  async function handleCheckPayment() {
+    setChecking(true);
+    setCheckMsg(null);
+    try {
+      const result = await checkSinglePaymentAction(faktura.id);
+      if (result.success) {
+        if (result.paid) {
+          setStav("uhrazena");
+          setCheckMsg("Platba přijata!");
+        } else if (result.newStav && result.newStav !== stav) {
+          setStav(result.newStav as typeof stav);
+          setCheckMsg(`Stav aktualizován: ${STAV_LABELS[result.newStav] || result.newStav}`);
         } else {
           setCheckMsg("Platba zatím nebyla přijata.");
         }
@@ -163,6 +189,12 @@ export function FakturaDetail({
         message: `Proforma ${faktura.cislo || ""}`,
       })
     : null;
+
+  // Lze zkontrolovat platbu? (non-proforma, stav odeslana/po_splatnosti)
+  const canCheckPayment =
+    !faktura.is_proforma &&
+    ["odeslana", "po_splatnosti"].includes(stav) &&
+    faktura.fakturoid_id;
 
   return (
     <div className="space-y-4">
@@ -339,7 +371,7 @@ export function FakturaDetail({
       {faktura.is_proforma && stav !== "uhrazena" && stav !== "storno" && (
         <div className="space-y-2">
           <Button
-            onClick={handleCheckPayment}
+            onClick={handleCheckProformaPayment}
             disabled={checking}
             className="w-full min-h-[44px] bg-purple-600 hover:bg-purple-700"
           >
@@ -357,8 +389,41 @@ export function FakturaDetail({
         </div>
       )}
 
+      {/* Non-proforma check payment (odeslana/po_splatnosti) */}
+      {canCheckPayment && (
+        <div className="space-y-2">
+          <Button
+            onClick={handleCheckPayment}
+            disabled={checking}
+            variant="outline"
+            className="w-full min-h-[44px]"
+          >
+            {checking ? "Kontroluji..." : "Zkontrolovat platbu ve Fakturoidu"}
+          </Button>
+          {checkMsg && (
+            <p
+              className={`text-center text-sm ${
+                (stav as string) === "uhrazena" ? "text-green-600" : "text-amber-600"
+              }`}
+            >
+              {checkMsg}
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Proforma paid */}
       {faktura.is_proforma && stav === "uhrazena" && (
+        <div className="flex items-center justify-center gap-2 rounded-lg bg-green-50 p-4">
+          <span className="text-2xl">✅</span>
+          <span className="text-lg font-semibold text-green-700">
+            Uhrazeno
+          </span>
+        </div>
+      )}
+
+      {/* Non-proforma paid */}
+      {!faktura.is_proforma && stav === "uhrazena" && (
         <div className="flex items-center justify-center gap-2 rounded-lg bg-green-50 p-4">
           <span className="text-2xl">✅</span>
           <span className="text-lg font-semibold text-green-700">

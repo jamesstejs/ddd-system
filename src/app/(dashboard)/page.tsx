@@ -25,6 +25,7 @@ import {
   getAktivniPripominkyTechnik,
 } from "@/lib/supabase/queries/pripominky";
 import { getProtokolyByStatus } from "@/lib/supabase/queries/protokoly";
+import { sumNeuhrazeneFaktury } from "@/lib/supabase/queries/faktury";
 import { formatCasCz, formatDatumCzLong } from "@/lib/utils/dostupnostUtils";
 
 /** Format YYYY-MM-DD → "9. 3." (short Czech date) */
@@ -78,6 +79,57 @@ async function ProtokolyKeSchvaleniWidget({
             </ul>
           ) : (
             <p className="text-sm text-muted-foreground">Žádné protokoly</p>
+          )}
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
+
+async function NeuhrazeneFakturyWidget({
+  supabase,
+}: {
+  supabase: Awaited<ReturnType<typeof createClient>>;
+}) {
+  let count = 0;
+  let suma = 0;
+  try {
+    const result = await sumNeuhrazeneFaktury(supabase);
+    count = result.count;
+    suma = result.suma;
+  } catch {
+    // fallback
+  }
+
+  const formattedSuma = new Intl.NumberFormat("cs-CZ", {
+    style: "currency",
+    currency: "CZK",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(suma);
+
+  return (
+    <Link href="/faktury">
+      <Card
+        className={`transition-colors active:bg-muted/50 ${
+          count > 0 ? "border-amber-200 bg-amber-50" : ""
+        }`}
+      >
+        <CardHeader>
+          <CardTitle className="text-base">Neuhrazené faktury</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className={`text-2xl font-bold ${count > 0 ? "text-amber-700" : ""}`}>
+            {count}
+          </p>
+          {count > 0 ? (
+            <p className="text-sm text-amber-600">
+              Celkem {formattedSuma}
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Vše uhrazeno
+            </p>
           )}
         </CardContent>
       </Card>
@@ -192,17 +244,7 @@ async function AdminDashboard({
           )}
         </CardContent>
       </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Neuhrazené faktury</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-2xl font-bold">0</p>
-          <p className="text-sm text-muted-foreground">
-            Bude implementováno ve sprintu 29
-          </p>
-        </CardContent>
-      </Card>
+      <NeuhrazeneFakturyWidget supabase={supabase} />
     </div>
   );
 }

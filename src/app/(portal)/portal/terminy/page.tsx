@@ -1,11 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import {
   Card,
   CardContent,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toDateString } from "@/lib/utils/dateUtils";
+import { getZakazkyNeedingTermin } from "@/lib/supabase/queries/portalSlots";
 
 export default async function PortalTerminyPage() {
   const supabase = await createClient();
@@ -99,9 +101,39 @@ export default async function PortalTerminyPage() {
     postrik: "Postřik",
   };
 
+  // Check if there are pripominky needing termin selection
+  let needsSelection = false;
+  try {
+    const { data: pripominky } = await getZakazkyNeedingTermin(supabase, profile.klient_id);
+    type PripominkaRow = {
+      zakazky: { objekty: { klient_id: string } } | null;
+    };
+    const myPripominky = ((pripominky ?? []) as unknown as PripominkaRow[]).filter(
+      (p) => p.zakazky?.objekty?.klient_id === profile.klient_id,
+    );
+    needsSelection = myPripominky.length > 0;
+  } catch {
+    // fallback
+  }
+
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-bold">Nadcházející termíny</h2>
+
+      {needsSelection && (
+        <Link href="/portal/terminy/vyber">
+          <Card className="border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer">
+            <CardContent className="py-4 text-center">
+              <p className="text-sm font-semibold text-primary">
+                Máte zakázky čekající na výběr termínu
+              </p>
+              <p className="mt-1 text-xs text-primary/80">
+                Klikněte pro výběr volného termínu →
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+      )}
 
       {zasahy.length === 0 ? (
         <p className="py-8 text-center text-sm text-muted-foreground">

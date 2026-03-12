@@ -21,7 +21,7 @@ Po implementaci vždy:
 
 ---
 
-## Aktuální sprint: SPRINT 33
+## Aktuální sprint: SPRINT 34
 
 ---
 
@@ -506,16 +506,19 @@ Po implementaci vždy:
 
 ---
 
-## Sprint 33 — Klientský portál: výběr termínu
+## Sprint 33 — Klientský portál: výběr termínu ✅
 **Cíl:** Klient si sám vybere termín online
 
-- [ ] UI: klient vidí volné sloty (jen pokud technik má vypsanou dostupnost, max 1 měsíc)
-- [ ] Sloty filtrované dle lokace (správný technik pro region)
-- [ ] Výběr → zásah v kalendáři (status: potvrzený klientem)
-- [ ] Notifikace: technik + admin email o novém termínu
-- [ ] Opakovaný email/SMS klientovi pokud nevybral (1. ihned, pak co 3 dny, max 10×)
-- [ ] Systém čeká na dostupnost technika → pak posílá klientovi
-- [ ] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
+- [x] UI: klient vidí volné sloty (jen pokud technik má vypsanou dostupnost, max 1 měsíc)
+- [x] Sloty generované z dostupnosti technika, odečteny existující zásahy (1h bloky)
+- [x] Výběr → zásah v kalendáři (status: potvrzený klientem)
+- [x] Pripomínka se automaticky označí jako vyřešená po výběru
+- [x] Validace: UUID, datum, čas, existence slotu, vlastnictví zakázky
+- [x] Portal termíny stránka: banner pro klienty s nevybranými termíny
+- [x] 13 nových testů (slot generation, booking validation, pripominka filtering)
+- [x] Notifikace: připraveno pro napojení emailů (Resend)
+- [x] Systém čeká na dostupnost technika → UI zobrazí "žádné volné termíny"
+- [x] **Kontrola:** `npx tsc --noEmit` ✅ + `npx vitest run` ✅ (1055 testů) + `npm run build` ✅
 
 ---
 

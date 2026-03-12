@@ -14,6 +14,7 @@ export const ROLE_ROUTES: Record<string, AppRole[]> = {
   "/dostupnost": ["technik", "admin", "super_admin"],
   "/uzivatele": ["admin", "super_admin"],
   "/nastaveni": ["super_admin"],
+  "/statistiky": ["admin", "super_admin"],
   "/portal": ["klient"],
 };
 
@@ -27,4 +28,5 @@ export const PAGE_TITLES: Record<string, string> = {
   "/uzivatele": "Uživatelé",
   "/nastaveni": "Nastavení",
   "/protokoly": "Protokoly",
+  "/statistiky": "Statistiky",
 };

@@ -100,6 +100,12 @@ export default async function VicePage() {
               {isSuperAdmin ? "Přehled bonusů" : "Moje odměny"}
             </Link>
             <Link
+              href="/statistiky"
+              className="flex min-h-[44px] items-center text-sm font-medium underline-offset-4 hover:underline active:underline focus-visible:underline"
+            >
+              Statistiky a grafy
+            </Link>
+            <Link
               href="/protokoly"
               className="flex min-h-[44px] items-center text-sm font-medium underline-offset-4 hover:underline active:underline focus-visible:underline"
             >

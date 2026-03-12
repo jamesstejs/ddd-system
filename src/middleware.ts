@@ -54,8 +54,16 @@ export async function middleware(request: NextRequest) {
 
   // Redirect authenticated users away from auth pages
   if (user && isAuthRoute && !request.nextUrl.pathname.startsWith("/auth/callback")) {
+    // Klient users go to portal, others go to dashboard
+    const { data: loginProfile } = await supabase
+      .from("profiles")
+      .select("aktivni_role")
+      .eq("id", user.id)
+      .is("deleted_at", null)
+      .single();
+
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = loginProfile?.aktivni_role === "klient" ? "/portal" : "/";
     return NextResponse.redirect(url);
   }
 

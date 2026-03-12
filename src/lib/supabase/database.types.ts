@@ -865,6 +865,7 @@ export type Database = {
           email: string
           id: string
           jmeno: string
+          klient_id: string | null
           koeficient_rychlosti: number
           prijmeni: string
           role: Database["public"]["Enums"]["app_role"][]
@@ -878,6 +879,7 @@ export type Database = {
           email: string
           id: string
           jmeno?: string
+          klient_id?: string | null
           koeficient_rychlosti?: number
           prijmeni?: string
           role?: Database["public"]["Enums"]["app_role"][]
@@ -891,6 +893,7 @@ export type Database = {
           email?: string
           id?: string
           jmeno?: string
+          klient_id?: string | null
           koeficient_rychlosti?: number
           prijmeni?: string
           role?: Database["public"]["Enums"]["app_role"][]

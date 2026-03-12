@@ -21,7 +21,7 @@ Po implementaci vždy:
 
 ---
 
-## Aktuální sprint: SPRINT 31
+## Aktuální sprint: SPRINT 33
 
 ---
 
@@ -477,26 +477,32 @@ Po implementaci vždy:
 
 ---
 
-## Sprint 31 — Dashboard: reálná data
+## Sprint 31 — Dashboard: reálná data ✅
 **Cíl:** Dashboard zobrazuje reálná data dle role
 
-- [ ] Admin: protokoly ke schválení, k odeslání, nedomluvené termíny, technici bez směn, věci ve zpoždění, neuhrazené faktury, vlastní odměny
-- [ ] Technik: "Můj den", klienti k domluvení, vyplnit dostupnost, moje prémie
-- [ ] Super_admin: vše co admin + přehled odměn všech
-- [ ] Quick actions (tlačítka pro nejčastější akce)
-- [ ] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
+- [x] Admin: protokoly ke schválení, k odeslání, nedomluvené termíny, technici bez směn, věci ve zpoždění, neuhrazené faktury, vlastní odměny
+- [x] Technik: "Můj den", klienti k domluvení, vyplnit dostupnost, moje prémie
+- [x] Super_admin: vše co admin + přehled odměn všech
+- [x] Quick actions (tlačítka pro nejčastější akce)
+- [x] Fix: premie page role check uses aktivni_role instead of role array
+- [x] 12 nových testů (dashboard roles, overdue logic, premie role checks)
+- [x] **Kontrola:** `npx tsc --noEmit` ✅ + `npx vitest run` (1028 testů) ✅ + `npm run build` ✅
 
 ---
 
-## Sprint 32 — Klientský portál: základ
+## Sprint 32 — Klientský portál: základ ✅
 **Cíl:** Klient se přihlásí a vidí dokumenty
 
-- [ ] Oddělená sekce `/portal` s vlastním layoutem
-- [ ] Klientský login (Supabase Auth, role=klient)
-- [ ] Klient vidí: své protokoly (PDF ke stažení)
-- [ ] Klient vidí: své faktury (stav, PDF z Fakturoidu)
-- [ ] Klient vidí: nadcházející termíny
-- [ ] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
+- [x] Oddělená sekce `/portal` s vlastním layoutem
+- [x] Klientský login (Supabase Auth, role=klient)
+- [x] Klient vidí: své protokoly (PDF ke stažení)
+- [x] Klient vidí: své faktury (stav, PDF z Fakturoidu)
+- [x] Klient vidí: nadcházející termíny
+- [x] DB migrace: klient_id na profiles + RLS policies pro portal
+- [x] Middleware: klient redirect na /portal po přihlášení
+- [x] Signout API route pro portal
+- [x] 14 testů (portal role access, login redirect, data filtering, status display)
+- [x] **Kontrola:** `npx tsc --noEmit` ✅ + `npx vitest run` ✅ (1042 testů) + `npm run build` ✅
 
 ---
 

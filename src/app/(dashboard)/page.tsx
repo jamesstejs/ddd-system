@@ -737,7 +737,7 @@ export default async function DashboardPage() {
       {role === "technik" && (
         <TechnikDashboard supabase={supabase} userId={user.id} />
       )}
-      {role === "klient" && <KlientDashboard />}
+      {role === "klient" && redirect("/portal")}
     </div>
   );
 }

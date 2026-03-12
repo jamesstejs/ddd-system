@@ -6,7 +6,7 @@ import { describe, it, expect } from "vitest";
 
 describe("dashboard role checks", () => {
   it("admin sees admin dashboard", () => {
-    const role = "admin";
+    const role: string = "admin";
     const showAdmin = role === "admin" || role === "super_admin";
     const showTechnik = role === "technik";
     expect(showAdmin).toBe(true);
@@ -14,7 +14,7 @@ describe("dashboard role checks", () => {
   });
 
   it("super_admin sees admin dashboard with extra widgets", () => {
-    const role = "super_admin";
+    const role: string = "super_admin";
     const showAdmin = role === "admin" || role === "super_admin";
     const isSuperAdmin = role === "super_admin";
     expect(showAdmin).toBe(true);
@@ -22,7 +22,7 @@ describe("dashboard role checks", () => {
   });
 
   it("technik sees technik dashboard", () => {
-    const role = "technik";
+    const role: string = "technik";
     const showAdmin = role === "admin" || role === "super_admin";
     const showTechnik = role === "technik";
     expect(showAdmin).toBe(false);
@@ -30,7 +30,7 @@ describe("dashboard role checks", () => {
   });
 
   it("klient sees klient dashboard", () => {
-    const role = "klient";
+    const role: string = "klient";
     const showAdmin = role === "admin" || role === "super_admin";
     const showTechnik = role === "technik";
     const showKlient = role === "klient";

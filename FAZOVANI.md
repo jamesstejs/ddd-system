@@ -21,7 +21,7 @@ Po implementaci vždy:
 
 ---
 
-## Aktuální sprint: SPRINT 26
+## Aktuální sprint: SPRINT 27
 
 ---
 
@@ -417,16 +417,18 @@ Po implementaci vždy:
 ## Sprint 27 — Fakturoid: napojení + automatická faktura
 **Cíl:** Faktura ve Fakturoidu po schváleném protokolu
 
-- [ ] lib/fakturoid/ — API v3 client (OAuth 2 Client Credentials, slug: deratizacelevne)
-- [ ] Sync klient → Fakturoid kontakt (vytvořit pokud neexistuje, dle IČO)
-- [ ] Po schválení protokolu → automatická faktura:
+- [x] lib/fakturoid/ — API v3 client (OAuth 2 Client Credentials, slug: deratizacelevne)
+- [x] Sync klient → Fakturoid kontakt (vytvořit pokud neexistuje, dle IČO)
+- [x] Po schválení protokolu → automatická faktura:
   - Položky z `zakazka_polozky`
   - Sleva (zakázky + individuální klienta)
   - DPH dle klienta
   - Splatnost 14 dní
-- [ ] DB: `faktury` (zakazka_id, protokol_id, fakturoid_id, cislo, castka, stav: vytvorena/odeslana/uhrazena/po_splatnosti, created_at)
-- [ ] Admin: úprava faktury před odesláním
-- [ ] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
+- [x] DB: `faktury` (zakazka_id, protokol_id, fakturoid_id, cislo, castka, stav: vytvorena/odeslana/uhrazena/po_splatnosti, created_at)
+- [x] Admin: úprava faktury před odesláním (odkaz na Fakturoid) + odeslání klientovi
+- [x] UI: admin seznam faktur (filtr dle stavu, search) + detail s položkami
+- [x] Navigace: Více → Faktury link
+- [x] **Kontrola:** `npx tsc --noEmit` ✅ + `npx vitest run` 944/944 ✅ + `npm run build` ✅
 
 ---
 

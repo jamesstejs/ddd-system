@@ -25,6 +25,7 @@ import {
   adminApproveProtokolAction,
   adminRejectProtokolAction,
   sendProtokolEmailAction,
+  createFakturaAction,
   generateAiHodnoceniAction,
   saveAiHodnoceniAction,
 } from "./protokolActions";
@@ -221,6 +222,11 @@ export function ProtokolFormView({
     null,
   );
   const [aiHodnoceniSaved, setAiHodnoceniSaved] = useState(false);
+
+  // Faktura state
+  const [fakturaLoading, setFakturaLoading] = useState(false);
+  const [fakturaError, setFakturaError] = useState<string | null>(null);
+  const [fakturaCreated, setFakturaCreated] = useState(false);
 
   // Readonly logic
   const technikReadonly = protokol.status !== "rozpracovany";
@@ -750,6 +756,58 @@ export function ProtokolFormView({
           isRetrying={isSendingEmail}
         />
       )}
+
+      {/* Fakturace (admin, status=schvaleny nebo odeslany) */}
+      {isAdmin &&
+        (protokol.status === "schvaleny" || protokol.status === "odeslany") && (
+          <Card>
+            <CardContent className="space-y-2 py-4">
+              <p className="text-sm font-medium">Fakturace</p>
+              {fakturaCreated ? (
+                <p className="text-sm text-green-600">
+                  Faktura byla vystavena ve Fakturoidu.
+                </p>
+              ) : (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="min-h-[44px] w-full text-sm"
+                    onClick={async () => {
+                      setFakturaLoading(true);
+                      setFakturaError(null);
+                      try {
+                        const res = await createFakturaAction(protokol.id);
+                        if (res.success) {
+                          setFakturaCreated(true);
+                          router.refresh();
+                        } else {
+                          setFakturaError(
+                            res.error || "Chyba při vystavení faktury",
+                          );
+                        }
+                      } catch {
+                        setFakturaError("Nepodařilo se vystavit fakturu");
+                      } finally {
+                        setFakturaLoading(false);
+                      }
+                    }}
+                    disabled={fakturaLoading}
+                  >
+                    {fakturaLoading
+                      ? "Vystavuji fakturu..."
+                      : "Vystavit fakturu"}
+                  </Button>
+                  {fakturaError && (
+                    <p className="text-center text-xs text-red-600">
+                      {fakturaError}
+                    </p>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
       {/* Poznámka */}
       <div className="space-y-1.5 pt-2">

@@ -354,6 +354,84 @@ export type Database = {
           },
         ]
       }
+      faktury: {
+        Row: {
+          id: string
+          zakazka_id: string | null
+          protokol_id: string | null
+          fakturoid_id: number | null
+          cislo: string | null
+          castka_bez_dph: number | null
+          castka_s_dph: number | null
+          dph_sazba: number
+          splatnost_dnu: number
+          datum_vystaveni: string
+          datum_splatnosti: string | null
+          stav: Database["public"]["Enums"]["stav_faktury"]
+          fakturoid_url: string | null
+          fakturoid_pdf_url: string | null
+          poznamka: string | null
+          created_at: string
+          updated_at: string
+          deleted_at: string | null
+        }
+        Insert: {
+          id?: string
+          zakazka_id?: string | null
+          protokol_id?: string | null
+          fakturoid_id?: number | null
+          cislo?: string | null
+          castka_bez_dph?: number | null
+          castka_s_dph?: number | null
+          dph_sazba?: number
+          splatnost_dnu?: number
+          datum_vystaveni?: string
+          datum_splatnosti?: string | null
+          stav?: Database["public"]["Enums"]["stav_faktury"]
+          fakturoid_url?: string | null
+          fakturoid_pdf_url?: string | null
+          poznamka?: string | null
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Update: {
+          id?: string
+          zakazka_id?: string | null
+          protokol_id?: string | null
+          fakturoid_id?: number | null
+          cislo?: string | null
+          castka_bez_dph?: number | null
+          castka_s_dph?: number | null
+          dph_sazba?: number
+          splatnost_dnu?: number
+          datum_vystaveni?: string
+          datum_splatnosti?: string | null
+          stav?: Database["public"]["Enums"]["stav_faktury"]
+          fakturoid_url?: string | null
+          fakturoid_pdf_url?: string | null
+          poznamka?: string | null
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "faktury_zakazka_id_fkey"
+            columns: ["zakazka_id"]
+            isOneToOne: false
+            referencedRelation: "zakazky"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "faktury_protokol_id_fkey"
+            columns: ["protokol_id"]
+            isOneToOne: false
+            referencedRelation: "protokoly"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       klienti: {
         Row: {
           adresa: string
@@ -362,6 +440,7 @@ export type Database = {
           dic: string | null
           dph_sazba: number
           email: string | null
+          fakturoid_subject_id: number | null
           ico: string | null
           id: string
           individualni_sleva_procent: number
@@ -382,6 +461,7 @@ export type Database = {
           dic?: string | null
           dph_sazba?: number
           email?: string | null
+          fakturoid_subject_id?: number | null
           ico?: string | null
           id?: string
           individualni_sleva_procent?: number
@@ -402,6 +482,7 @@ export type Database = {
           dic?: string | null
           dph_sazba?: number
           email?: string | null
+          fakturoid_subject_id?: number | null
           ico?: string | null
           id?: string
           individualni_sleva_procent?: number
@@ -1435,6 +1516,7 @@ export type Database = {
         | "mikrokapsule"
         | "jiny"
       stav_emailu: "odeslano" | "doruceno" | "chyba" | "cekajici"
+      stav_faktury: "vytvorena" | "odeslana" | "uhrazena" | "po_splatnosti" | "storno"
       typ_emailu: "protokol" | "faktura" | "terminy" | "pripominky"
       status_protokolu:
         | "rozpracovany"

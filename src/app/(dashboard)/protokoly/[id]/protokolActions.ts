@@ -1289,6 +1289,233 @@ export async function sendProtokolEmailAction(
 }
 
 // ============================================================
+// Fakturace: automatická faktura po schválení protokolu
+// ============================================================
+
+/**
+ * Vytvoří fakturu ve Fakturoidu po schválení protokolu.
+ * Non-throwing: vrací { success, fakturaId?, error? }.
+ *
+ * Flow:
+ * 1. Najde/vytvoří kontakt v Fakturoidu (dle IČO klienta)
+ * 2. Načte položky zakázky (zakazka_polozky)
+ * 3. Vytvoří fakturu s řádky, DPH, splatností
+ * 4. Uloží do DB tabulky faktury
+ */
+export async function createFakturaAction(
+  protokolId: string,
+): Promise<{ success: boolean; fakturaId?: string; error?: string }> {
+  if (!UUID_REGEX.test(protokolId)) {
+    return { success: false, error: "Neplatný formát ID protokolu" };
+  }
+
+  try {
+    const { supabase } = await requireAdmin();
+
+    // Načtení protokolu s vazbami
+    const { data: protokol } = await getProtokol(supabase, protokolId);
+    if (!protokol) {
+      return { success: false, error: "Protokol nenalezen" };
+    }
+    if (protokol.status !== "schvaleny" && protokol.status !== "odeslany") {
+      return {
+        success: false,
+        error: "Fakturu lze vystavit pouze pro schválený/odeslaný protokol",
+      };
+    }
+
+    // Dynamické importy — nechceme zatěžovat cold start
+    const [
+      { getFakturaByProtokol, createFaktura, updateKlientFakturoidId },
+      { getPolozkyForZakazka },
+      { findOrCreateSubject, buildInvoiceLines, createInvoice },
+    ] = await Promise.all([
+      import("@/lib/supabase/queries/faktury"),
+      import("@/lib/supabase/queries/zakazka_polozky"),
+      import("@/lib/fakturoid"),
+    ]);
+
+    // Kontrola duplicity
+    const { data: existingFaktura } = await getFakturaByProtokol(
+      supabase,
+      protokolId,
+    );
+    if (existingFaktura) {
+      return {
+        success: false,
+        error: "Pro tento protokol již existuje faktura",
+      };
+    }
+
+    // Extrakce dat z vazeb
+    const zasahy = protokol.zasahy as Record<string, unknown> | null;
+    const zakazky = zasahy?.zakazky as Record<string, unknown> | null;
+    const objekty = zakazky?.objekty as Record<string, unknown> | null;
+    const klienti = objekty?.klienti as Record<string, unknown> | null;
+
+    if (!zakazky || !klienti) {
+      return {
+        success: false,
+        error: "Nepodařilo se načíst data zakázky/klienta",
+      };
+    }
+
+    const zakazkaId = zakazky.id as string;
+    const klientId = klienti.id as string;
+
+    // Klient data
+    const klientData = {
+      nazev: (klienti.nazev as string) || "",
+      jmeno: (klienti.jmeno as string) || "",
+      prijmeni: (klienti.prijmeni as string) || "",
+      typ: (klienti.typ as "firma" | "fyzicka_osoba") || "firma",
+      ico: (klienti.ico as string | null) || null,
+      dic: (klienti.dic as string | null) || null,
+      email: (klienti.email as string | null) || null,
+      telefon: null as string | null,
+      adresa: (objekty?.adresa as string) || "",
+      fakturoid_subject_id:
+        (klienti.fakturoid_subject_id as number | null) || null,
+    };
+
+    // 1. Find/create Fakturoid subject
+    const subjectId = await findOrCreateSubject(klientData);
+
+    // Uložit fakturoid_subject_id pokud nový
+    if (!klientData.fakturoid_subject_id) {
+      await updateKlientFakturoidId(supabase, klientId, subjectId);
+    }
+
+    // 2. Načíst položky zakázky
+    const { data: polozky } = await getPolozkyForZakazka(supabase, zakazkaId);
+    if (!polozky || polozky.length === 0) {
+      return {
+        success: false,
+        error: "Zakázka nemá žádné položky k fakturaci",
+      };
+    }
+
+    // 3. DPH sazba a výpočet
+    const dphSazba =
+      (zakazky.dph_sazba_snapshot as number) ||
+      (klienti.dph_sazba as number) ||
+      21;
+    const cenaZaklad =
+      (zakazky.cena_po_sleve as number) || (zakazky.cena_zaklad as number) || 0;
+    const cenaSdph = (zakazky.cena_s_dph as number) || cenaZaklad * (1 + dphSazba / 100);
+
+    // 4. Build invoice lines
+    const lines = buildInvoiceLines(polozky, dphSazba);
+
+    // 5. Create invoice in Fakturoid
+    const splatnostDnu = 14;
+    const fakturoidInvoice = await createInvoice({
+      subject_id: subjectId,
+      lines,
+      due: splatnostDnu,
+      payment_method: "bank",
+      language: "cz",
+      note: `Protokol: ${protokol.cislo_protokolu || ""}`,
+    });
+
+    // 6. Save to our DB
+    const datumSplatnosti = fakturoidInvoice.due_on;
+
+    const { data: faktura, error: insertError } = await createFaktura(
+      supabase,
+      {
+        zakazka_id: zakazkaId,
+        protokol_id: protokolId,
+        fakturoid_id: fakturoidInvoice.id,
+        cislo: fakturoidInvoice.number,
+        castka_bez_dph: parseFloat(fakturoidInvoice.subtotal) || cenaZaklad,
+        castka_s_dph: parseFloat(fakturoidInvoice.total) || cenaSdph,
+        dph_sazba: dphSazba,
+        splatnost_dnu: splatnostDnu,
+        datum_splatnosti: datumSplatnosti,
+        stav: "vytvorena",
+        fakturoid_url: fakturoidInvoice.html_url || null,
+        fakturoid_pdf_url: fakturoidInvoice.pdf_url || null,
+      },
+    );
+
+    if (insertError) {
+      return { success: false, error: insertError.message };
+    }
+
+    revalidatePath(`/protokoly/${protokolId}`);
+    revalidatePath("/faktury");
+
+    return { success: true, fakturaId: faktura?.id };
+  } catch (err) {
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Nepodařilo se vytvořit fakturu",
+    };
+  }
+}
+
+/**
+ * Odešle fakturu přes Fakturoid (mark_as_sent → stav odeslana).
+ */
+export async function sendFakturaAction(
+  fakturaId: string,
+): Promise<{ success: boolean; error?: string }> {
+  if (!UUID_REGEX.test(fakturaId)) {
+    return { success: false, error: "Neplatný formát ID faktury" };
+  }
+
+  try {
+    const { supabase } = await requireAdmin();
+
+    const [{ getFaktura: getFakturaQuery, updateFaktura }, { fireInvoiceEvent }] =
+      await Promise.all([
+        import("@/lib/supabase/queries/faktury"),
+        import("@/lib/fakturoid"),
+      ]);
+
+    const { data: faktura } = await getFakturaQuery(supabase, fakturaId);
+    if (!faktura) {
+      return { success: false, error: "Faktura nenalezena" };
+    }
+    if (faktura.stav !== "vytvorena") {
+      return {
+        success: false,
+        error: "Odeslat lze pouze fakturu ve stavu vytvořena",
+      };
+    }
+    if (!faktura.fakturoid_id) {
+      return {
+        success: false,
+        error: "Faktura nemá napojení na Fakturoid",
+      };
+    }
+
+    // Fire event in Fakturoid
+    await fireInvoiceEvent(faktura.fakturoid_id, "deliver");
+
+    // Update our DB
+    await updateFaktura(supabase, fakturaId, { stav: "odeslana" });
+
+    revalidatePath("/faktury");
+    revalidatePath(`/faktury/${fakturaId}`);
+
+    return { success: true };
+  } catch (err) {
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Nepodařilo se odeslat fakturu",
+    };
+  }
+}
+
+// ============================================================
 // AI: doporučení přípravků pro postřik
 // ============================================================
 

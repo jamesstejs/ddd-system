@@ -93,6 +93,12 @@ export default async function VicePage() {
               Protokoly
             </Link>
             <Link
+              href="/faktury"
+              className="flex min-h-[44px] items-center text-sm font-medium underline-offset-4 hover:underline active:underline focus-visible:underline"
+            >
+              Faktury
+            </Link>
+            <Link
               href="/uzivatele"
               className="flex min-h-[44px] items-center text-sm font-medium underline-offset-4 hover:underline active:underline focus-visible:underline"
             >

@@ -29,6 +29,7 @@ import {
 } from "./technikActions";
 import { geocodeMissingObjektyTechnikAction } from "./geocodeActions";
 import { DalsiTerminSheet } from "./DalsiTerminSheet";
+import { ProformaSheet } from "./ProformaSheet";
 import { initProtokolAction } from "../protokoly/[id]/protokolActions";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -51,6 +52,7 @@ export type TechnikZasahRow = {
     typy_zasahu: unknown;
     skudci: unknown;
     cetnost_dny: number | null;
+    platba_predem: boolean | null;
     objekty: {
       id: string;
       nazev: string;
@@ -117,6 +119,10 @@ export function MujDenView({
   // Protokol navigation
   const router = useRouter();
   const [pendingProtokolZasahId, setPendingProtokolZasahId] = useState<string | null>(null);
+
+  // Proforma sheet state
+  const [proformaOpen, setProformaOpen] = useState(false);
+  const [proformaZasah, setProformaZasah] = useState<TechnikZasahRow | null>(null);
 
   // Guard against infinite geocoding retries (track already-attempted objekt IDs)
   const geocodedIdsRef = useRef<Set<string>>(new Set());
@@ -517,6 +523,11 @@ export function MujDenView({
                           {t.replace(/_/g, " ")}
                         </Badge>
                       ))}
+                    {zasah.zakazky?.platba_predem === true && (
+                      <Badge className="bg-purple-100 text-purple-800 text-xs border-purple-200">
+                        💳 Předem
+                      </Badge>
+                    )}
                   </div>
 
                   {/* Client contact */}
@@ -578,6 +589,20 @@ export function MujDenView({
                       <p className="text-xs text-muted-foreground">Poznámka</p>
                       <p className="mt-0.5 text-sm">{zasah.poznamka}</p>
                     </div>
+                  )}
+
+                  {/* Proforma + QR platba button */}
+                  {zasah.zakazky?.platba_predem === true &&
+                    zasah.status !== "zruseno" && (
+                    <Button
+                      className="min-h-[44px] w-full bg-purple-600 text-white hover:bg-purple-700 active:bg-purple-800"
+                      onClick={() => {
+                        setProformaZasah(zasah);
+                        setProformaOpen(true);
+                      }}
+                    >
+                      💳 Proforma + QR platba
+                    </Button>
                   )}
 
                   {/* Status action buttons */}
@@ -674,6 +699,15 @@ export function MujDenView({
         onScheduled={handleDalsiTerminScheduled}
         onSkipped={handleDalsiTerminSkipped}
       />
+
+      {proformaZasah && (
+        <ProformaSheet
+          open={proformaOpen}
+          onOpenChange={setProformaOpen}
+          zasahId={proformaZasah.id}
+          zakazkaId={proformaZasah.zakazka_id}
+        />
+      )}
     </div>
   );
 }

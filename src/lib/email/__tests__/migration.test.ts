@@ -174,7 +174,7 @@ describe("email_log migration — moddatetime trigger", () => {
   });
 
   it("trigger uses moddatetime function for updated_at", () => {
-    expect(sql).toMatch(/EXECUTE\s+FUNCTION\s+moddatetime\(updated_at\)/i);
+    expect(sql).toMatch(/EXECUTE\s+FUNCTION\s+(extensions\.)?moddatetime\(updated_at\)/i);
   });
 });
 

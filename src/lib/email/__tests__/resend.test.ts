@@ -16,6 +16,8 @@ import { sendProtokolEmail } from "../resend";
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // Set env so getResend() doesn't throw before reaching the mocked Resend class
+  process.env.RESEND_API_KEY = "re_test_key";
 });
 
 describe("sendProtokolEmail", () => {

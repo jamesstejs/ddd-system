@@ -12,6 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { sendFakturaAction } from "@/app/(dashboard)/protokoly/[id]/protokolActions";
+import { checkProformaPaymentAction } from "@/app/(dashboard)/kalendar/proformaActions";
+import { QRCodeSVG } from "qrcode.react";
+import { buildSpdString, getCompanyIban, extractDigits } from "@/lib/utils/qrPayment";
 
 type FakturaData = {
   id: string;
@@ -27,6 +30,8 @@ type FakturaData = {
   fakturoid_url: string | null;
   fakturoid_pdf_url: string | null;
   poznamka: string | null;
+  is_proforma: boolean;
+  proforma_public_url: string | null;
   zakazky: Record<string, unknown> | null;
   protokoly: Record<string, unknown> | null;
 };
@@ -100,6 +105,8 @@ export function FakturaDetail({
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [stav, setStav] = useState(faktura.stav);
+  const [checking, setChecking] = useState(false);
+  const [checkMsg, setCheckMsg] = useState<string | null>(null);
 
   const info = getKlientInfo(faktura);
   const protokolId = (faktura.protokoly as Record<string, unknown> | null)
@@ -125,6 +132,38 @@ export function FakturaDetail({
     }
   }
 
+  async function handleCheckPayment() {
+    setChecking(true);
+    setCheckMsg(null);
+    try {
+      const result = await checkProformaPaymentAction(faktura.id);
+      if (result.success) {
+        if (result.paid) {
+          setStav("uhrazena");
+          setCheckMsg("Platba přijata!");
+        } else {
+          setCheckMsg("Platba zatím nebyla přijata.");
+        }
+      } else {
+        setCheckMsg(result.error || "Nepodařilo se zkontrolovat");
+      }
+    } catch {
+      setCheckMsg("Nepodařilo se zkontrolovat platbu");
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  // QR pro proformu
+  const spdString = faktura.is_proforma && faktura.castka_s_dph
+    ? buildSpdString({
+        iban: getCompanyIban(),
+        amount: faktura.castka_s_dph,
+        vs: extractDigits(faktura.cislo || ""),
+        message: `Proforma ${faktura.cislo || ""}`,
+      })
+    : null;
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -137,14 +176,22 @@ export function FakturaDetail({
         </Link>
         <div className="flex-1">
           <h1 className="text-lg font-semibold">
-            Faktura {faktura.cislo || ""}
+            {faktura.is_proforma ? "Proforma faktura" : "Faktura"}{" "}
+            {faktura.cislo || ""}
           </h1>
-          <Badge
-            variant="secondary"
-            className={`mt-1 text-xs ${STAV_COLORS[stav] || ""}`}
-          >
-            {STAV_LABELS[stav] || stav}
-          </Badge>
+          <div className="mt-1 flex flex-wrap gap-1">
+            <Badge
+              variant="secondary"
+              className={`text-xs ${STAV_COLORS[stav] || ""}`}
+            >
+              {STAV_LABELS[stav] || stav}
+            </Badge>
+            {faktura.is_proforma && (
+              <Badge className="bg-purple-100 text-purple-800 text-xs border-purple-200">
+                Proforma
+              </Badge>
+            )}
+          </div>
         </div>
       </div>
 
@@ -261,8 +308,67 @@ export function FakturaDetail({
         </Card>
       )}
 
+      {/* Proforma QR code */}
+      {faktura.is_proforma && spdString && stav !== "uhrazena" && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">QR platba</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center gap-3">
+            <div className="rounded-xl bg-white p-4 shadow-sm">
+              <QRCodeSVG value={spdString} size={200} level="M" />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Naskenujte QR kód bankovní aplikací
+            </p>
+            {faktura.proforma_public_url && (
+              <a
+                href={faktura.proforma_public_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="min-h-[44px] flex items-center text-sm text-purple-600 underline"
+              >
+                Zobrazit proformu online ↗
+              </a>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Proforma check payment */}
+      {faktura.is_proforma && stav !== "uhrazena" && stav !== "storno" && (
+        <div className="space-y-2">
+          <Button
+            onClick={handleCheckPayment}
+            disabled={checking}
+            className="w-full min-h-[44px] bg-purple-600 hover:bg-purple-700"
+          >
+            {checking ? "Kontroluji..." : "Zkontrolovat platbu"}
+          </Button>
+          {checkMsg && (
+            <p
+              className={`text-center text-sm ${
+                (stav as string) === "uhrazena" ? "text-green-600" : "text-amber-600"
+              }`}
+            >
+              {checkMsg}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Proforma paid */}
+      {faktura.is_proforma && stav === "uhrazena" && (
+        <div className="flex items-center justify-center gap-2 rounded-lg bg-green-50 p-4">
+          <span className="text-2xl">✅</span>
+          <span className="text-lg font-semibold text-green-700">
+            Uhrazeno
+          </span>
+        </div>
+      )}
+
       {/* Actions */}
-      {stav === "vytvorena" && (
+      {stav === "vytvorena" && !faktura.is_proforma && (
         <div className="space-y-2">
           <Button
             onClick={handleSend}

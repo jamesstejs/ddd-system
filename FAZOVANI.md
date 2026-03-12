@@ -21,7 +21,7 @@ Po implementaci vždy:
 
 ---
 
-## Aktuální sprint: SPRINT 27
+## Aktuální sprint: SPRINT 28
 
 ---
 
@@ -432,14 +432,17 @@ Po implementaci vždy:
 
 ---
 
-## Sprint 28 — Proforma faktura + QR platba on-site
+## Sprint 28 — Proforma faktura + QR platba on-site ✅
 **Cíl:** Technik na místě ukáže QR k platbě
 
-- [ ] U zakázek s "platba_predem" → technik vidí tlačítko "Proforma"
-- [ ] Generování proformy přes Fakturoid API
-- [ ] Zobrazení QR kódu pro bankovní platbu (z Fakturoidu)
-- [ ] Po spárování platby (Fakturoid polling/webhook) → status aktualizace
-- [ ] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
+- [x] U zakázek s "platba_predem" → technik vidí tlačítko "Proforma" + badge "💳 Předem"
+- [x] Generování proformy přes Fakturoid API (`document_type: "proforma"`, `proforma_followup_document: "final_invoice_paid"`)
+- [x] Zobrazení QR kódu pro bankovní platbu (SPD formát, `qrcode.react`, generováno lokálně)
+- [x] Po kliknutí "Zkontrolovat platbu" → polling Fakturoid API → status aktualizace
+- [x] ProformaSheet (Bottom Sheet) s QR, částkou, kontrolou platby
+- [x] FakturyList badge "Proforma" + FakturaDetail QR kód + kontrola platby
+- [x] 29 nových testů (qrPayment, createProformaInvoice, getProformaByZakazka, ProformaSheet)
+- [x] **Kontrola:** `npx tsc --noEmit` ✅ + `npx vitest run` (973 testů) ✅ + `npm run build` ✅
 
 ---
 

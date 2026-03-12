@@ -371,6 +371,8 @@ export type Database = {
           fakturoid_url: string | null
           fakturoid_pdf_url: string | null
           poznamka: string | null
+          is_proforma: boolean
+          proforma_public_url: string | null
           created_at: string
           updated_at: string
           deleted_at: string | null
@@ -391,6 +393,8 @@ export type Database = {
           fakturoid_url?: string | null
           fakturoid_pdf_url?: string | null
           poznamka?: string | null
+          is_proforma?: boolean
+          proforma_public_url?: string | null
           created_at?: string
           updated_at?: string
           deleted_at?: string | null
@@ -411,6 +415,8 @@ export type Database = {
           fakturoid_url?: string | null
           fakturoid_pdf_url?: string | null
           poznamka?: string | null
+          is_proforma?: boolean
+          proforma_public_url?: string | null
           created_at?: string
           updated_at?: string
           deleted_at?: string | null

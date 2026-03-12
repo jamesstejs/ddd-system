@@ -82,6 +82,7 @@ export async function getZasahyForTechnik(
         typy_zasahu,
         skudci,
         cetnost_dny,
+        platba_predem,
         objekty!inner (
           id,
           nazev,

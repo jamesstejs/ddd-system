@@ -20,7 +20,7 @@ CREATE TABLE email_log (
 
 -- Trigger pro updated_at
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON email_log
-  FOR EACH ROW EXECUTE FUNCTION moddatetime(updated_at);
+  FOR EACH ROW EXECUTE FUNCTION extensions.moddatetime(updated_at);
 
 -- RLS
 ALTER TABLE email_log ENABLE ROW LEVEL SECURITY;
@@ -32,7 +32,7 @@ CREATE POLICY "admin_full_access" ON email_log
     EXISTS (
       SELECT 1 FROM profiles
       WHERE profiles.id = auth.uid()
-        AND (profiles.role::jsonb) ?| ARRAY['admin', 'super_admin']
+        AND profiles.role::text[] && ARRAY['admin', 'super_admin']::text[]
     )
   );
 

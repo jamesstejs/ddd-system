@@ -21,6 +21,7 @@ type FakturaRow = {
   datum_splatnosti: string | null;
   fakturoid_url: string | null;
   poznamka: string | null;
+  is_proforma: boolean;
   created_at: string;
   zakazky: {
     id: string;
@@ -172,6 +173,11 @@ export function FakturyList({ faktury }: { faktury: FakturaRow[] }) {
                   >
                     {STAV_LABELS[f.stav] || f.stav}
                   </Badge>
+                  {f.is_proforma && (
+                    <Badge className="shrink-0 bg-purple-100 text-purple-800 text-xs border-purple-200">
+                      Proforma
+                    </Badge>
+                  )}
                 </div>
                 <p className="truncate text-xs text-muted-foreground">
                   {getKlientName(f)}

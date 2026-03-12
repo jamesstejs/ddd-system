@@ -114,4 +114,37 @@ describe("faktury queries", () => {
     });
     expect(supabase.eq).toHaveBeenCalledWith("id", "k1");
   });
+
+  it("getProformaByZakazka queries with is_proforma filter", async () => {
+    const { getProformaByZakazka } = await import("../faktury");
+    await getProformaByZakazka(supabase, "z1");
+
+    expect(supabase.from).toHaveBeenCalledWith("faktury");
+    expect(supabase.eq).toHaveBeenCalledWith("zakazka_id", "z1");
+    expect(supabase.eq).toHaveBeenCalledWith("is_proforma", true);
+    expect(supabase.is).toHaveBeenCalledWith("deleted_at", null);
+    expect(supabase.maybeSingle).toHaveBeenCalled();
+  });
+
+  it("createFaktura with proforma fields inserts correctly", async () => {
+    const { createFaktura } = await import("../faktury");
+    await createFaktura(supabase, {
+      zakazka_id: "z1",
+      fakturoid_id: 530,
+      cislo: "2026-P001",
+      castka_bez_dph: 5000,
+      castka_s_dph: 6050,
+      stav: "vytvorena",
+      is_proforma: true,
+      proforma_public_url: "https://app.fakturoid.cz/proforma/abc",
+    });
+
+    expect(supabase.from).toHaveBeenCalledWith("faktury");
+    expect(supabase.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        is_proforma: true,
+        proforma_public_url: "https://app.fakturoid.cz/proforma/abc",
+      }),
+    );
+  });
 });

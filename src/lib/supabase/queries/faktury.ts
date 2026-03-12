@@ -75,6 +75,22 @@ export async function getFakturaByProtokol(
 }
 
 /**
+ * Get proforma faktura by zakazka_id (to check if proforma already exists).
+ */
+export async function getProformaByZakazka(
+  supabase: TypedSupabase,
+  zakazkaId: string,
+) {
+  return supabase
+    .from("faktury")
+    .select("*")
+    .eq("zakazka_id", zakazkaId)
+    .eq("is_proforma", true)
+    .is("deleted_at", null)
+    .maybeSingle();
+}
+
+/**
  * Create a new faktura.
  */
 export async function createFaktura(

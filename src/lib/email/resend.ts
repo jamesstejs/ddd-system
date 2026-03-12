@@ -1,6 +1,19 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let _resend: Resend | null = null;
+
+function getResend(): Resend {
+  if (!_resend) {
+    const key = process.env.RESEND_API_KEY;
+    if (!key) {
+      throw new Error(
+        "RESEND_API_KEY není nastavený. Nastavte ho v .env.local.",
+      );
+    }
+    _resend = new Resend(key);
+  }
+  return _resend;
+}
 
 const FROM_EMAIL = "Deraplus <info@deraplus.cz>";
 
@@ -26,7 +39,7 @@ export async function sendProtokolEmail({
   html,
   attachments,
 }: SendProtokolEmailParams): Promise<string> {
-  const { data, error } = await resend.emails.send({
+  const { data, error } = await getResend().emails.send({
     from: FROM_EMAIL,
     to,
     subject,

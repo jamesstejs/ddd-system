@@ -8,6 +8,7 @@ vi.mock("../client", () => ({
 import { fakturoidFetch } from "../client";
 import {
   createInvoice,
+  createProformaInvoice,
   getInvoice,
   fireInvoiceEvent,
   buildInvoiceLines,
@@ -35,6 +36,54 @@ describe("createInvoice", () => {
       body: expect.objectContaining({ subject_id: 42 }),
     });
     expect(result).toEqual(invoice);
+  });
+});
+
+describe("createProformaInvoice", () => {
+  beforeEach(() => mockFetch.mockReset());
+
+  it("calls POST with document_type proforma", async () => {
+    const invoice = { id: 530, number: "2026-P001" };
+    mockFetch.mockResolvedValueOnce(invoice);
+
+    const result = await createProformaInvoice({
+      subject_id: 42,
+      lines: [{ name: "Výjezd", quantity: 1, unit_price: 690, vat_rate: 21 }],
+      due: 14,
+      payment_method: "bank",
+    });
+
+    expect(mockFetch).toHaveBeenCalledWith("/invoices.json", {
+      method: "POST",
+      body: expect.objectContaining({
+        subject_id: 42,
+        document_type: "proforma",
+        proforma_followup_document: "final_invoice_paid",
+      }),
+    });
+    expect(result).toEqual(invoice);
+  });
+
+  it("preserves other input fields", async () => {
+    mockFetch.mockResolvedValueOnce({ id: 531 });
+
+    await createProformaInvoice({
+      subject_id: 10,
+      lines: [],
+      due: 7,
+      note: "Test note",
+      language: "cz",
+    });
+
+    expect(mockFetch).toHaveBeenCalledWith("/invoices.json", {
+      method: "POST",
+      body: expect.objectContaining({
+        due: 7,
+        note: "Test note",
+        language: "cz",
+        document_type: "proforma",
+      }),
+    });
   });
 });
 

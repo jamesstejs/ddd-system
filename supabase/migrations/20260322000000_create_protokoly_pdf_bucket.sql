@@ -25,7 +25,7 @@ CREATE POLICY "Admins can upload protocol PDFs"
     AND EXISTS (
       SELECT 1 FROM public.profiles
       WHERE profiles.id = auth.uid()
-      AND profiles.role && ARRAY['admin', 'super_admin']::text[]
+      AND profiles.role::text[] && ARRAY['admin', 'super_admin']::text[]
     )
   );
 
@@ -38,6 +38,6 @@ CREATE POLICY "Admins can delete protocol PDFs"
     AND EXISTS (
       SELECT 1 FROM public.profiles
       WHERE profiles.id = auth.uid()
-      AND profiles.role && ARRAY['admin', 'super_admin']::text[]
+      AND profiles.role::text[] && ARRAY['admin', 'super_admin']::text[]
     )
   );

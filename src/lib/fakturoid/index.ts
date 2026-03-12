@@ -11,11 +11,14 @@ export {
 export type { FakturoidSubject, CreateSubjectInput } from "./subjects";
 export {
   createInvoice,
+  createProformaInvoice,
   getInvoice,
   fireInvoiceEvent,
   updateInvoice,
   buildInvoiceLines,
   mapFakturoidStatus,
+  getAccount,
+  getEffectiveVatRate,
 } from "./invoices";
 export type {
   FakturoidInvoice,

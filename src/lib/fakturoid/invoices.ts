@@ -27,6 +27,10 @@ export interface CreateInvoiceInput {
   language?: string;
   note?: string;
   custom_id?: string;
+  /** "invoice" (default) or "proforma" */
+  document_type?: "invoice" | "proforma";
+  /** What to do after proforma is paid: "final_invoice_paid" auto-creates final invoice */
+  proforma_followup_document?: "final_invoice_paid" | "final_invoice" | "none";
 }
 
 export interface FakturoidInvoice {
@@ -112,6 +116,53 @@ export async function updateInvoice(
     method: "PATCH",
     body: input as unknown as Record<string, unknown>,
   });
+}
+
+/**
+ * Create a proforma invoice in Fakturoid.
+ * After payment, Fakturoid auto-creates final invoice (proforma_followup_document).
+ */
+export async function createProformaInvoice(
+  input: Omit<CreateInvoiceInput, "document_type" | "proforma_followup_document">,
+): Promise<FakturoidInvoice> {
+  return createInvoice({
+    ...input,
+    document_type: "proforma",
+    proforma_followup_document: "final_invoice_paid",
+  });
+}
+
+// ---------------------------------------------------------------
+// Account info
+// ---------------------------------------------------------------
+
+interface FakturoidAccount {
+  vat_payer: boolean;
+  vat_mode: string | null;
+  [key: string]: unknown;
+}
+
+let cachedAccount: FakturoidAccount | null = null;
+
+/**
+ * Get Fakturoid account info (cached).
+ * Used to determine VAT payer status.
+ */
+export async function getAccount(): Promise<FakturoidAccount> {
+  if (cachedAccount) return cachedAccount;
+  cachedAccount = await fakturoidFetch<FakturoidAccount>("/account.json");
+  return cachedAccount;
+}
+
+/**
+ * Get the effective VAT rate for invoice lines.
+ * Returns 0 if the Fakturoid account is not a VAT payer.
+ */
+export async function getEffectiveVatRate(
+  desiredRate: number,
+): Promise<number> {
+  const account = await getAccount();
+  return account.vat_payer ? desiredRate : 0;
 }
 
 // ---------------------------------------------------------------

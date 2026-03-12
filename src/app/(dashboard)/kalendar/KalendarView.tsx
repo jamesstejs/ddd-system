@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -200,7 +200,6 @@ export function KalendarView({
   initialDate,
 }: KalendarViewProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   const [currentDate, setCurrentDate] = useState(() =>
     parseDateLocal(initialDate),
@@ -350,11 +349,13 @@ export function KalendarView({
     return `${klient.prijmeni} ${klient.jmeno}`.trim();
   }
 
-  // After action callback
+  // After action callback — full reload to bypass Next.js cache
   function handleActionDone() {
     setPrirazeniOpen(false);
     setDetailOpen(false);
-    startTransition(() => router.refresh());
+    router.refresh();
+    // Force full page reload to ensure fresh server data
+    window.location.reload();
   }
 
   return (

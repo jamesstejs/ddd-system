@@ -161,7 +161,7 @@ describe("fakturoid/client", () => {
     expect(apiCall[1].body).toBe(JSON.stringify({ name: "Test" }));
   });
 
-  it("defaults slug to deratizacelevne", async () => {
+  it("defaults slug to ahelpgroup", async () => {
     delete process.env.FAKTUROID_SLUG;
 
     mockFetch.mockResolvedValueOnce({
@@ -184,6 +184,6 @@ describe("fakturoid/client", () => {
     await fakturoidFetch("/test.json");
 
     const apiCall = mockFetch.mock.calls[1];
-    expect(apiCall[0]).toContain("/accounts/deratizacelevne/");
+    expect(apiCall[0]).toContain("/accounts/ahelpgroup/");
   });
 });

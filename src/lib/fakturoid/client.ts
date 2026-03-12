@@ -16,7 +16,7 @@ let tokenExpiresAt: number = 0;
 function getConfig() {
   const clientId = process.env.FAKTUROID_CLIENT_ID;
   const clientSecret = process.env.FAKTUROID_CLIENT_SECRET;
-  const slug = process.env.FAKTUROID_SLUG || "deratizacelevne";
+  const slug = process.env.FAKTUROID_SLUG || "ahelpgroup";
 
   if (!clientId || !clientSecret) {
     throw new Error(

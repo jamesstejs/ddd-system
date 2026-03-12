@@ -43,7 +43,7 @@ klienti → objekty → zakázky + ceník → plánování techniků → terénn
 | Migrace | Supabase CLI — `supabase/migrations/` |
 | Deploy | Vercel (auto z GitHub `main`) |
 | AI | Anthropic API `claude-sonnet-4-20250514` |
-| Fakturace | Fakturoid API v3 (slug: `deratizacelevne`) |
+| Fakturace | Fakturoid API v3 (slug: `ahelpgroup`) |
 | Firmy | ARES API (načítání dle IČO) |
 | Email | Resend (nebo Supabase Edge Function) — odesílatel: info@deraplus.cz |
 | SMS | Provider TBD — připravit abstrakci |
@@ -371,7 +371,7 @@ U smluvních klientů se nastavuje individuální četnost s cílem ji postupně
 
 ### 12. Fakturace — Fakturoid
 
-- **Fakturoid slug:** `deratizacelevne`
+- **Fakturoid slug:** `ahelpgroup`
 - Fakturoid API v3 (OAuth 2 Client Credentials)
 - Fakturuje se **per zásah** (ne měsíčně)
 - Faktura se vystaví **po schválení protokolu**
@@ -632,7 +632,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 ANTHROPIC_API_KEY=
 FAKTUROID_API_KEY=
-FAKTUROID_SLUG=deratizacelevne
+FAKTUROID_SLUG=ahelpgroup
 RESEND_API_KEY=
 ```
 

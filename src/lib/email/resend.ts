@@ -1,18 +1,27 @@
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
+import type { Transporter } from "nodemailer";
 
-let _resend: Resend | null = null;
+let _transporter: Transporter | null = null;
 
-function getResend(): Resend {
-  if (!_resend) {
-    const key = process.env.RESEND_API_KEY;
-    if (!key) {
+function getTransporter(): Transporter {
+  if (!_transporter) {
+    const host = process.env.SMTP_HOST;
+    const port = Number(process.env.SMTP_PORT || "465");
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
+    if (!host || !user || !pass) {
       throw new Error(
-        "RESEND_API_KEY není nastavený. Nastavte ho v .env.local.",
+        "SMTP credentials nejsou nastaveny. Nastavte SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS v .env.local.",
       );
     }
-    _resend = new Resend(key);
+    _transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: { user, pass },
+    });
   }
-  return _resend;
+  return _transporter;
 }
 
 const FROM_EMAIL = "Deraplus <info@deraplus.cz>";
@@ -31,7 +40,7 @@ export interface SendProtokolEmailParams {
 
 /**
  * Odešle email s protokolem a přílohami (PDF + BL).
- * Vrací Resend ID při úspěchu nebo vyhodí chybu.
+ * Vrací SMTP messageId při úspěchu nebo vyhodí chybu.
  */
 export async function sendProtokolEmail({
   to,
@@ -39,7 +48,7 @@ export async function sendProtokolEmail({
   html,
   attachments,
 }: SendProtokolEmailParams): Promise<string> {
-  const { data, error } = await getResend().emails.send({
+  const info = await getTransporter().sendMail({
     from: FROM_EMAIL,
     to,
     subject,
@@ -50,13 +59,9 @@ export async function sendProtokolEmail({
     })),
   });
 
-  if (error) {
-    throw new Error(`Resend error: ${error.message}`);
+  if (!info.messageId) {
+    throw new Error("SMTP: žádné messageId v odpovědi");
   }
 
-  if (!data?.id) {
-    throw new Error("Resend: žádné ID v odpovědi");
-  }
-
-  return data.id;
+  return info.messageId;
 }

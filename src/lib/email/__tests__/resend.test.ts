@@ -1,14 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock Resend before importing module — vi.hoisted runs before vi.mock factory
-const { mockSend } = vi.hoisted(() => {
-  const mockSend = vi.fn();
-  return { mockSend };
+// Mock nodemailer before importing module — vi.hoisted runs before vi.mock factory
+const { mockSendMail } = vi.hoisted(() => {
+  const mockSendMail = vi.fn();
+  return { mockSendMail };
 });
 
-vi.mock("resend", () => ({
-  Resend: class MockResend {
-    emails = { send: mockSend };
+vi.mock("nodemailer", () => ({
+  default: {
+    createTransport: () => ({
+      sendMail: mockSendMail,
+    }),
   },
 }));
 
@@ -16,15 +18,17 @@ import { sendProtokolEmail } from "../resend";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // Set env so getResend() doesn't throw before reaching the mocked Resend class
-  process.env.RESEND_API_KEY = "re_test_key";
+  // Set env so getTransporter() doesn't throw before reaching the mocked transporter
+  process.env.SMTP_HOST = "wes1-smtp.wedos.net";
+  process.env.SMTP_PORT = "465";
+  process.env.SMTP_USER = "info@deraplus.cz";
+  process.env.SMTP_PASS = "test_password";
 });
 
 describe("sendProtokolEmail", () => {
-  it("sends email and returns resend ID on success", async () => {
-    mockSend.mockResolvedValueOnce({
-      data: { id: "resend_123" },
-      error: null,
+  it("sends email and returns messageId on success", async () => {
+    mockSendMail.mockResolvedValueOnce({
+      messageId: "<test-123@wes1-smtp.wedos.net>",
     });
 
     const result = await sendProtokolEmail({
@@ -36,8 +40,8 @@ describe("sendProtokolEmail", () => {
       ],
     });
 
-    expect(result).toBe("resend_123");
-    expect(mockSend).toHaveBeenCalledWith({
+    expect(result).toBe("<test-123@wes1-smtp.wedos.net>");
+    expect(mockSendMail).toHaveBeenCalledWith({
       from: "Deraplus <info@deraplus.cz>",
       to: "klient@example.com",
       subject: "Protokol P-TST-001",
@@ -48,11 +52,8 @@ describe("sendProtokolEmail", () => {
     });
   });
 
-  it("throws on Resend API error", async () => {
-    mockSend.mockResolvedValueOnce({
-      data: null,
-      error: { message: "Invalid API key" },
-    });
+  it("throws on SMTP transport error", async () => {
+    mockSendMail.mockRejectedValueOnce(new Error("Connection refused"));
 
     await expect(
       sendProtokolEmail({
@@ -61,13 +62,12 @@ describe("sendProtokolEmail", () => {
         html: "<p>Test</p>",
         attachments: [],
       }),
-    ).rejects.toThrow("Resend error: Invalid API key");
+    ).rejects.toThrow("Connection refused");
   });
 
-  it("throws when no ID returned", async () => {
-    mockSend.mockResolvedValueOnce({
-      data: {},
-      error: null,
+  it("throws when no messageId returned", async () => {
+    mockSendMail.mockResolvedValueOnce({
+      messageId: "",
     });
 
     await expect(
@@ -77,13 +77,12 @@ describe("sendProtokolEmail", () => {
         html: "<p>Test</p>",
         attachments: [],
       }),
-    ).rejects.toThrow("Resend: žádné ID v odpovědi");
+    ).rejects.toThrow("SMTP: žádné messageId v odpovědi");
   });
 
   it("sends multiple attachments", async () => {
-    mockSend.mockResolvedValueOnce({
-      data: { id: "resend_456" },
-      error: null,
+    mockSendMail.mockResolvedValueOnce({
+      messageId: "<test-456@wes1-smtp.wedos.net>",
     });
 
     const attachments = [
@@ -99,7 +98,7 @@ describe("sendProtokolEmail", () => {
       attachments,
     });
 
-    expect(mockSend).toHaveBeenCalledWith(
+    expect(mockSendMail).toHaveBeenCalledWith(
       expect.objectContaining({
         attachments: expect.arrayContaining([
           expect.objectContaining({ filename: "protokol.pdf" }),
@@ -111,9 +110,8 @@ describe("sendProtokolEmail", () => {
   });
 
   it("uses correct sender address", async () => {
-    mockSend.mockResolvedValueOnce({
-      data: { id: "id1" },
-      error: null,
+    mockSendMail.mockResolvedValueOnce({
+      messageId: "<id1@wes1-smtp.wedos.net>",
     });
 
     await sendProtokolEmail({
@@ -123,7 +121,7 @@ describe("sendProtokolEmail", () => {
       attachments: [],
     });
 
-    expect(mockSend).toHaveBeenCalledWith(
+    expect(mockSendMail).toHaveBeenCalledWith(
       expect.objectContaining({
         from: "Deraplus <info@deraplus.cz>",
       }),
@@ -135,9 +133,8 @@ describe("sendProtokolEmail", () => {
   // ==========================================================
 
   it("sends email with empty attachment array", async () => {
-    mockSend.mockResolvedValueOnce({
-      data: { id: "resend_empty_att" },
-      error: null,
+    mockSendMail.mockResolvedValueOnce({
+      messageId: "<empty-att@wes1-smtp.wedos.net>",
     });
 
     const result = await sendProtokolEmail({
@@ -147,8 +144,8 @@ describe("sendProtokolEmail", () => {
       attachments: [],
     });
 
-    expect(result).toBe("resend_empty_att");
-    expect(mockSend).toHaveBeenCalledWith(
+    expect(result).toBe("<empty-att@wes1-smtp.wedos.net>");
+    expect(mockSendMail).toHaveBeenCalledWith(
       expect.objectContaining({
         attachments: [],
       }),
@@ -160,9 +157,8 @@ describe("sendProtokolEmail", () => {
   // ==========================================================
 
   it("accepts large Buffer attachment (1MB+)", async () => {
-    mockSend.mockResolvedValueOnce({
-      data: { id: "resend_large" },
-      error: null,
+    mockSendMail.mockResolvedValueOnce({
+      messageId: "<large@wes1-smtp.wedos.net>",
     });
 
     const largeBuf = Buffer.alloc(1024 * 1024, 0x41); // 1MB of 'A'
@@ -173,16 +169,15 @@ describe("sendProtokolEmail", () => {
       attachments: [{ filename: "big.pdf", content: largeBuf }],
     });
 
-    expect(result).toBe("resend_large");
-    const calledAttachments = mockSend.mock.calls[0][0].attachments;
+    expect(result).toBe("<large@wes1-smtp.wedos.net>");
+    const calledAttachments = mockSendMail.mock.calls[0][0].attachments;
     expect(calledAttachments[0].content).toBe(largeBuf);
     expect(calledAttachments[0].content.length).toBe(1024 * 1024);
   });
 
-  it("passes Buffer instance directly to Resend", async () => {
-    mockSend.mockResolvedValueOnce({
-      data: { id: "resend_buf" },
-      error: null,
+  it("passes Buffer instance directly to Nodemailer", async () => {
+    mockSendMail.mockResolvedValueOnce({
+      messageId: "<buf@wes1-smtp.wedos.net>",
     });
 
     const buf = Buffer.from([0x25, 0x50, 0x44, 0x46]); // %PDF magic bytes
@@ -193,7 +188,7 @@ describe("sendProtokolEmail", () => {
       attachments: [{ filename: "doc.pdf", content: buf }],
     });
 
-    const sentAttachment = mockSend.mock.calls[0][0].attachments[0];
+    const sentAttachment = mockSendMail.mock.calls[0][0].attachments[0];
     expect(Buffer.isBuffer(sentAttachment.content)).toBe(true);
     expect(sentAttachment.content[0]).toBe(0x25);
   });
@@ -203,9 +198,8 @@ describe("sendProtokolEmail", () => {
   // ==========================================================
 
   it("sends email with special characters in subject", async () => {
-    mockSend.mockResolvedValueOnce({
-      data: { id: "resend_special" },
-      error: null,
+    mockSendMail.mockResolvedValueOnce({
+      messageId: "<special@wes1-smtp.wedos.net>",
     });
 
     const subject = 'Protokol P-ŽŘČ-001 — Deraplus "test" & <taggy>';
@@ -216,15 +210,14 @@ describe("sendProtokolEmail", () => {
       attachments: [],
     });
 
-    expect(mockSend).toHaveBeenCalledWith(
+    expect(mockSendMail).toHaveBeenCalledWith(
       expect.objectContaining({ subject }),
     );
   });
 
   it("sends email with Czech diacritics in subject", async () => {
-    mockSend.mockResolvedValueOnce({
-      data: { id: "resend_czech" },
-      error: null,
+    mockSendMail.mockResolvedValueOnce({
+      messageId: "<czech@wes1-smtp.wedos.net>",
     });
 
     const subject = "Protokol č. P-ABC-001 — ěščřžýáíéúůďťňó";
@@ -235,15 +228,14 @@ describe("sendProtokolEmail", () => {
       attachments: [],
     });
 
-    expect(mockSend).toHaveBeenCalledWith(
+    expect(mockSendMail).toHaveBeenCalledWith(
       expect.objectContaining({ subject }),
     );
   });
 
   it("sends email with em dash in subject", async () => {
-    mockSend.mockResolvedValueOnce({
-      data: { id: "resend_dash" },
-      error: null,
+    mockSendMail.mockResolvedValueOnce({
+      messageId: "<dash@wes1-smtp.wedos.net>",
     });
 
     const subject = "Protokol P-001 \u2014 Deraplus";
@@ -254,7 +246,7 @@ describe("sendProtokolEmail", () => {
       attachments: [],
     });
 
-    expect(mockSend).toHaveBeenCalledWith(
+    expect(mockSendMail).toHaveBeenCalledWith(
       expect.objectContaining({ subject }),
     );
   });
@@ -264,9 +256,8 @@ describe("sendProtokolEmail", () => {
   // ==========================================================
 
   it("sends email to address with unicode domain (IDN)", async () => {
-    mockSend.mockResolvedValueOnce({
-      data: { id: "resend_unicode" },
-      error: null,
+    mockSendMail.mockResolvedValueOnce({
+      messageId: "<unicode@wes1-smtp.wedos.net>",
     });
 
     const to = "user@p\u0159\u00EDklad.cz";
@@ -277,15 +268,14 @@ describe("sendProtokolEmail", () => {
       attachments: [],
     });
 
-    expect(mockSend).toHaveBeenCalledWith(
+    expect(mockSendMail).toHaveBeenCalledWith(
       expect.objectContaining({ to }),
     );
   });
 
   it("sends email to address with plus addressing", async () => {
-    mockSend.mockResolvedValueOnce({
-      data: { id: "resend_plus" },
-      error: null,
+    mockSendMail.mockResolvedValueOnce({
+      messageId: "<plus@wes1-smtp.wedos.net>",
     });
 
     const to = "klient+protokol@example.com";
@@ -296,20 +286,19 @@ describe("sendProtokolEmail", () => {
       attachments: [],
     });
 
-    expect(mockSend).toHaveBeenCalledWith(
+    expect(mockSendMail).toHaveBeenCalledWith(
       expect.objectContaining({ to }),
     );
   });
 
   // ==========================================================
-  // Error message variations
+  // Error variations
   // ==========================================================
 
-  it("includes Resend error message in thrown error", async () => {
-    mockSend.mockResolvedValueOnce({
-      data: null,
-      error: { message: "Rate limit exceeded" },
-    });
+  it("propagates SMTP authentication error", async () => {
+    mockSendMail.mockRejectedValueOnce(
+      new Error("Invalid login: 535 Authentication failed"),
+    );
 
     await expect(
       sendProtokolEmail({
@@ -318,13 +307,12 @@ describe("sendProtokolEmail", () => {
         html: "<p>Test</p>",
         attachments: [],
       }),
-    ).rejects.toThrow("Resend error: Rate limit exceeded");
+    ).rejects.toThrow("Invalid login: 535 Authentication failed");
   });
 
-  it("throws specific message when data exists but id is null", async () => {
-    mockSend.mockResolvedValueOnce({
-      data: { id: null },
-      error: null,
+  it("throws when messageId is undefined", async () => {
+    mockSendMail.mockResolvedValueOnce({
+      messageId: undefined,
     });
 
     await expect(
@@ -334,16 +322,12 @@ describe("sendProtokolEmail", () => {
         html: "<p>Test</p>",
         attachments: [],
       }),
-    ).rejects.toThrow("Resend: žádné ID v odpovědi");
+    ).rejects.toThrow("SMTP: žádné messageId v odpovědi");
   });
 
-  it("throws specific message when data is null (no error either)", async () => {
-    mockSend.mockResolvedValueOnce({
-      data: null,
-      error: null,
-    });
+  it("throws when response has no messageId property", async () => {
+    mockSendMail.mockResolvedValueOnce({});
 
-    // data is null, error is null → data?.id is undefined → throws
     await expect(
       sendProtokolEmail({
         to: "klient@example.com",
@@ -351,6 +335,6 @@ describe("sendProtokolEmail", () => {
         html: "<p>Test</p>",
         attachments: [],
       }),
-    ).rejects.toThrow("Resend: žádné ID v odpovědi");
+    ).rejects.toThrow("SMTP: žádné messageId v odpovědi");
   });
 });

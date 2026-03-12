@@ -21,7 +21,7 @@ Po implementaci vždy:
 
 ---
 
-## Aktuální sprint: SPRINT 29
+## Aktuální sprint: SPRINT 31
 
 ---
 
@@ -458,17 +458,22 @@ Po implementaci vždy:
 
 ---
 
-## Sprint 30 — Bonusový systém
+## Sprint 30 — Bonusový systém ✅
 **Cíl:** Prémie pro techniky a adminy
 
-- [ ] DB: `bonusy` (uzivatel_id, typ: zakázka/opakovaná_zakázka/fixní, zakazka_id nullable, castka, obdobi_mesic, stav: pending/proplaceno, created_at)
-- [ ] Automatický bonus technikovi za dokončenou zakázku (default 100 Kč, nastavitelné)
-- [ ] Bonus za domluvenou opakovanou zakázku (pokud klient zaplatí)
-- [ ] Admin fixní odměna (super_admin nastavuje)
-- [ ] UI technik: "Moje prémie" (seznam za období, celková suma)
-- [ ] UI admin: "Moje odměny"
-- [ ] Super_admin: nastavení sazeb bonusů
-- [ ] **Kontrola:** `npx tsc --noEmit` + `npx vitest run` + `npm run build` + mobile audit + wiring check
+- [x] DB: `bonusy` tabulka + `nastaveni_bonusu` (key-value sazby) + enums typ_bonusu/stav_bonusu + RLS + seed
+- [x] TypeScript typy v database.types.ts (bonusy + nastaveni_bonusu + enums)
+- [x] Queries `bonusy.ts`: getBonusyForUser, getBonusySummary, getAllBonusy, createBonus, markBonusyProplaceno, checkBonusExists, getNastaveniBonusu, updateNastaveniBonusu, getBonusSazba, createBonusZaZakazku, createBonusZaOpakovanou
+- [x] Auth guard `requireSuperAdmin.ts`
+- [x] Automatický bonus technikovi za dokončenou zakázku (fire-and-forget v updateZasahStatusTechnikAction)
+- [x] Bonus za domluvenou opakovanou zakázku (fire-and-forget v createDalsiTerminAction)
+- [x] Admin fixní odměna (super_admin generuje přes createFixniBonusyAction)
+- [x] UI: `/premie` — technik vidí své, admin vidí své, super_admin vidí všech + batch proplacení
+- [x] UI: Dashboard widgety MojePremieWidget (technik + admin) s reálnými daty
+- [x] UI: `/nastaveni/bonusy` — super_admin nastavení sazeb (3 pole)
+- [x] Navigace: vice/page.tsx — linky "Moje prémie" (technik), "Moje odměny" / "Přehled bonusů" (admin/super_admin)
+- [x] 26 nových testů (queries unit, bonus integration, nastavení actions)
+- [x] **Kontrola:** `npx tsc --noEmit` ✅ + `npx vitest run` (1016 testů) ✅ + `npm run build` ✅
 
 ---
 

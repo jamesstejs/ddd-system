@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronRight, Calculator, Coins } from "lucide-react";
+import { ChevronRight, Calculator, Coins, Trophy } from "lucide-react";
 
 export default function NastaveniPage() {
   const sections = [
@@ -15,6 +15,12 @@ export default function NastaveniPage() {
       icon: Coins,
       title: "Ceník",
       description: "Sazby, postřiky, gely, deratizace, dezinfekce",
+    },
+    {
+      href: "/nastaveni/bonusy",
+      icon: Trophy,
+      title: "Bonusy a prémie",
+      description: "Sazby bonusů za zakázky a fixní odměny",
     },
   ];
 

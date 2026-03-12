@@ -27,6 +27,7 @@ import {
 import { getProtokolyByStatus } from "@/lib/supabase/queries/protokoly";
 import { sumNeuhrazeneFaktury } from "@/lib/supabase/queries/faktury";
 import { formatCasCz, formatDatumCzLong } from "@/lib/utils/dostupnostUtils";
+import { getBonusySummary, getCurrentMonthStart } from "@/lib/supabase/queries/bonusy";
 
 /** Format YYYY-MM-DD → "9. 3." (short Czech date) */
 function formatDatumShort(datum: string): string {
@@ -137,10 +138,69 @@ async function NeuhrazeneFakturyWidget({
   );
 }
 
-async function AdminDashboard({
+async function MojePremieWidget({
   supabase,
+  userId,
 }: {
   supabase: Awaited<ReturnType<typeof createClient>>;
+  userId: string;
+}) {
+  const mesic = getCurrentMonthStart();
+  let summary = { pending: 0, proplaceno: 0, celkem: 0, pocet: 0 };
+  try {
+    summary = await getBonusySummary(supabase, userId, mesic);
+  } catch {
+    // fallback
+  }
+
+  const formattedCelkem = new Intl.NumberFormat("cs-CZ", {
+    style: "currency",
+    currency: "CZK",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(summary.celkem);
+
+  const formattedPending = new Intl.NumberFormat("cs-CZ", {
+    style: "currency",
+    currency: "CZK",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(summary.pending);
+
+  return (
+    <Link href="/premie" className="contents">
+      <Card className="cursor-pointer transition-colors hover:bg-muted/50 active:bg-muted/70">
+        <CardHeader>
+          <CardTitle className="text-base">Moje prémie</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-2xl font-bold">{formattedCelkem}</p>
+          {summary.pocet > 0 ? (
+            <p className="text-sm text-muted-foreground">
+              {summary.pocet} {summary.pocet === 1 ? "bonus" : summary.pocet < 5 ? "bonusy" : "bonusů"}
+              {summary.pending > 0 && (
+                <span className="text-amber-600 ml-1">
+                  ({formattedPending} k proplacení)
+                </span>
+              )}
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Tento měsíc zatím žádné
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
+
+async function AdminDashboard({
+  supabase,
+  userId,
+}: {
+  supabase: Awaited<ReturnType<typeof createClient>>;
+  userId: string;
 }) {
   // Technici bez směn — reálná data
   const today = new Date();
@@ -245,6 +305,7 @@ async function AdminDashboard({
         </CardContent>
       </Card>
       <NeuhrazeneFakturyWidget supabase={supabase} />
+      <MojePremieWidget supabase={supabase} userId={userId} />
     </div>
   );
 }
@@ -404,17 +465,7 @@ async function TechnikDashboard({
           </CardContent>
         </Card>
       </Link>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Moje prémie</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-2xl font-bold">0 Kč</p>
-          <p className="text-sm text-muted-foreground">
-            Bude implementováno ve sprintu 30
-          </p>
-        </CardContent>
-      </Card>
+      <MojePremieWidget supabase={supabase} userId={userId} />
     </div>
   );
 }
@@ -466,7 +517,7 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-4">
       {(role === "admin" || role === "super_admin") && (
-        <AdminDashboard supabase={supabase} />
+        <AdminDashboard supabase={supabase} userId={user.id} />
       )}
       {role === "technik" && (
         <TechnikDashboard supabase={supabase} userId={user.id} />

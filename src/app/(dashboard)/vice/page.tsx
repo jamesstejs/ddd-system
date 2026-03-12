@@ -31,6 +31,7 @@ export default async function VicePage() {
   const isAdmin =
     profile.aktivni_role === "admin" ||
     profile.aktivni_role === "super_admin";
+  const isSuperAdmin = profile.aktivni_role === "super_admin";
   const isTechnik = profile.aktivni_role === "technik";
 
   return (
@@ -79,6 +80,12 @@ export default async function VicePage() {
             >
               Moje dostupnost
             </Link>
+            <Link
+              href="/premie"
+              className="flex min-h-[44px] items-center text-sm font-medium underline-offset-4 hover:underline active:underline focus-visible:underline"
+            >
+              Moje prémie
+            </Link>
           </CardContent>
         </Card>
       )}
@@ -86,6 +93,12 @@ export default async function VicePage() {
       {isAdmin && (
         <Card>
           <CardContent className="space-y-1 pt-6">
+            <Link
+              href="/premie"
+              className="flex min-h-[44px] items-center text-sm font-medium underline-offset-4 hover:underline active:underline focus-visible:underline"
+            >
+              {isSuperAdmin ? "Přehled bonusů" : "Moje odměny"}
+            </Link>
             <Link
               href="/protokoly"
               className="flex min-h-[44px] items-center text-sm font-medium underline-offset-4 hover:underline active:underline focus-visible:underline"

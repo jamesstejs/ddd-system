@@ -12,6 +12,10 @@ import { createPripominka } from "@/lib/supabase/queries/pripominky";
 import { TECHNIK_STATUS_TRANSITIONS } from "@/lib/utils/zasahUtils";
 import type { Database } from "@/lib/supabase/database.types";
 import { sendZasahPredEmail } from "@/lib/email/sendZasahPredEmail";
+import {
+  createBonusZaZakazku,
+  createBonusZaOpakovanou,
+} from "@/lib/supabase/queries/bonusy";
 
 const REVALIDATE_PATH = "/kalendar";
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
@@ -74,7 +78,7 @@ export async function updateZasahStatusTechnikAction(
   // Ověření vlastnictví: načíst zásah, zkontrolovat technik_id === user.id
   const { data: zasah } = await supabase
     .from("zasahy")
-    .select("technik_id, status")
+    .select("technik_id, status, zakazka_id")
     .eq("id", id)
     .is("deleted_at", null)
     .single();
@@ -93,6 +97,13 @@ export async function updateZasahStatusTechnikAction(
 
   const { error } = await updateZasah(supabase, id, { status: newStatus });
   if (error) throw new Error(error.message);
+
+  // Sprint 30: Auto-bonus za dokončenou zakázku (fire-and-forget)
+  if (newStatus === "hotovo" && zasah.zakazka_id) {
+    createBonusZaZakazku(supabase, user.id, zasah.zakazka_id, id).catch(
+      () => {},
+    );
+  }
 
   revalidatePath(REVALIDATE_PATH);
   revalidatePath("/");
@@ -176,6 +187,14 @@ export async function createDalsiTerminAction(input: {
     sendZasahPredEmail(supabase, novyZasah.id).catch(() => {
       // Email failure should not block zasah creation
     });
+
+    // Sprint 30: Auto-bonus za domluvenou opakovanou zakázku (fire-and-forget)
+    createBonusZaOpakovanou(
+      supabase,
+      user.id,
+      input.zakazkaId,
+      novyZasah.id,
+    ).catch(() => {});
   }
 
   revalidatePath(REVALIDATE_PATH);

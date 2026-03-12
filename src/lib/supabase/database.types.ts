@@ -14,6 +14,100 @@ export type Database = {
   }
   public: {
     Tables: {
+      bonusy: {
+        Row: {
+          id: string
+          uzivatel_id: string
+          typ: Database["public"]["Enums"]["typ_bonusu"]
+          zakazka_id: string | null
+          zasah_id: string | null
+          castka: number
+          obdobi_mesic: string
+          stav: Database["public"]["Enums"]["stav_bonusu"]
+          poznamka: string | null
+          created_at: string
+          updated_at: string
+          deleted_at: string | null
+        }
+        Insert: {
+          id?: string
+          uzivatel_id: string
+          typ: Database["public"]["Enums"]["typ_bonusu"]
+          zakazka_id?: string | null
+          zasah_id?: string | null
+          castka?: number
+          obdobi_mesic: string
+          stav?: Database["public"]["Enums"]["stav_bonusu"]
+          poznamka?: string | null
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Update: {
+          id?: string
+          uzivatel_id?: string
+          typ?: Database["public"]["Enums"]["typ_bonusu"]
+          zakazka_id?: string | null
+          zasah_id?: string | null
+          castka?: number
+          obdobi_mesic?: string
+          stav?: Database["public"]["Enums"]["stav_bonusu"]
+          poznamka?: string | null
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bonusy_uzivatel_id_fkey"
+            columns: ["uzivatel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bonusy_zakazka_id_fkey"
+            columns: ["zakazka_id"]
+            isOneToOne: false
+            referencedRelation: "zakazky"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bonusy_zasah_id_fkey"
+            columns: ["zasah_id"]
+            isOneToOne: false
+            referencedRelation: "zasahy"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nastaveni_bonusu: {
+        Row: {
+          id: string
+          klic: string
+          hodnota: number
+          popis: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          klic: string
+          hodnota: number
+          popis?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          klic?: string
+          hodnota?: number
+          popis?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_log: {
         Row: {
           id: string
@@ -1521,6 +1615,7 @@ export type Database = {
         | "voskovy_blok"
         | "mikrokapsule"
         | "jiny"
+      stav_bonusu: "pending" | "proplaceno"
       stav_emailu: "odeslano" | "doruceno" | "chyba" | "cekajici"
       stav_faktury: "vytvorena" | "odeslana" | "uhrazena" | "po_splatnosti" | "storno"
       typ_emailu: "protokol" | "faktura" | "terminy" | "pripominky"
@@ -1557,6 +1652,7 @@ export type Database = {
         | "ubytovna"
         | "vyrobni_hala"
         | "jiny"
+      typ_bonusu: "zakazka" | "opakovana_zakazka" | "fixni"
       typ_pripominky: "technik_nenastavil" | "klient_nevybral"
       typ_pripravku:
         | "rodenticid"

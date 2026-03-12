@@ -27,9 +27,8 @@ export default async function PremiePage() {
   if (!profile) redirect("/login");
 
   const role = profile.aktivni_role as AppRole;
-  const isSuperAdmin = (profile.role as AppRole[]).includes("super_admin");
-  const isAdmin =
-    isSuperAdmin || (profile.role as AppRole[]).includes("admin");
+  const isSuperAdmin = role === "super_admin";
+  const isAdmin = isSuperAdmin || role === "admin";
 
   const mesic = getCurrentMonthStart();
   const summary = await getBonusySummary(supabase, user.id, mesic);

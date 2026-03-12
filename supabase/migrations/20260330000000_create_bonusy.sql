@@ -40,11 +40,11 @@ INSERT INTO public.nastaveni_bonusu (klic, hodnota, popis) VALUES
 -- Triggers (moddatetime)
 CREATE TRIGGER set_updated_at_bonusy
   BEFORE UPDATE ON public.bonusy
-  FOR EACH ROW EXECUTE FUNCTION moddatetime(updated_at);
+  FOR EACH ROW EXECUTE FUNCTION extensions.moddatetime(updated_at);
 
 CREATE TRIGGER set_updated_at_nastaveni_bonusu
   BEFORE UPDATE ON public.nastaveni_bonusu
-  FOR EACH ROW EXECUTE FUNCTION moddatetime(updated_at);
+  FOR EACH ROW EXECUTE FUNCTION extensions.moddatetime(updated_at);
 
 -- Indexes
 CREATE INDEX idx_bonusy_uzivatel ON public.bonusy(uzivatel_id) WHERE deleted_at IS NULL;

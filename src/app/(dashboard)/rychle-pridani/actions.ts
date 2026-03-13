@@ -19,7 +19,10 @@ export async function searchKlientiAction(query: string) {
   if (!query || query.trim().length < 2) return [];
 
   const { data, error } = await searchKlienti(supabase, query.trim());
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("[searchKlientiAction] Supabase error:", error.message, error.details);
+    throw new Error(error.message);
+  }
   return data || [];
 }
 

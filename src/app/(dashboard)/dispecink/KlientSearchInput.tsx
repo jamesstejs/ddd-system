@@ -50,7 +50,8 @@ export function KlientSearchInput({
         const data = await searchKlientiAction(query.trim());
         setResults(data as KlientResult[]);
         setShowDropdown(true);
-      } catch {
+      } catch (err) {
+        console.error("[KlientSearchInput] Search error:", err);
         setResults([]);
       } finally {
         setLoading(false);

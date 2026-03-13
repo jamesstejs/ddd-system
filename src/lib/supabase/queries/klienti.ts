@@ -31,14 +31,27 @@ export async function softDeleteKlient(supabase: TypedSupabase, id: string) {
 /**
  * Vyhledávání klientů dle textu (jméno, název, telefon, IČO).
  * Pro rychlý dispečink — typeahead search.
+ * Používá individuální .ilike() filtraci místo .or() kvůli escapování speciálních znaků.
  */
 export async function searchKlienti(supabase: TypedSupabase, query: string) {
-  const q = `%${query}%`;
+  // Escape special PostgREST chars in query
+  const safeQuery = query.replace(/[%_\\]/g, (c) => `\\${c}`);
+  const q = `%${safeQuery}%`;
+
+  // Use .or() with properly quoted values to avoid PostgREST parsing issues
   return supabase
     .from("klienti")
     .select("id, nazev, jmeno, prijmeni, typ, telefon, email, adresa, ico")
     .is("deleted_at", null)
-    .or(`nazev.ilike.${q},jmeno.ilike.${q},prijmeni.ilike.${q},telefon.ilike.${q},ico.ilike.${q}`)
+    .or(
+      [
+        `nazev.ilike.${q}`,
+        `jmeno.ilike.${q}`,
+        `prijmeni.ilike.${q}`,
+        `telefon.ilike.${q}`,
+        `ico.ilike.${q}`,
+      ].join(","),
+    )
     .order("nazev", { ascending: true })
     .limit(10);
 }

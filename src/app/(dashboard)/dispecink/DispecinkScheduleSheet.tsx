@@ -85,6 +85,7 @@ export function DispecinkScheduleSheet({
     "vnitrni_deratizace",
   ]);
   const [selectedSkudci, setSelectedSkudci] = useState<string[]>([]);
+  const [plochaM2, setPlochaM2] = useState<number | null>(null);
   const [poznamka, setPoznamka] = useState("");
   const [showNewKlient, setShowNewKlient] = useState(false);
   const [newKlient, setNewKlient] = useState({
@@ -114,6 +115,7 @@ export function DispecinkScheduleSheet({
       setJePrvniNavsteva(true);
       setTypyZasahu(["vnitrni_deratizace"]);
       setSelectedSkudci([]);
+      setPlochaM2(null);
       setPoznamka("");
       setShowNewKlient(false);
       setNewKlient({ jmeno: "", telefon: "", adresa: "" });
@@ -135,6 +137,7 @@ export function DispecinkScheduleSheet({
         setObjekty(data as ObjektOption[]);
         if (data.length === 1) {
           setSelectedObjektId(data[0].id);
+          if (data[0].plocha_m2) setPlochaM2(data[0].plocha_m2);
         }
       } catch {
         setObjekty([]);
@@ -148,7 +151,7 @@ export function DispecinkScheduleSheet({
       setCenaResult(null);
       return;
     }
-    const plocha = selectedObj?.plocha_m2 || 100;
+    const plocha = plochaM2 || selectedObj?.plocha_m2 || 100;
     const typObjektu = selectedObj?.typ_objektu || "gastro";
 
     const timer = setTimeout(async () => {
@@ -179,6 +182,7 @@ export function DispecinkScheduleSheet({
     datum,
     typZakazky,
     jePrvniNavsteva,
+    plochaM2,
     selectedObj?.plocha_m2,
     selectedObj?.typ_objektu,
   ]);
@@ -356,9 +360,13 @@ export function DispecinkScheduleSheet({
             <Label className="text-sm font-medium">Objekt</Label>
             <Select
               value={selectedObjektId || "__none__"}
-              onValueChange={(v) =>
-                setSelectedObjektId(v === "__none__" ? null : v)
-              }
+              onValueChange={(v) => {
+                const id = v === "__none__" ? null : v;
+                setSelectedObjektId(id);
+                const obj = objekty.find((o) => o.id === id);
+                if (obj?.plocha_m2) setPlochaM2(obj.plocha_m2);
+                else setPlochaM2(null);
+              }}
             >
               <SelectTrigger className="min-h-[44px] text-base">
                 <SelectValue placeholder="Vyberte objekt" />
@@ -386,6 +394,26 @@ export function DispecinkScheduleSheet({
             )}
           </div>
         )}
+
+        {/* Plocha m² — editovatelná, předvyplněná z objektu */}
+        <div className="space-y-1.5">
+          <Label className="text-sm font-medium">Plocha (m²)</Label>
+          <Input
+            type="number"
+            min={1}
+            placeholder="např. 100"
+            value={plochaM2 ?? ""}
+            onChange={(e) =>
+              setPlochaM2(e.target.value ? Number(e.target.value) : null)
+            }
+            className="min-h-[44px] text-base"
+          />
+          {selectedObj?.plocha_m2 && plochaM2 !== selectedObj.plocha_m2 && (
+            <p className="text-xs text-muted-foreground">
+              Objekt má nastavenou plochu {selectedObj.plocha_m2} m²
+            </p>
+          )}
+        </div>
 
         {/* Typ zakázky — jednorázová / smluvní */}
         <div className="space-y-1.5">

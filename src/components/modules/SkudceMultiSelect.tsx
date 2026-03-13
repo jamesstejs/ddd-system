@@ -108,8 +108,14 @@ export function SkudceMultiSelect({
         className="min-h-[44px] text-base"
       />
 
-      {/* Dropdown */}
-      {isOpen && filtered.length > 0 && (
+      {/* Dropdown — show all when focused, filter when typing */}
+      {isOpen && skudciList.length === 0 && (
+        <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border bg-background p-3 text-center text-sm text-muted-foreground shadow-lg">
+          Žádní škůdci v databázi
+        </div>
+      )}
+
+      {isOpen && skudciList.length > 0 && filtered.length > 0 && (
         <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-y-auto rounded-lg border bg-background shadow-lg">
           {Object.entries(grouped).map(([typ, items]) => (
             <div key={typ}>
@@ -132,8 +138,7 @@ export function SkudceMultiSelect({
         </div>
       )}
 
-      {/* No results */}
-      {isOpen && query.length > 0 && filtered.length === 0 && (
+      {isOpen && skudciList.length > 0 && filtered.length === 0 && query.length > 0 && (
         <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border bg-background p-3 text-center text-sm text-muted-foreground shadow-lg">
           Žádný škůdce nenalezen
         </div>

@@ -7,6 +7,7 @@ import {
   getZasahyForTechniciRange,
 } from "@/lib/supabase/queries/zasahy";
 import { getDostupnostForTechniciRange } from "@/lib/supabase/queries/dostupnost";
+import { getPobockyForTechnici } from "@/lib/supabase/queries/technik_pobocky";
 import {
   getCenikObecne,
   getCenikPostriky,
@@ -65,19 +66,34 @@ export async function getDispecinkDataAction(
   );
   if (techniciError) throw new Error(techniciError.message);
 
-  const technikIds = (technici || []).map((t) => t.id);
+  const technikIds = (technici || []).map((t: { id: string }) => t.id);
 
-  // 2. Načti dostupnost a zásahy paralelně
-  const [dostupnostRes, zasahyRes] = await Promise.all([
+  // 2. Načti dostupnost, zásahy a pobočky paralelně
+  const [dostupnostRes, zasahyRes, pobockyMap] = await Promise.all([
     getDostupnostForTechniciRange(supabase, technikIds, datumOd, datumDo),
     getZasahyForTechniciRange(supabase, technikIds, datumOd, datumDo),
+    getPobockyForTechnici(supabase, technikIds),
   ]);
 
   if (dostupnostRes.error) throw new Error(dostupnostRes.error.message);
   if (zasahyRes.error) throw new Error(zasahyRes.error.message);
 
+  // Enrich technici with pobocky array and capacity fields
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const enrichedTechnici: DispecinkTechnik[] = (technici || []).map((t: any) => ({
+    id: t.id,
+    jmeno: t.jmeno,
+    prijmeni: t.prijmeni,
+    email: t.email,
+    koeficient_rychlosti: t.koeficient_rychlosti,
+    pobocka: t.pobocka,
+    pobocky: pobockyMap[t.id] || [],
+    pozadovane_hodiny_tyden: (t as Record<string, unknown>).pozadovane_hodiny_tyden as number | null,
+    pozadovane_dny_tyden: (t as Record<string, unknown>).pozadovane_dny_tyden as number | null,
+  }));
+
   return {
-    technici: (technici || []) as DispecinkTechnik[],
+    technici: enrichedTechnici,
     dostupnost: (dostupnostRes.data || []) as DispecinkDostupnost[],
     zasahy: (zasahyRes.data || []) as DispecinkZasah[],
     weekStart: datumOd,

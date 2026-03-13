@@ -50,7 +50,7 @@ export default async function DispecinkPage() {
     supabase,
     defaultPobocka,
   );
-  const technikIds = (technici || []).map((t) => t.id);
+  const technikIds = (technici || []).map((t: { id: string }) => t.id);
 
   const [dostupnostRes, zasahyRes, skudciRes] = await Promise.all([
     getDostupnostForTechniciRange(supabase, technikIds, weekStart, weekEnd),
@@ -65,7 +65,8 @@ export default async function DispecinkPage() {
   }));
 
   const initialData: DispecinkData = {
-    technici: (technici || []).map((t) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    technici: (technici || []).map((t: any) => ({
       id: t.id,
       jmeno: t.jmeno,
       prijmeni: t.prijmeni,

@@ -235,18 +235,41 @@ export async function getZasahyForDate(
 }
 
 /**
- * Get technici filtered by pobocka (region).
- * Used for dispatch view to show technicians in a specific region.
+ * Get technici filtered by pobocka (region) — via junction table technik_pobocky.
+ * A technik can be assigned to multiple regions and will appear in all of them.
  */
 export async function getTechniciByPobocka(
   supabase: TypedSupabase,
   pobocka: string,
 ) {
+  // 1. Get technik IDs from junction table
+  const { data: junctionRows, error: jErr } = await supabase
+    .from("technik_pobocky")
+    .select("technik_id")
+    .eq("pobocka", pobocka)
+    .is("deleted_at", null);
+
+  if (jErr) return { data: null, error: jErr };
+  if (!junctionRows || junctionRows.length === 0) {
+    // Return same shape as a successful Supabase query with no results
+    return supabase
+      .from("profiles")
+      .select(
+        "id, jmeno, prijmeni, email, koeficient_rychlosti, role, pobocka, pozadovane_hodiny_tyden, pozadovane_dny_tyden",
+      )
+      .eq("id", "00000000-0000-0000-0000-000000000000"); // no match
+  }
+
+  const technikIds = [...new Set(junctionRows.map((r: { technik_id: string }) => r.technik_id))];
+
+  // 2. Fetch profiles
   return supabase
     .from("profiles")
-    .select("id, jmeno, prijmeni, email, koeficient_rychlosti, role, pobocka")
+    .select(
+      "id, jmeno, prijmeni, email, koeficient_rychlosti, role, pobocka, pozadovane_hodiny_tyden, pozadovane_dny_tyden",
+    )
+    .in("id", technikIds)
     .contains("role", ["technik"])
-    .eq("pobocka", pobocka)
     .is("deleted_at", null)
     .order("prijmeni", { ascending: true });
 }

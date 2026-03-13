@@ -868,6 +868,8 @@ export type Database = {
           klient_id: string | null
           koeficient_rychlosti: number
           pobocka: string | null
+          pozadovane_hodiny_tyden: number | null
+          pozadovane_dny_tyden: number | null
           prijmeni: string
           role: Database["public"]["Enums"]["app_role"][]
           telefon: string | null
@@ -883,6 +885,8 @@ export type Database = {
           klient_id?: string | null
           koeficient_rychlosti?: number
           pobocka?: string | null
+          pozadovane_hodiny_tyden?: number | null
+          pozadovane_dny_tyden?: number | null
           prijmeni?: string
           role?: Database["public"]["Enums"]["app_role"][]
           telefon?: string | null
@@ -898,12 +902,49 @@ export type Database = {
           klient_id?: string | null
           koeficient_rychlosti?: number
           pobocka?: string | null
+          pozadovane_hodiny_tyden?: number | null
+          pozadovane_dny_tyden?: number | null
           prijmeni?: string
           role?: Database["public"]["Enums"]["app_role"][]
           telefon?: string | null
           updated_at?: string
         }
         Relationships: []
+      }
+      technik_pobocky: {
+        Row: {
+          id: string
+          technik_id: string
+          pobocka: string
+          created_at: string
+          updated_at: string
+          deleted_at: string | null
+        }
+        Insert: {
+          id?: string
+          technik_id: string
+          pobocka: string
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Update: {
+          id?: string
+          technik_id?: string
+          pobocka?: string
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "technik_pobocky_technik_id_fkey"
+            columns: ["technik_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       protokol_deratizacni_body: {
         Row: {

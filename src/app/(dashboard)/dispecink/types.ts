@@ -5,6 +5,9 @@ export type DispecinkTechnik = {
   email: string;
   koeficient_rychlosti: number;
   pobocka: string | null;
+  pobocky?: string[];
+  pozadovane_hodiny_tyden?: number | null;
+  pozadovane_dny_tyden?: number | null;
 };
 
 export type DispecinkDostupnost = {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { POBOCKA_LABELS } from "@/types/pobocky";
 import type {
   DispecinkTechnik,
   DispecinkDostupnost,
@@ -212,6 +213,29 @@ export function TechnikWeekGrid({
                     <span className="text-red-500">plno</span>
                   )}
                 </div>
+                {/* Capacity bar */}
+                {t.pozadovane_hodiny_tyden != null && t.pozadovane_hodiny_tyden > 0 && (
+                  <CapacityBar
+                    technikId={t.id}
+                    days={days}
+                    dostupnost={dostupnost}
+                    reqHours={t.pozadovane_hodiny_tyden}
+                    reqDays={t.pozadovane_dny_tyden ?? undefined}
+                  />
+                )}
+                {/* Multi-region badges */}
+                {t.pobocky && t.pobocky.length > 1 && (
+                  <div className="mt-0.5 flex flex-wrap gap-0.5">
+                    {t.pobocky.map((p) => (
+                      <span
+                        key={p}
+                        className="rounded bg-gray-100 px-1 text-[8px] text-gray-500"
+                      >
+                        {(POBOCKA_LABELS as Record<string, string>)[p]?.slice(0, 3) || p.slice(0, 3)}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Day cells */}
@@ -310,6 +334,65 @@ function DayCell({
           {formatTime(slot.casOd)}-{formatTime(slot.casDo)}
         </button>
       ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------
+// Capacity bar — shows weekly hours vs requirement
+// ---------------------------------------------------------------
+
+function CapacityBar({
+  technikId,
+  days,
+  dostupnost,
+  reqHours,
+  reqDays,
+}: {
+  technikId: string;
+  days: string[];
+  dostupnost: DispecinkDostupnost[];
+  reqHours: number;
+  reqDays?: number;
+}) {
+  // Calculate total dostupnost hours this week
+  const totalMinutes = dostupnost
+    .filter((d) => d.technik_id === technikId && days.includes(d.datum))
+    .reduce((sum, d) => {
+      const [hOd, mOd] = d.cas_od.split(":").map(Number);
+      const [hDo, mDo] = d.cas_do.split(":").map(Number);
+      return sum + (hDo + mDo / 60 - (hOd + mOd / 60)) * 60;
+    }, 0);
+  const totalHours = totalMinutes / 60;
+
+  const daysWithDostupnost = new Set(
+    dostupnost
+      .filter((d) => d.technik_id === technikId && days.includes(d.datum))
+      .map((d) => d.datum),
+  ).size;
+
+  const pct = Math.min(100, (totalHours / reqHours) * 100);
+  const color =
+    pct >= 100 ? "bg-green-500" : pct >= 50 ? "bg-amber-500" : "bg-red-500";
+
+  return (
+    <div className="mt-0.5">
+      <div className="flex items-center gap-1 text-[9px]">
+        <span className={pct >= 100 ? "text-green-600" : pct >= 50 ? "text-amber-600" : "text-red-600"}>
+          {totalHours.toFixed(0)}/{reqHours}h
+        </span>
+        {reqDays != null && (
+          <span className="text-muted-foreground">
+            {daysWithDostupnost}/{reqDays}d
+          </span>
+        )}
+      </div>
+      <div className="h-1 w-full rounded-full bg-gray-200 overflow-hidden">
+        <div
+          className={`h-full rounded-full ${color}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
     </div>
   );
 }

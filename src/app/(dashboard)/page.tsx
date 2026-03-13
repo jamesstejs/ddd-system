@@ -29,6 +29,8 @@ import { sumNeuhrazeneFaktury } from "@/lib/supabase/queries/faktury";
 import { formatCasCz, formatDatumCzLong } from "@/lib/utils/dostupnostUtils";
 import { getBonusySummary, getAllBonusySummary, getCurrentMonthStart } from "@/lib/supabase/queries/bonusy";
 import { getOverdueZasahy } from "@/lib/supabase/queries/zasahy";
+import DispatcherQueueWidget from "@/components/modules/DispatcherQueueWidget";
+import QuickAddFAB from "@/components/modules/QuickAddFAB";
 
 /** Format YYYY-MM-DD → "9. 3." (short Czech date) */
 function formatDatumShort(datum: string): string {
@@ -387,6 +389,11 @@ async function AdminDashboard({
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">
+      {/* Dispatcher queue — full width */}
+      <div className="sm:col-span-2">
+        <DispatcherQueueWidget />
+      </div>
+
       <ProtokolyKeSchvaleniWidget supabase={supabase} />
       <Card>
         <CardHeader>
@@ -732,7 +739,10 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-4">
       {(role === "admin" || role === "super_admin") && (
-        <AdminDashboard supabase={supabase} userId={user.id} isSuperAdmin={role === "super_admin"} />
+        <>
+          <AdminDashboard supabase={supabase} userId={user.id} isSuperAdmin={role === "super_admin"} />
+          <QuickAddFAB />
+        </>
       )}
       {role === "technik" && (
         <TechnikDashboard supabase={supabase} userId={user.id} />

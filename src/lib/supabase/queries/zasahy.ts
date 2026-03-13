@@ -217,6 +217,23 @@ export async function getTechnici(supabase: TypedSupabase) {
  * Get overdue zasahy — past date, not completed (status != hotovo, zruseno).
  * Used for admin dashboard "Věci ve zpoždění" widget.
  */
+/**
+ * Get all zasahy for a specific date (all technicians).
+ * Used for capacity calculation in dispatcher view.
+ */
+export async function getZasahyForDate(
+  supabase: TypedSupabase,
+  datum: string,
+) {
+  return supabase
+    .from("zasahy")
+    .select("id, technik_id, cas_od, cas_do, status")
+    .eq("datum", datum)
+    .is("deleted_at", null)
+    .not("status", "eq", "zruseno")
+    .order("cas_od", { ascending: true });
+}
+
 export async function getOverdueZasahy(
   supabase: TypedSupabase,
   beforeDate: string,

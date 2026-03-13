@@ -116,3 +116,40 @@ export async function softDeleteZakazka(
     .update({ deleted_at: new Date().toISOString() })
     .eq("id", id);
 }
+
+/**
+ * Vrátí zakázky bez přiřazeného zásahu (fronta k naplánování).
+ * Zakázky se statusem nova/aktivni, které nemají žádný aktivní zásah.
+ */
+export async function getUnscheduledZakazky(supabase: TypedSupabase) {
+  // Získáme všechny zakazka_id co mají aktivní zásah
+  const { data: zasahyData } = await supabase
+    .from("zasahy")
+    .select("zakazka_id")
+    .not("status", "eq", "zruseno")
+    .is("deleted_at", null);
+
+  const scheduledIds = [...new Set((zasahyData ?? []).map((z) => z.zakazka_id))];
+
+  let query = supabase
+    .from("zakazky")
+    .select(`
+      *,
+      objekty!inner (
+        id, nazev, adresa, plocha_m2, typ_objektu, klient_id,
+        klienti!inner (
+          id, nazev, jmeno, prijmeni, typ, telefon, email
+        )
+      )
+    `)
+    .is("deleted_at", null)
+    .in("status", ["nova", "aktivni"])
+    .order("created_at", { ascending: true });
+
+  // Filtruj zakázky které už mají zásah
+  if (scheduledIds.length > 0) {
+    query = query.not("id", "in", `(${scheduledIds.join(",")})`);
+  }
+
+  return query;
+}

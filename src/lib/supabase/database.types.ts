@@ -1438,6 +1438,48 @@ export type Database = {
           },
         ]
       }
+      zakazka_sablony: {
+        Row: {
+          id: string
+          nazev: string
+          typ: string
+          typy_zasahu: string[]
+          skudci: string[]
+          poznamka_template: string | null
+          poradi: number
+          aktivni: boolean
+          created_at: string
+          updated_at: string
+          deleted_at: string | null
+        }
+        Insert: {
+          id?: string
+          nazev: string
+          typ?: string
+          typy_zasahu?: string[]
+          skudci?: string[]
+          poznamka_template?: string | null
+          poradi?: number
+          aktivni?: boolean
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Update: {
+          id?: string
+          nazev?: string
+          typ?: string
+          typy_zasahu?: string[]
+          skudci?: string[]
+          poznamka_template?: string | null
+          poradi?: number
+          aktivni?: boolean
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Relationships: []
+      }
       zakazky: {
         Row: {
           cena_po_sleve: number | null

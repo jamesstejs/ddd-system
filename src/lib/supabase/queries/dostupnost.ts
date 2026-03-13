@@ -155,6 +155,22 @@ export async function getTechniciWithoutDostupnost(
  * Spočítá kolik dní má technik vyplněnou dostupnost v rozsahu.
  * Vrací počet unikátních datumů.
  */
+/**
+ * Vrátí dostupnost VŠECH techniků pro konkrétní den.
+ * Pro kapacitní pohled v rychlém dispečinku.
+ */
+export async function getAllDostupnostForDate(
+  supabase: TypedSupabase,
+  datum: string,
+) {
+  return supabase
+    .from("dostupnost")
+    .select("*, profiles!dostupnost_technik_id_fkey(id, jmeno, prijmeni)")
+    .eq("datum", datum)
+    .is("deleted_at", null)
+    .order("cas_od", { ascending: true });
+}
+
 export async function countDaysWithDostupnost(
   supabase: TypedSupabase,
   technikId: string,

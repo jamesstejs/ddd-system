@@ -5,6 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DeratBodSummary } from "./DeratBodSummary";
 import { DeratBodForm, type DeratBodFormData } from "./DeratBodForm";
+import { DeratInlineRow } from "./DeratInlineRow";
+import { StavSheet } from "./StavSheet";
+import { AddBodSheet } from "./AddBodSheet";
+import { useAutoSave } from "./useAutoSave";
 import {
   prumernyPozer,
   getNextCisloBodu,
@@ -48,6 +52,19 @@ type Props = {
   forceEditable?: boolean;
 };
 
+type ViewMode = "overview" | "inline";
+
+// ---------- Auto-save wrapper ----------
+
+async function saveDeratBodyWrapper(
+  protokolId: string,
+  body: DeratBodFormData[],
+  poznamka: string,
+) {
+  // We pass body as-is; the action handles create/update
+  await saveDeratBodyAction(protokolId, body, poznamka);
+}
+
 // ---------- Component ----------
 
 export function DeratFormView({
@@ -71,12 +88,31 @@ export function DeratFormView({
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // View mode: inline (field mode) vs overview (card list)
+  const isReadonly = forceEditable ? false : status !== "rozpracovany";
+  const [viewMode, setViewMode] = useState<ViewMode>(
+    isReadonly ? "overview" : "inline",
+  );
+
+  // StavSheet state
+  const [stavSheetIndex, setStavSheetIndex] = useState<number | null>(null);
+  // AddBodSheet state
+  const [addSheetOpen, setAddSheetOpen] = useState(false);
+
   // Tracked IDs for delete detection
   const [originalIds] = useState<Set<string>>(
     new Set(initialBody.filter((b) => b.id).map((b) => b.id!)),
   );
 
-  const isReadonly = forceEditable ? false : status !== "rozpracovany";
+  // Auto-save (only in inline mode when editable)
+  const autoSave = useAutoSave<DeratBodFormData>({
+    protokolId,
+    data: body,
+    poznamka,
+    originalIds,
+    saveFn: saveDeratBodyWrapper,
+    enabled: !isReadonly && viewMode === "inline",
+  });
 
   // Scroll to top when switching between edit/overview modes
   useEffect(() => {
@@ -99,7 +135,7 @@ export function DeratFormView({
   );
 
   const handleAddBod = useCallback(() => {
-    // Detect prefix from existing bods
+    // For overview mode: direct add (old behavior)
     let prefix = "";
     if (body.length > 0) {
       const match = body[0].cislo_bodu.match(/^([A-Za-z]+)/);
@@ -119,6 +155,13 @@ export function DeratFormView({
     setActiveIndex(body.length); // navigate to new bod
   }, [body]);
 
+  const handleAddBodFromSheet = useCallback(
+    (newBod: DeratBodFormData) => {
+      setBody((prev) => [...prev, newBod]);
+    },
+    [],
+  );
+
   const handleDeleteBod = useCallback(
     (index: number) => {
       setBody((prev) => prev.filter((_, i) => i !== index));
@@ -127,7 +170,7 @@ export function DeratFormView({
     [],
   );
 
-  // ---------- Save ----------
+  // ---------- Save (manual, for overview mode) ----------
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);
@@ -185,7 +228,7 @@ export function DeratFormView({
               : 100
     ];
 
-  // Dirty state — technik má neuložené změny
+  // Dirty state — technik má neuložené změny (for overview mode)
   const isDirty = (() => {
     if (body.length !== initialBody.length) return true;
     return body.some((b, i) => {
@@ -203,7 +246,7 @@ export function DeratFormView({
   })();
 
   // ================================================================
-  // EDIT MODE — single bod
+  // EDIT MODE — single bod (from overview mode tap)
   // ================================================================
 
   if (activeIndex !== null && activeIndex < body.length) {
@@ -233,28 +276,198 @@ export function DeratFormView({
   }
 
   // ================================================================
-  // OVERVIEW MODE
+  // AUTO-SAVE STATUS BAR
+  // ================================================================
+
+  const autoSaveStatusBar = viewMode === "inline" && !isReadonly && (
+    <div className="flex items-center justify-center gap-1.5 py-1">
+      {autoSave.status === "saved" && (
+        <span className="text-xs text-emerald-600 font-medium">{"\u2713"} Uloženo</span>
+      )}
+      {autoSave.status === "saving" && (
+        <span className="text-xs text-blue-600 font-medium animate-pulse">{"\u25CF"} Ukládám...</span>
+      )}
+      {autoSave.status === "unsaved" && (
+        <span className="text-xs text-amber-600 font-medium">{"\u25CB"} Neuložené změny</span>
+      )}
+      {autoSave.status === "error" && (
+        <span className="text-xs text-destructive font-medium">{"\u2717"} {autoSave.error || "Chyba"}</span>
+      )}
+    </div>
+  );
+
+  // ================================================================
+  // INLINE MODE (Terénní režim)
+  // ================================================================
+
+  if (viewMode === "inline") {
+    return (
+      <div className="space-y-3">
+        <div ref={topRef} />
+
+        {/* Mode toggle + avg požer */}
+        <div className="flex items-center justify-between gap-2">
+          {/* Avg požer */}
+          {body.length > 0 && (
+            <div className="flex items-center gap-1.5">
+              <Badge
+                className={`${avgPozerColor.bg} ${avgPozerColor.text} text-xs font-bold px-2 py-0.5`}
+              >
+                {avgPozer}%
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                ({body.length}{" "}
+                {body.length === 1 ? "bod" : body.length < 5 ? "body" : "bodů"})
+              </span>
+            </div>
+          )}
+
+          {/* Mode toggle */}
+          {!isReadonly && (
+            <div className="flex rounded-lg border bg-muted/30 p-0.5">
+              <button
+                type="button"
+                onClick={() => setViewMode("inline")}
+                className="rounded-md px-3 py-1 text-xs font-medium bg-white text-foreground shadow-sm"
+              >
+                Terénní
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("overview")}
+                className="rounded-md px-3 py-1 text-xs font-medium text-muted-foreground"
+              >
+                Přehled
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Auto-save status */}
+        {autoSaveStatusBar}
+
+        {/* Inline body list */}
+        <div className="space-y-1">
+          {body.length === 0 && (
+            <p className="py-4 text-center text-sm text-muted-foreground">
+              Žádné body. Přidejte první bod.
+            </p>
+          )}
+          {body.map((b, idx) => (
+            <DeratInlineRow
+              key={b.id || `new-${idx}`}
+              bod={b}
+              onChange={(updated) => handleBodChange(idx, updated)}
+              onSettingsTap={() => setStavSheetIndex(idx)}
+              readonly={isReadonly}
+            />
+          ))}
+        </div>
+
+        {/* Přidat bod */}
+        {!isReadonly && (
+          <Button
+            variant="outline"
+            className="min-h-[44px] w-full border-dashed"
+            onClick={() => setAddSheetOpen(true)}
+          >
+            + Přidat bod
+          </Button>
+        )}
+
+        {/* Auto-save error retry */}
+        {autoSave.status === "error" && (
+          <div className="space-y-2">
+            <div className="rounded-lg bg-destructive/10 p-3" role="alert">
+              <p className="text-sm text-destructive">{autoSave.error}</p>
+            </div>
+            <Button
+              variant="outline"
+              className="min-h-[44px] w-full"
+              onClick={() => autoSave.saveNow()}
+            >
+              Zkusit znovu uložit
+            </Button>
+          </div>
+        )}
+
+        {/* StavSheet */}
+        {stavSheetIndex !== null && stavSheetIndex < body.length && (
+          <StavSheet
+            open={true}
+            onOpenChange={(v) => {
+              if (!v) setStavSheetIndex(null);
+            }}
+            bod={body[stavSheetIndex]}
+            okruhy={okruhy}
+            pripravky={pripravky}
+            onChange={(updated) => handleBodChange(stavSheetIndex, updated)}
+            onDelete={() => {
+              handleDeleteBod(stavSheetIndex);
+              setStavSheetIndex(null);
+            }}
+          />
+        )}
+
+        {/* AddBodSheet */}
+        <AddBodSheet
+          open={addSheetOpen}
+          onOpenChange={setAddSheetOpen}
+          existingBody={body}
+          okruhy={okruhy}
+          pripravky={pripravky}
+          onAdd={handleAddBodFromSheet}
+        />
+      </div>
+    );
+  }
+
+  // ================================================================
+  // OVERVIEW MODE (Přehled)
   // ================================================================
 
   return (
     <div className="space-y-4">
       <div ref={topRef} />
 
-      {/* Průměrný požer */}
-      {body.length > 0 && (
-        <div className="flex items-center justify-center gap-2 rounded-lg bg-muted/30 p-3">
-          <span className="text-sm text-muted-foreground">Průměrný požer:</span>
-          <Badge
-            className={`${avgPozerColor.bg} ${avgPozerColor.text} text-sm font-bold px-3 py-0.5`}
-          >
-            {avgPozer}%
-          </Badge>
-          <span className="text-xs text-muted-foreground">
-            ({body.length}{" "}
-            {body.length === 1 ? "bod" : body.length < 5 ? "body" : "bodů"})
-          </span>
-        </div>
-      )}
+      {/* Mode toggle + avg požer */}
+      <div className="flex items-center justify-between gap-2">
+        {/* Průměrný požer */}
+        {body.length > 0 && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm text-muted-foreground">Průměrný požer:</span>
+            <Badge
+              className={`${avgPozerColor.bg} ${avgPozerColor.text} text-sm font-bold px-3 py-0.5`}
+            >
+              {avgPozer}%
+            </Badge>
+            <span className="text-xs text-muted-foreground">
+              ({body.length}{" "}
+              {body.length === 1 ? "bod" : body.length < 5 ? "body" : "bodů"})
+            </span>
+          </div>
+        )}
+
+        {/* Mode toggle */}
+        {!isReadonly && (
+          <div className="flex rounded-lg border bg-muted/30 p-0.5">
+            <button
+              type="button"
+              onClick={() => setViewMode("inline")}
+              className="rounded-md px-3 py-1 text-xs font-medium text-muted-foreground"
+            >
+              Terénní
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("overview")}
+              className="rounded-md px-3 py-1 text-xs font-medium bg-white text-foreground shadow-sm"
+            >
+              Přehled
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Body seznam */}
       <div className="space-y-1.5">
@@ -287,7 +500,7 @@ export function DeratFormView({
         </Button>
       )}
 
-      {/* Save section — messages + button */}
+      {/* Save section — messages + button (overview mode only) */}
       {!isReadonly && (
         <div className="space-y-2 pt-2">
           {/* Error */}

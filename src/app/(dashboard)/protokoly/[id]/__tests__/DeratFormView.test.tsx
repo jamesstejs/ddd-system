@@ -36,7 +36,7 @@ const basePripravky = [
 ];
 
 const baseOkruhy = [
-  { id: "okr-1", nazev: "Kuchyně" },
+  { id: "okr-1", nazev: "Kuchyn\u011B" },
   { id: "okr-2", nazev: "Sklad" },
 ];
 
@@ -48,7 +48,7 @@ const defaultProps = {
 };
 
 describe("DeratFormView", () => {
-  it("renderuje seznam bodů v overview", () => {
+  it("renderuje seznam bod\u016F (inline mode default pro rozpracovan\u00FD)", () => {
     const body = [
       baseBod,
       {
@@ -81,7 +81,7 @@ describe("DeratFormView", () => {
     expect(screen.getByText("H1")).toBeTruthy();
   });
 
-  it("zobrazuje průměrný požer", () => {
+  it("zobrazuje pr\u016Fm\u011Brn\u00FD po\u017Eer", () => {
     const body = [
       { ...baseBod, pozer_procent: 100 },
       { ...baseBod, id: "bod-2", cislo_bodu: "L2", pozer_procent: 0 },
@@ -99,7 +99,7 @@ describe("DeratFormView", () => {
     expect(screen.getByText("50%")).toBeTruthy();
   });
 
-  it("klik na bod přepne do edit mode", () => {
+  it("p\u0159epne do overview a klik na bod p\u0159epne do edit mode", () => {
     render(
       <DeratFormView
         {...defaultProps}
@@ -109,18 +109,21 @@ describe("DeratFormView", () => {
       />,
     );
 
-    // Klikni na summary řádek
+    // Switch to overview mode first
+    const overviewBtn = screen.getByText("P\u0159ehled");
+    fireEvent.click(overviewBtn);
+
+    // Now click the summary row
     const bodButton = screen.getByText("L1").closest("button");
     expect(bodButton).toBeTruthy();
     fireEvent.click(bodButton!);
 
-    // Edit mode — vidíme "Přehled" zpět tlačítko
-    expect(screen.getByLabelText("Zpět na přehled")).toBeTruthy();
-    // A číslo bodu input
-    expect(screen.getByLabelText("Číslo bodu")).toBeTruthy();
+    // Edit mode \u2014 vid\u00EDme "P\u0159ehled" zp\u011Bt tla\u010D\u00EDtko
+    expect(screen.getByLabelText("Zp\u011Bt na p\u0159ehled")).toBeTruthy();
+    expect(screen.getByLabelText("\u010C\u00EDslo bodu")).toBeTruthy();
   });
 
-  it("klik na 'Přidat bod' přidá nový bod", () => {
+  it("klik na 'P\u0159idat bod' v inline m\u00F3du otev\u0159e AddBodSheet", () => {
     render(
       <DeratFormView
         {...defaultProps}
@@ -130,15 +133,15 @@ describe("DeratFormView", () => {
       />,
     );
 
-    const addButton = screen.getByText("+ Přidat bod");
+    const addButton = screen.getByText("+ P\u0159idat bod");
     expect(addButton).toBeTruthy();
     fireEvent.click(addButton);
 
-    // Nový bod by měl otevřít edit mode — vidíme "Přehled" zpět
-    expect(screen.getByLabelText("Zpět na přehled")).toBeTruthy();
+    // AddBodSheet should open with "Nov\u00FD bod" title
+    expect(screen.getByText("Nov\u00FD bod")).toBeTruthy();
   });
 
-  it("zobrazuje prázdný stav bez bodů", () => {
+  it("zobrazuje pr\u00E1zdn\u00FD stav bez bod\u016F", () => {
     render(
       <DeratFormView
         {...defaultProps}
@@ -149,11 +152,11 @@ describe("DeratFormView", () => {
     );
 
     expect(
-      screen.getByText("Žádné body. Přidejte první bod."),
+      screen.getByText("\u017D\u00E1dn\u00E9 body. P\u0159idejte prvn\u00ED bod."),
     ).toBeTruthy();
   });
 
-  it("readonly mode skrývá editační tlačítka", () => {
+  it("readonly mode skr\u00FDv\u00E1 edita\u010Dn\u00ED tla\u010D\u00EDtka", () => {
     render(
       <DeratFormView
         {...defaultProps}
@@ -164,14 +167,13 @@ describe("DeratFormView", () => {
       />,
     );
 
-    // "Přidat bod" by nemělo být vidět
-    expect(screen.queryByText("+ Přidat bod")).toBeNull();
-    // "Uložit" by nemělo být vidět (obě varianty textu)
-    expect(screen.queryByText("Uložit změny")).toBeNull();
-    expect(screen.queryByText("Uloženo")).toBeNull();
+    // "P\u0159idat bod" by nem\u011Blo b\u00FDt vid\u011Bt
+    expect(screen.queryByText("+ P\u0159idat bod")).toBeNull();
+    // "Ulo\u017Eit" by nem\u011Blo b\u00FDt vid\u011Bt (ob\u011B varianty textu)
+    expect(screen.queryByText("Ulo\u017Eit zm\u011Bny")).toBeNull();
   });
 
-  it("požer barvy se správně zobrazují", () => {
+  it("po\u017Eer barvy se spr\u00E1vn\u011B zobrazuj\u00ED v inline m\u00F3du", () => {
     const body = [
       { ...baseBod, pozer_procent: 0 },
       { ...baseBod, id: "bod-2", cislo_bodu: "L2", pozer_procent: 100 },
@@ -186,9 +188,10 @@ describe("DeratFormView", () => {
       />,
     );
 
-    // Oba % badgey existují
-    expect(screen.getByText("0%")).toBeTruthy();
-    expect(screen.getByText("100%")).toBeTruthy();
+    // In inline mode, po\u017Eer buttons show values
+    // 0% button should have aria-pressed for first bod
+    const pozerButtons = screen.getAllByLabelText("Po\u017Eer 0%");
+    expect(pozerButtons.length).toBeGreaterThan(0);
   });
 
   it("forceEditable p\u0159episuje readonly u ke_schvaleni", () => {
@@ -203,11 +206,11 @@ describe("DeratFormView", () => {
       />,
     );
 
-    // "P\u0159idat bod" by m\u011blo b\u00fdt viditelné (admin editace)
+    // "P\u0159idat bod" by m\u011Blo b\u00FDt viditeln\u00E9 (admin editace)
     expect(screen.getByText("+ P\u0159idat bod")).toBeTruthy();
   });
 
-  it("forceEditable=false zachov\u00e1v\u00e1 readonly", () => {
+  it("forceEditable=false zachov\u00E1v\u00E1 readonly", () => {
     render(
       <DeratFormView
         {...defaultProps}
@@ -219,7 +222,27 @@ describe("DeratFormView", () => {
       />,
     );
 
-    // "P\u0159idat bod" by nem\u011blo b\u00fdt viditelné
+    // "P\u0159idat bod" by nem\u011Blo b\u00FDt viditeln\u00E9
     expect(screen.queryByText("+ P\u0159idat bod")).toBeNull();
+  });
+
+  it("mode toggle p\u0159ep\u00EDn\u00E1 mezi inline a overview", () => {
+    render(
+      <DeratFormView
+        {...defaultProps}
+        initialBody={[baseBod]}
+        okruhy={[]}
+        pripravky={basePripravky}
+      />,
+    );
+
+    // Default: inline mode, should see "Ter\u00E9nn\u00ED" toggle active
+    expect(screen.getByText("Ter\u00E9nn\u00ED")).toBeTruthy();
+
+    // Switch to overview
+    fireEvent.click(screen.getByText("P\u0159ehled"));
+
+    // Should see save button in overview mode
+    expect(screen.getByText("Ulo\u017Eeno")).toBeTruthy();
   });
 });

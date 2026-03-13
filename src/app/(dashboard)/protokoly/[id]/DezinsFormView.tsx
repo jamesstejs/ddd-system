@@ -4,6 +4,8 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { DezinsBodSummary } from "./DezinsBodSummary";
 import { DezinsBodForm, type DezinsBodFormData } from "./DezinsBodForm";
+import { DezinsInlineRow } from "./DezinsInlineRow";
+import { useAutoSave } from "./useAutoSave";
 import { getNextCisloBodu } from "@/lib/utils/protokolUtils";
 import { saveDezinsBodyAction } from "./protokolActions";
 import type { Database } from "@/lib/supabase/database.types";
@@ -36,6 +38,18 @@ type Props = {
   forceEditable?: boolean;
 };
 
+type ViewMode = "overview" | "inline";
+
+// ---------- Auto-save wrapper ----------
+
+async function saveDezinsBodyWrapper(
+  protokolId: string,
+  body: DezinsBodFormData[],
+  poznamka: string,
+) {
+  await saveDezinsBodyAction(protokolId, body, poznamka);
+}
+
 // ---------- Component ----------
 
 export function DezinsFormView({
@@ -59,12 +73,26 @@ export function DezinsFormView({
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // View mode
+  const isReadonly = forceEditable ? false : status !== "rozpracovany";
+  const [viewMode, setViewMode] = useState<ViewMode>(
+    isReadonly ? "overview" : "inline",
+  );
+
   // Tracked IDs for delete detection
   const [originalIds] = useState<Set<string>>(
     new Set(initialBody.filter((b) => b.id).map((b) => b.id!)),
   );
 
-  const isReadonly = forceEditable ? false : status !== "rozpracovany";
+  // Auto-save
+  const autoSave = useAutoSave<DezinsBodFormData>({
+    protokolId,
+    data: body,
+    poznamka,
+    originalIds,
+    saveFn: saveDezinsBodyWrapper,
+    enabled: !isReadonly && viewMode === "inline",
+  });
 
   // Scroll to top when switching between edit/overview modes
   useEffect(() => {
@@ -102,8 +130,10 @@ export function DezinsFormView({
     };
 
     setBody((prev) => [...prev, newBod]);
-    setActiveIndex(body.length);
-  }, [body]);
+    if (viewMode === "overview") {
+      setActiveIndex(body.length);
+    }
+  }, [body, viewMode]);
 
   const handleDeleteBod = useCallback(
     (index: number) => {
@@ -113,7 +143,7 @@ export function DezinsFormView({
     [],
   );
 
-  // ---------- Save ----------
+  // ---------- Save (manual, for overview mode) ----------
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);
@@ -200,12 +230,142 @@ export function DezinsFormView({
   }
 
   // ================================================================
+  // AUTO-SAVE STATUS BAR
+  // ================================================================
+
+  const autoSaveStatusBar = viewMode === "inline" && !isReadonly && (
+    <div className="flex items-center justify-center gap-1.5 py-1">
+      {autoSave.status === "saved" && (
+        <span className="text-xs text-emerald-600 font-medium">{"\u2713"} Uloženo</span>
+      )}
+      {autoSave.status === "saving" && (
+        <span className="text-xs text-blue-600 font-medium animate-pulse">{"\u25CF"} Ukládám...</span>
+      )}
+      {autoSave.status === "unsaved" && (
+        <span className="text-xs text-amber-600 font-medium">{"\u25CB"} Neuložené změny</span>
+      )}
+      {autoSave.status === "error" && (
+        <span className="text-xs text-destructive font-medium">{"\u2717"} {autoSave.error || "Chyba"}</span>
+      )}
+    </div>
+  );
+
+  // ================================================================
+  // INLINE MODE (Terénní režim)
+  // ================================================================
+
+  if (viewMode === "inline") {
+    return (
+      <div className="space-y-3">
+        <div ref={topRef} />
+
+        {/* Mode toggle */}
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs text-muted-foreground">
+            {body.length}{" "}
+            {body.length === 1 ? "bod" : body.length < 5 ? "body" : "bodů"}
+          </span>
+
+          {!isReadonly && (
+            <div className="flex rounded-lg border bg-muted/30 p-0.5">
+              <button
+                type="button"
+                onClick={() => setViewMode("inline")}
+                className="rounded-md px-3 py-1 text-xs font-medium bg-white text-foreground shadow-sm"
+              >
+                Terénní
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("overview")}
+                className="rounded-md px-3 py-1 text-xs font-medium text-muted-foreground"
+              >
+                Přehled
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Auto-save status */}
+        {autoSaveStatusBar}
+
+        {/* Inline body list */}
+        <div className="space-y-1">
+          {body.length === 0 && (
+            <p className="py-4 text-center text-sm text-muted-foreground">
+              Žádné body. Přidejte první bod.
+            </p>
+          )}
+          {body.map((b, idx) => (
+            <DezinsInlineRow
+              key={b.id || `new-${idx}`}
+              bod={b}
+              onChange={(updated) => handleBodChange(idx, updated)}
+              onSettingsTap={() => setActiveIndex(idx)}
+              readonly={isReadonly}
+            />
+          ))}
+        </div>
+
+        {/* Přidat bod */}
+        {!isReadonly && (
+          <Button
+            variant="outline"
+            className="min-h-[44px] w-full border-dashed"
+            onClick={handleAddBod}
+          >
+            + Přidat bod
+          </Button>
+        )}
+
+        {/* Auto-save error retry */}
+        {autoSave.status === "error" && (
+          <div className="space-y-2">
+            <div className="rounded-lg bg-destructive/10 p-3" role="alert">
+              <p className="text-sm text-destructive">{autoSave.error}</p>
+            </div>
+            <Button
+              variant="outline"
+              className="min-h-[44px] w-full"
+              onClick={() => autoSave.saveNow()}
+            >
+              Zkusit znovu uložit
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ================================================================
   // OVERVIEW MODE
   // ================================================================
 
   return (
     <div className="space-y-4">
       <div ref={topRef} />
+
+      {/* Mode toggle */}
+      <div className="flex items-center justify-end gap-2">
+        {!isReadonly && (
+          <div className="flex rounded-lg border bg-muted/30 p-0.5">
+            <button
+              type="button"
+              onClick={() => setViewMode("inline")}
+              className="rounded-md px-3 py-1 text-xs font-medium text-muted-foreground"
+            >
+              Terénní
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("overview")}
+              className="rounded-md px-3 py-1 text-xs font-medium bg-white text-foreground shadow-sm"
+            >
+              Přehled
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Body seznam */}
       <div className="space-y-1.5">

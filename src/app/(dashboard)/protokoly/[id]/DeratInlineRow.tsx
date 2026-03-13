@@ -107,7 +107,7 @@ export function DeratInlineRow({
           className="flex h-[36px] w-[36px] items-center justify-center rounded-md text-sm text-muted-foreground active:bg-muted/50"
           aria-label={`Nastavení bodu ${bod.cislo_bodu}`}
         >
-          \u2699\uFE0F
+          {"\u2699\uFE0F"}
         </button>
       )}
     </div>

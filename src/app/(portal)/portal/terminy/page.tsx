@@ -8,6 +8,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toDateString } from "@/lib/utils/dateUtils";
 import { getZakazkyNeedingTermin } from "@/lib/supabase/queries/portalSlots";
+import { PostponementCard } from "./PostponementCard";
 
 export default async function PortalTerminyPage() {
   const supabase = await createClient();
@@ -40,6 +41,7 @@ export default async function PortalTerminyPage() {
     cas_od: string;
     cas_do: string;
     status: string;
+    puvodni_datum: string | null;
     profiles: { jmeno: string | null; prijmeni: string | null; telefon: string | null } | null;
     zakazky: {
       typy_zasahu: string[];
@@ -52,7 +54,7 @@ export default async function PortalTerminyPage() {
     const { data } = await supabase
       .from("zasahy")
       .select(
-        `id, datum, cas_od, cas_do, status,
+        `id, datum, cas_od, cas_do, status, puvodni_datum,
          profiles!zasahy_technik_id_fkey ( jmeno, prijmeni, telefon ),
          zakazky!zasahy_zakazka_id_fkey (
            typy_zasahu,
@@ -184,6 +186,14 @@ export default async function PortalTerminyPage() {
                         </a>
                       )}
                     </p>
+                  )}
+                  {/* Postponement option for upcoming scheduled/confirmed zasahy */}
+                  {["naplanovano", "potvrzeny"].includes(z.status) && (
+                    <PostponementCard
+                      zasahId={z.id}
+                      currentDatum={z.datum}
+                      puvodni_datum={z.puvodni_datum}
+                    />
                   )}
                 </CardContent>
               </Card>

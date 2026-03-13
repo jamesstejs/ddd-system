@@ -234,6 +234,64 @@ export async function getZasahyForDate(
     .order("cas_od", { ascending: true });
 }
 
+/**
+ * Get technici filtered by pobocka (region).
+ * Used for dispatch view to show technicians in a specific region.
+ */
+export async function getTechniciByPobocka(
+  supabase: TypedSupabase,
+  pobocka: string,
+) {
+  return supabase
+    .from("profiles")
+    .select("id, jmeno, prijmeni, email, koeficient_rychlosti, role, pobocka")
+    .contains("role", ["technik"])
+    .eq("pobocka", pobocka)
+    .is("deleted_at", null)
+    .order("prijmeni", { ascending: true });
+}
+
+/**
+ * Get zasahy for a list of technicians in a date range.
+ * Used for dispatch weekly grid.
+ */
+export async function getZasahyForTechniciRange(
+  supabase: TypedSupabase,
+  technikIds: string[],
+  datumOd: string,
+  datumDo: string,
+) {
+  if (technikIds.length === 0) {
+    return { data: [], error: null };
+  }
+  return supabase
+    .from("zasahy")
+    .select(
+      `
+      id, technik_id, datum, cas_od, cas_do, status, poznamka,
+      zakazky!zasahy_zakazka_id_fkey (
+        id,
+        typ,
+        typy_zasahu,
+        objekty!inner (
+          nazev,
+          adresa,
+          klienti!inner (
+            nazev, jmeno, prijmeni, typ
+          )
+        )
+      )
+    `,
+    )
+    .in("technik_id", technikIds)
+    .gte("datum", datumOd)
+    .lte("datum", datumDo)
+    .is("deleted_at", null)
+    .not("status", "eq", "zruseno")
+    .order("datum", { ascending: true })
+    .order("cas_od", { ascending: true });
+}
+
 export async function getOverdueZasahy(
   supabase: TypedSupabase,
   beforeDate: string,
@@ -257,4 +315,134 @@ export async function getOverdueZasahy(
     .is("deleted_at", null)
     .order("datum", { ascending: true })
     .limit(20);
+}
+
+/**
+ * Get ALL overdue zasahy (no limit) with full join data including
+ * technik pobočka for region filtering + postponement tracking fields.
+ * Used for admin "Přehled zásahů" page — Zpožděné tab.
+ */
+export async function getOverdueZasahyFull(
+  supabase: TypedSupabase,
+  beforeDate: string,
+) {
+  return supabase
+    .from("zasahy")
+    .select(
+      `
+      id, datum, cas_od, cas_do, status, poznamka,
+      puvodni_datum, odlozeno_at, odlozeni_duvod, odlozeno_kym,
+      profiles!zasahy_technik_id_fkey (
+        id, jmeno, prijmeni, pobocka
+      ),
+      zakazky!zasahy_zakazka_id_fkey (
+        id, typ, typy_zasahu,
+        objekty!inner (
+          id, nazev, adresa,
+          klienti!inner (
+            id, nazev, jmeno, prijmeni, typ, telefon, email
+          )
+        )
+      )
+    `,
+    )
+    .lt("datum", beforeDate)
+    .not("status", "in", '("hotovo","zruseno")')
+    .is("deleted_at", null)
+    .order("datum", { ascending: true });
+}
+
+/**
+ * Get completed zasahy that are missing a faktura or have an unpaid one.
+ * Join chain: zasahy → zakazky → objekty → klienti + zasahy → protokoly → faktury.
+ * Used for admin "Přehled zásahů" page — Fakturace tab.
+ */
+export async function getZasahyBezFaktury(supabase: TypedSupabase) {
+  // First get completed zasahy with their protokoly
+  const { data: zasahy, error } = await supabase
+    .from("zasahy")
+    .select(
+      `
+      id, datum, cas_od, cas_do, status,
+      profiles!zasahy_technik_id_fkey (
+        id, jmeno, prijmeni, pobocka
+      ),
+      zakazky!zasahy_zakazka_id_fkey (
+        id, typ, typy_zasahu,
+        objekty!inner (
+          id, nazev, adresa,
+          klienti!inner (
+            id, nazev, jmeno, prijmeni, typ, telefon, email
+          )
+        )
+      ),
+      protokoly!protokoly_zasah_id_fkey (
+        id, status, cislo_protokolu,
+        faktury!faktury_protokol_id_fkey (
+          id, stav, cislo, castka_s_dph, datum_splatnosti
+        )
+      )
+    `,
+    )
+    .eq("status", "hotovo")
+    .is("deleted_at", null)
+    .order("datum", { ascending: false });
+
+  if (error) return { data: null, error };
+
+  // Filter: keep only zasahy where there's no faktura or faktura is not uhrazena
+  const filtered = (zasahy || []).filter((z) => {
+    const protokolArr = z.protokoly as unknown as Array<{
+      id: string;
+      status: string;
+      cislo_protokolu: string | null;
+      faktury: Array<{
+        id: string;
+        stav: string;
+        cislo: string | null;
+        castka_s_dph: number | null;
+        datum_splatnosti: string | null;
+      }> | null;
+    }>;
+    if (!protokolArr || protokolArr.length === 0) return true; // No protokol = needs invoice
+    const protokol = protokolArr[0];
+    if (!protokol.faktury || protokol.faktury.length === 0) return true; // No faktura
+    // Has faktura but not paid
+    return protokol.faktury.some((f) => f.stav !== "uhrazena" && f.stav !== "storno");
+  });
+
+  return { data: filtered, error: null };
+}
+
+/**
+ * Atomically postpone a zasah — sets new datum, preserves original,
+ * records who postponed and why.
+ */
+export async function postponeZasah(
+  supabase: TypedSupabase,
+  zasahId: string,
+  newDatum: string,
+  duvod: string | null,
+  kym: "admin" | "klient",
+) {
+  // First fetch current datum to preserve as puvodni_datum (only if not already set)
+  const { data: current, error: fetchError } = await supabase
+    .from("zasahy")
+    .select("datum, puvodni_datum")
+    .eq("id", zasahId)
+    .is("deleted_at", null)
+    .single();
+
+  if (fetchError || !current) {
+    return { data: null, error: fetchError || new Error("Zásah nenalezen") };
+  }
+
+  return updateZasah(supabase, zasahId, {
+    datum: newDatum,
+    // Preserve original datum only on first postponement
+    puvodni_datum: current.puvodni_datum || current.datum,
+    odlozeno_at: new Date().toISOString(),
+    odlozeni_duvod: duvod,
+    odlozeno_kym: kym,
+  });
 }

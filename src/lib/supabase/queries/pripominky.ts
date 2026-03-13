@@ -101,6 +101,53 @@ export async function getAktivniPripominkyTechnik(
 }
 
 /**
+ * Get active pripominky with technik pobočka + klient telefon for region filtering.
+ * Used for admin "Přehled zásahů" page — K domluvení tab.
+ */
+export async function getAktivniPripominkyWithRegion(supabase: TypedSupabase) {
+  return supabase
+    .from("pripominky_terminu")
+    .select(
+      `
+      *,
+      profiles!pripominky_terminu_technik_id_fkey (
+        id,
+        jmeno,
+        prijmeni,
+        pobocka
+      ),
+      zasahy!pripominky_terminu_zasah_id_fkey (
+        id,
+        datum,
+        cas_od,
+        cas_do
+      ),
+      zakazky!pripominky_terminu_zakazka_id_fkey (
+        id,
+        typ,
+        objekty!inner (
+          id,
+          nazev,
+          adresa,
+          klienti!inner (
+            id,
+            nazev,
+            jmeno,
+            prijmeni,
+            typ,
+            telefon,
+            email
+          )
+        )
+      )
+    `,
+    )
+    .eq("stav", "aktivni")
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false });
+}
+
+/**
  * Update a pripominka (e.g. stav → vyreseno).
  */
 export async function updatePripominka(

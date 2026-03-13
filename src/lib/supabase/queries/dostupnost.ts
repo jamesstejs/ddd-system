@@ -171,6 +171,30 @@ export async function getAllDostupnostForDate(
     .order("cas_od", { ascending: true });
 }
 
+/**
+ * Vrátí dostupnost pro skupinu techniků v rozsahu datumů.
+ * Pro dispečerský weekly grid.
+ */
+export async function getDostupnostForTechniciRange(
+  supabase: TypedSupabase,
+  technikIds: string[],
+  datumOd: string,
+  datumDo: string,
+) {
+  if (technikIds.length === 0) {
+    return { data: [], error: null };
+  }
+  return supabase
+    .from("dostupnost")
+    .select("*, profiles!dostupnost_technik_id_fkey(id, jmeno, prijmeni)")
+    .in("technik_id", technikIds)
+    .gte("datum", datumOd)
+    .lte("datum", datumDo)
+    .is("deleted_at", null)
+    .order("datum", { ascending: true })
+    .order("cas_od", { ascending: true });
+}
+
 export async function countDaysWithDostupnost(
   supabase: TypedSupabase,
   technikId: string,

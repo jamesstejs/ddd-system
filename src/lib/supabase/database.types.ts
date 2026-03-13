@@ -867,6 +867,7 @@ export type Database = {
           jmeno: string
           klient_id: string | null
           koeficient_rychlosti: number
+          pobocka: string | null
           prijmeni: string
           role: Database["public"]["Enums"]["app_role"][]
           telefon: string | null
@@ -881,6 +882,7 @@ export type Database = {
           jmeno?: string
           klient_id?: string | null
           koeficient_rychlosti?: number
+          pobocka?: string | null
           prijmeni?: string
           role?: Database["public"]["Enums"]["app_role"][]
           telefon?: string | null
@@ -895,6 +897,7 @@ export type Database = {
           jmeno?: string
           klient_id?: string | null
           koeficient_rychlosti?: number
+          pobocka?: string | null
           prijmeni?: string
           role?: Database["public"]["Enums"]["app_role"][]
           telefon?: string | null
@@ -1584,7 +1587,11 @@ export type Database = {
           deleted_at: string | null
           id: string
           odhadovana_delka_min: number | null
+          odlozeni_duvod: string | null
+          odlozeno_at: string | null
+          odlozeno_kym: string | null
           poznamka: string | null
+          puvodni_datum: string | null
           status: Database["public"]["Enums"]["status_zasahu"]
           technik_id: string
           updated_at: string
@@ -1598,7 +1605,11 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           odhadovana_delka_min?: number | null
+          odlozeni_duvod?: string | null
+          odlozeno_at?: string | null
+          odlozeno_kym?: string | null
           poznamka?: string | null
+          puvodni_datum?: string | null
           status?: Database["public"]["Enums"]["status_zasahu"]
           technik_id: string
           updated_at?: string
@@ -1612,7 +1623,11 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           odhadovana_delka_min?: number | null
+          odlozeni_duvod?: string | null
+          odlozeno_at?: string | null
+          odlozeno_kym?: string | null
           poznamka?: string | null
+          puvodni_datum?: string | null
           status?: Database["public"]["Enums"]["status_zasahu"]
           technik_id?: string
           updated_at?: string
@@ -1663,7 +1678,7 @@ export type Database = {
       stav_bonusu: "pending" | "proplaceno"
       stav_emailu: "odeslano" | "doruceno" | "chyba" | "cekajici"
       stav_faktury: "vytvorena" | "odeslana" | "uhrazena" | "po_splatnosti" | "storno"
-      typ_emailu: "protokol" | "faktura" | "terminy" | "pripominky"
+      typ_emailu: "protokol" | "faktura" | "terminy" | "pripominky" | "odlozeni"
       status_protokolu:
         | "rozpracovany"
         | "ke_schvaleni"

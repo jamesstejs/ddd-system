@@ -20,7 +20,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { BottomSheet } from "@/components/layout/BottomSheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ROLE_LABELS } from "@/types/roles";
+import { POBOCKY, POBOCKA_LABELS } from "@/types/pobocky";
 import {
   createUserAction,
   updateUserAction,
@@ -56,6 +64,7 @@ export function UserList({ profiles }: { profiles: Profile[] }) {
 
     startTransition(async () => {
       try {
+        const pobockaVal = form.get("pobocka") as string;
         await createUserAction({
           email: form.get("email") as string,
           password: form.get("password") as string,
@@ -63,6 +72,7 @@ export function UserList({ profiles }: { profiles: Profile[] }) {
           prijmeni: form.get("prijmeni") as string,
           telefon: form.get("telefon") as string,
           role: selectedRoles,
+          pobocka: pobockaVal && pobockaVal !== "__none__" ? pobockaVal : null,
         });
         setShowCreate(false);
       } catch (err) {
@@ -87,11 +97,13 @@ export function UserList({ profiles }: { profiles: Profile[] }) {
 
     startTransition(async () => {
       try {
+        const editPobocka = form.get("pobocka") as string;
         await updateUserAction(editUser.id, {
           jmeno: form.get("jmeno") as string,
           prijmeni: form.get("prijmeni") as string,
           telefon: form.get("telefon") as string,
           role: selectedRoles,
+          pobocka: editPobocka && editPobocka !== "__none__" ? editPobocka : null,
         });
         setEditUser(null);
       } catch (err) {
@@ -145,6 +157,11 @@ export function UserList({ profiles }: { profiles: Profile[] }) {
                       {ROLE_LABELS[r]}
                     </Badge>
                   ))}
+                  {p.pobocka && (
+                    <Badge variant="outline" className="text-xs">
+                      {POBOCKA_LABELS[p.pobocka as keyof typeof POBOCKA_LABELS] || p.pobocka}
+                    </Badge>
+                  )}
                 </div>
               </div>
               <div className="flex gap-1 ml-2">
@@ -229,6 +246,22 @@ export function UserList({ profiles }: { profiles: Profile[] }) {
               ))}
             </div>
           </div>
+          <div className="space-y-2">
+            <Label>Pobočka (kraj)</Label>
+            <Select name="pobocka" defaultValue="__none__">
+              <SelectTrigger className="min-h-[44px]">
+                <SelectValue placeholder="Bez pobočky" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Bez pobočky</SelectItem>
+                {POBOCKY.map((p) => (
+                  <SelectItem key={p.value} value={p.value}>
+                    {p.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button
             type="submit"
@@ -294,6 +327,25 @@ export function UserList({ profiles }: { profiles: Profile[] }) {
                   </label>
                 ))}
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Pobočka (kraj)</Label>
+              <Select
+                name="pobocka"
+                defaultValue={editUser.pobocka || "__none__"}
+              >
+                <SelectTrigger className="min-h-[44px]">
+                  <SelectValue placeholder="Bez pobočky" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Bez pobočky</SelectItem>
+                  {POBOCKY.map((p) => (
+                    <SelectItem key={p.value} value={p.value}>
+                      {p.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button

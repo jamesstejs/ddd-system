@@ -12,6 +12,7 @@ export async function createUserAction(formData: {
   prijmeni: string;
   telefon: string;
   role: AppRole[];
+  pobocka?: string | null;
 }) {
   await requireAdmin();
 
@@ -40,6 +41,7 @@ export async function createUserAction(formData: {
       jmeno: formData.jmeno,
       prijmeni: formData.prijmeni,
       telefon: formData.telefon || null,
+      pobocka: formData.pobocka || null,
     })
     .eq("id", newUser.user.id);
 
@@ -55,6 +57,7 @@ export async function updateUserAction(
     prijmeni?: string;
     telefon?: string;
     role?: AppRole[];
+    pobocka?: string | null;
   }
 ) {
   const { supabase } = await requireAdmin();
@@ -64,6 +67,7 @@ export async function updateUserAction(
   if (data.prijmeni !== undefined) updateData.prijmeni = data.prijmeni;
   if (data.telefon !== undefined) updateData.telefon = data.telefon;
   if (data.role !== undefined) updateData.role = data.role;
+  if (data.pobocka !== undefined) updateData.pobocka = data.pobocka;
 
   const { error } = await supabase
     .from("profiles")

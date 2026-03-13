@@ -260,7 +260,7 @@ async function VeciVeZpozdeniWidget({
   const count = overdueZasahy.length;
 
   return (
-    <Link href="/kalendar">
+    <Link href="/prehled-zasahu">
       <Card className={`transition-colors active:bg-muted/50 ${count > 0 ? "border-red-200 bg-red-50" : ""}`}>
         <CardHeader>
           <CardTitle className="text-base">Věci ve zpoždění</CardTitle>
@@ -389,6 +389,36 @@ async function AdminDashboard({
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">
+      {/* Dispečink + Přehled — quick access, full width */}
+      <div className="sm:col-span-2 flex flex-col gap-3">
+        <Link href="/dispecink">
+          <Card className="border-blue-200 bg-blue-50 transition-colors active:bg-blue-100">
+            <CardContent className="flex items-center gap-3 pt-4 pb-4">
+              <span className="text-2xl">📞</span>
+              <div>
+                <p className="text-base font-semibold text-blue-900">Dispečink</p>
+                <p className="text-sm text-blue-700">
+                  Naplánovat zásah — region, technik, cena, vše na jednom místě
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/prehled-zasahu">
+          <Card className="border-green-200 bg-green-50 transition-colors active:bg-green-100">
+            <CardContent className="flex items-center gap-3 pt-4 pb-4">
+              <span className="text-2xl">📋</span>
+              <div>
+                <p className="text-base font-semibold text-green-900">Přehled zásahů</p>
+                <p className="text-sm text-green-700">
+                  K domluvení, zpožděné, fakturace — vše přehledně s filtry
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+      </div>
+
       {/* Dispatcher queue — full width */}
       <div className="sm:col-span-2">
         <DispatcherQueueWidget />
@@ -419,6 +449,12 @@ async function AdminDashboard({
                   a dalších {pripominky.length - 5}...
                 </p>
               )}
+              <Link
+                href="/prehled-zasahu"
+                className="mt-1 inline-block text-xs font-medium text-blue-600"
+              >
+                Zobrazit vše →
+              </Link>
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">

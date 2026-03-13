@@ -2,7 +2,10 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { bookSlot, getAvailableSlots } from "@/lib/supabase/queries/portalSlots";
+import { postponeZasah } from "@/lib/supabase/queries/zasahy";
+import { sendOdlozeniEmail } from "@/lib/email/sendOdlozeniEmail";
 import { toDateString } from "@/lib/utils/dateUtils";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -123,4 +126,116 @@ export async function bookSlotAction(input: {
   });
 
   return { success: true, zasahId: zasah.id };
+}
+
+/**
+ * Klient posune svůj nadcházející zásah na nový datum.
+ * Validace: max 2 měsíce dopředu, datum v budoucnosti, zásah patří klientovi.
+ */
+export async function postponeZasahKlientAction(input: {
+  zasahId: string;
+  posun: { typ: "days" | "weeks" | "months"; hodnota: number } | { datum: string };
+}) {
+  if (!UUID_REGEX.test(input.zasahId)) throw new Error("Neplatný formát ID");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  // Verify user is klient
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("aktivni_role, klient_id")
+    .eq("id", user.id)
+    .is("deleted_at", null)
+    .single();
+
+  if (!profile || profile.aktivni_role !== "klient" || !profile.klient_id) {
+    throw new Error("Nemáte oprávnění");
+  }
+
+  // Verify the zasah belongs to this klient
+  const { data: zasah } = await supabase
+    .from("zasahy")
+    .select(`
+      id, datum, status,
+      zakazky!zasahy_zakazka_id_fkey (
+        objekty!inner (
+          klient_id
+        )
+      )
+    `)
+    .eq("id", input.zasahId)
+    .is("deleted_at", null)
+    .single();
+
+  if (!zasah) throw new Error("Zásah nenalezen");
+
+  type ZasahWithZakazky = {
+    zakazky: { objekty: { klient_id: string } } | null;
+  };
+  const zz = zasah as unknown as ZasahWithZakazky;
+  if (zz.zakazky?.objekty?.klient_id !== profile.klient_id) {
+    throw new Error("Nemáte oprávnění k tomuto zásahu");
+  }
+
+  // Only allow postponing naplanovano/potvrzeny
+  if (!["naplanovano", "potvrzeny"].includes(zasah.status)) {
+    throw new Error("Tento zásah nelze posunout");
+  }
+
+  // Compute new date
+  let newDatum: string;
+  if ("datum" in input.posun) {
+    if (!DATE_REGEX.test(input.posun.datum)) throw new Error("Neplatný formát data");
+    newDatum = input.posun.datum;
+  } else {
+    const base = new Date();
+    const { typ, hodnota } = input.posun;
+    if (typ === "days") base.setDate(base.getDate() + hodnota);
+    else if (typ === "weeks") base.setDate(base.getDate() + hodnota * 7);
+    else if (typ === "months") base.setMonth(base.getMonth() + hodnota);
+    newDatum = toDateString(base);
+  }
+
+  // Validate: must be in the future
+  const today = toDateString(new Date());
+  if (newDatum <= today) {
+    throw new Error("Nový datum musí být v budoucnosti");
+  }
+
+  // Validate: max 2 months from today
+  const maxDate = new Date();
+  maxDate.setMonth(maxDate.getMonth() + 2);
+  if (newDatum > toDateString(maxDate)) {
+    throw new Error("Maximální posunutí je 2 měsíce");
+  }
+
+  const puvodniDatum = zasah.datum;
+
+  // Postpone
+  const { error } = await postponeZasah(
+    supabase,
+    input.zasahId,
+    newDatum,
+    "Na žádost klienta",
+    "klient",
+  );
+  if (error) throw new Error("error" in error ? (error as { message: string }).message : "Chyba při posunutí");
+
+  // Fire-and-forget email
+  sendOdlozeniEmail(
+    supabase,
+    input.zasahId,
+    puvodniDatum,
+    newDatum,
+    "Na žádost klienta",
+    "klient",
+  ).catch(() => {
+    // Silently ignore — logged in email_log
+  });
+
+  revalidatePath("/portal/terminy");
+
+  return { success: true, newDatum };
 }

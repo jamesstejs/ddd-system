@@ -1734,3 +1734,273 @@ export async function saveAiHodnoceniAction(
 
   if (error) throw new Error(error.message);
 }
+
+// ============================================================
+// Živá kalkulace ceny z protokolu
+// ============================================================
+
+export type LivePriceResult = {
+  polozky: { nazev: string; pocet: number; cena_za_kus: number; cena_celkem: number }[];
+  cena_zaklad: number;
+  cena_s_dph: number;
+  dph_sazba: number;
+  pocet_bodu_mys: number;
+  pocet_bodu_potkan: number;
+  pocet_bodu_zivolovna: number;
+  pocet_bodu_sklopna_mys: number;
+  pocet_bodu_sklopna_potkan: number;
+};
+
+/**
+ * Vypočítá živou cenu zakázky na základě aktuálních bodů v protokolu.
+ * Dostupné pro technika i admina — read-only výpočet.
+ */
+export async function computeLivePriceAction(
+  protokolId: string,
+): Promise<{ success: boolean; data?: LivePriceResult; error?: string }> {
+  if (!UUID_REGEX.test(protokolId)) {
+    return { success: false, error: "Neplatný formát ID protokolu" };
+  }
+
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Nepřihlášen" };
+
+    // Načtení protokolu s vazbami
+    const { data: protokol } = await getProtokol(supabase, protokolId);
+    if (!protokol) return { success: false, error: "Protokol nenalezen" };
+
+    // Extrakce zakázky
+    const zasahy = protokol.zasahy as Record<string, unknown> | null;
+    const zakazky = zasahy?.zakazky as Record<string, unknown> | null;
+    if (!zakazky) return { success: false, error: "Zakázka nenalezena" };
+
+    const objekty = zakazky.objekty as Record<string, unknown> | null;
+    const klienti = objekty?.klienti as Record<string, unknown> | null;
+
+    const zakazkaId = zakazky.id as string;
+    const typZakazky = (zakazky.typ_zakazky as string) || "smluvni";
+    const typyZasahu = (zakazky.typy_zasahu as string[]) || [];
+    const doprava_km = (zakazky.doprava_km as number) || 0;
+    const je_prvni_navsteva = (zakazky.je_prvni_navsteva as boolean) ?? true;
+    const je_vikend = (zakazky.je_vikend as boolean) ?? false;
+    const je_nocni = (zakazky.je_nocni as boolean) ?? false;
+    const pocet_bytu = (zakazky.pocet_bytu as number) || undefined;
+    const sleva_typ = (zakazky.sleva_typ as string) || null;
+    const sleva_hodnota = (zakazky.sleva_hodnota as number) || 0;
+    const individualni_sleva =
+      (klienti?.individualni_sleva_procent as number) || 0;
+    const dph_sazba = (klienti?.dph_sazba as number) || 21;
+
+    // Škůdci ze zakázky
+    const zakazkaSkudci = (zakazky.skudci_nazvy as string[]) || [];
+
+    // Načtení aktuálních bodů z protokolu
+    const { data: deratBody } = await getProtokolDeratBody(supabase, protokolId);
+    const body = deratBody || [];
+
+    // Spočítat body dle typu
+    const pocet_bodu_mys = body.filter((b) => b.typ_stanicky === "mys").length;
+    const pocet_bodu_potkan = body.filter(
+      (b) => b.typ_stanicky === "potkan",
+    ).length;
+    const pocet_bodu_zivolovna = body.filter(
+      (b) => b.typ_stanicky === "zivolovna",
+    ).length;
+    const pocet_bodu_sklopna_mys = body.filter(
+      (b) => b.typ_stanicky === "sklopna_mys",
+    ).length;
+    const pocet_bodu_sklopna_potkan = body.filter(
+      (b) => b.typ_stanicky === "sklopna_potkan",
+    ).length;
+
+    // Načtení ceníku (dynamic import)
+    const [
+      { getCenikObecne, getCenikPostriky, getCenikGely, getCenikSpecialni, getCenikDeratizace, getCenikDezinfekce },
+      { vypocetCeny },
+    ] = await Promise.all([
+      import("@/lib/supabase/queries/cenik"),
+      import("@/lib/kalkulacka/vypocetCeny"),
+    ]);
+
+    const [obecneR, postrikyR, gelyR, specialniR, deratizaceR, dezinfekceR] =
+      await Promise.all([
+        getCenikObecne(supabase),
+        getCenikPostriky(supabase),
+        getCenikGely(supabase),
+        getCenikSpecialni(supabase),
+        getCenikDeratizace(supabase),
+        getCenikDezinfekce(supabase),
+      ]);
+
+    const cenikData = {
+      obecne: (obecneR.data || []).map((r) => ({
+        nazev: r.nazev,
+        hodnota: Number(r.hodnota),
+        jednotka: r.jednotka || "",
+      })),
+      postriky: (postrikyR.data || []).map((r) => ({
+        kategorie: r.kategorie,
+        plocha_od: Number(r.plocha_od),
+        plocha_do: r.plocha_do != null ? Number(r.plocha_do) : null,
+        cena: Number(r.cena),
+      })),
+      gely: (gelyR.data || []).map((r) => ({
+        kategorie: r.kategorie,
+        bytu_od: Number(r.bytu_od),
+        bytu_do: r.bytu_do != null ? Number(r.bytu_do) : null,
+        cena: Number(r.cena),
+      })),
+      specialni: (specialniR.data || []).map((r) => ({
+        nazev: r.nazev,
+        cena_od: Number(r.cena_od),
+        cena_do: r.cena_do != null ? Number(r.cena_do) : null,
+      })),
+      deratizace: (deratizaceR.data || []).map((r) => ({
+        nazev: r.nazev,
+        cena_za_kus: Number(r.cena_za_kus),
+      })),
+      dezinfekce: (dezinfekceR.data || []).map((r) => ({
+        typ: r.typ,
+        plocha_od: Number(r.plocha_od),
+        plocha_do: r.plocha_do != null ? Number(r.plocha_do) : null,
+        cena_za_m: Number(r.cena_za_m),
+      })),
+    };
+
+    const plocha_m2 = (objekty?.plocha_m2 as number) || 0;
+
+    const vysledek = vypocetCeny(cenikData, {
+      typ_zakazky: typZakazky as "jednorazova" | "smluvni",
+      typy_zasahu: typyZasahu,
+      skudci: zakazkaSkudci,
+      plocha_m2,
+      pocet_bytu,
+      doprava_km,
+      je_prvni_navsteva: je_prvni_navsteva,
+      je_vikend,
+      je_nocni,
+      pocet_bodu_mys,
+      pocet_bodu_potkan,
+      pocet_bodu_zivolovna_mys: pocet_bodu_zivolovna,
+      pocet_bodu_zivolovna_potkan: 0,
+      pocet_bodu_sklopna_mys,
+      pocet_bodu_sklopna_potkan,
+      sleva_typ: sleva_typ as "procenta" | "castka" | null,
+      sleva_hodnota,
+      individualni_sleva_procent: individualni_sleva,
+      dph_sazba,
+    });
+
+    return {
+      success: true,
+      data: {
+        polozky: vysledek.polozky,
+        cena_zaklad: vysledek.cena_zaklad,
+        cena_s_dph: vysledek.cena_s_dph,
+        dph_sazba: vysledek.dph_sazba,
+        pocet_bodu_mys,
+        pocet_bodu_potkan,
+        pocet_bodu_zivolovna: pocet_bodu_zivolovna,
+        pocet_bodu_sklopna_mys,
+        pocet_bodu_sklopna_potkan,
+      },
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error:
+        err instanceof Error ? err.message : "Nepodařilo se vypočítat cenu",
+    };
+  }
+}
+
+// ============================================================
+// Sync protokol → zakázka: aktualizace ceny a polozek
+// ============================================================
+
+/**
+ * Po uložení protokolu přepočítá cenu zakázky z aktuálních bodů
+ * a uloží ji zpět do zakázky + zakazka_polozky.
+ * Admin only.
+ */
+export async function syncProtocolPriceToZakazkaAction(
+  protokolId: string,
+): Promise<{ success: boolean; error?: string }> {
+  if (!UUID_REGEX.test(protokolId)) {
+    return { success: false, error: "Neplatný formát ID" };
+  }
+
+  try {
+    const { supabase } = await requireAdmin();
+
+    // Compute live price
+    const result = await computeLivePriceAction(protokolId);
+    if (!result.success || !result.data) {
+      return { success: false, error: result.error || "Chyba výpočtu" };
+    }
+
+    // Najít zakázku
+    const { data: protokol } = await getProtokol(supabase, protokolId);
+    if (!protokol) return { success: false, error: "Protokol nenalezen" };
+
+    const zasahy = protokol.zasahy as Record<string, unknown> | null;
+    const zakazky = zasahy?.zakazky as Record<string, unknown> | null;
+    if (!zakazky) return { success: false, error: "Zakázka nenalezena" };
+
+    const zakazkaId = zakazky.id as string;
+    const klienti = (zakazky.objekty as Record<string, unknown> | null)
+      ?.klienti as Record<string, unknown> | null;
+    const dph_sazba = (klienti?.dph_sazba as number) || 21;
+
+    const { updateZakazka } = await import(
+      "@/lib/supabase/queries/zakazky"
+    );
+    const { replacePolozky } = await import(
+      "@/lib/supabase/queries/zakazka_polozky"
+    );
+
+    // Update zakázka pricing
+    const { error: updateError } = await updateZakazka(supabase, zakazkaId, {
+      cena_zaklad: result.data.cena_zaklad,
+      cena_po_sleve: result.data.cena_zaklad,
+      cena_s_dph: result.data.cena_s_dph,
+      dph_sazba_snapshot: dph_sazba,
+    });
+    if (updateError) {
+      return { success: false, error: updateError.message };
+    }
+
+    // Replace polozky
+    const { error: polozkyError } = await replacePolozky(
+      supabase,
+      zakazkaId,
+      result.data.polozky.map((p, i) => ({
+        nazev: p.nazev,
+        pocet: p.pocet,
+        cena_za_kus: p.cena_za_kus,
+        cena_celkem: p.cena_celkem,
+        poradi: i,
+      })),
+    );
+    if (polozkyError) {
+      return { success: false, error: polozkyError.message };
+    }
+
+    revalidatePath(`/protokoly/${protokolId}`);
+    revalidatePath(`/zakazky/${zakazkaId}`);
+
+    return { success: true };
+  } catch (err) {
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Nepodařilo se synchronizovat cenu",
+    };
+  }
+}

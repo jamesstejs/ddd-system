@@ -28,7 +28,9 @@ import {
   createFakturaAction,
   generateAiHodnoceniAction,
   saveAiHodnoceniAction,
+  syncProtocolPriceToZakazkaAction,
 } from "./protokolActions";
+import { LivePriceWidget } from "./LivePriceWidget";
 import {
   computeDeratStatistiky,
   computeDezinsStatistiky,
@@ -228,6 +230,11 @@ export function ProtokolFormView({
   const [fakturaError, setFakturaError] = useState<string | null>(null);
   const [fakturaCreated, setFakturaCreated] = useState(false);
 
+  // Live price trigger (incremented when bods change)
+  const [bodCountTrigger, setBodCountTrigger] = useState(0);
+  const [syncingPrice, setSyncingPrice] = useState(false);
+  const [syncPriceResult, setSyncPriceResult] = useState<string | null>(null);
+
   // Readonly logic
   const technikReadonly = protokol.status !== "rozpracovany";
   const adminReadonly = !isAdminEditing;
@@ -237,7 +244,16 @@ export function ProtokolFormView({
   const backUrl = isAdmin ? "/protokoly" : "/kalendar";
   const backLabel = isAdmin ? "Zpět na protokoly" : "Zpět na kalendář";
 
-  const defaultTab = availableTabs[0] || "deratizace";
+  // Dynamic tabs — technician can add intervention types on-the-fly
+  const [dynamicTabs, setDynamicTabs] = useState<TabType[]>(availableTabs);
+  const [showAddTabSheet, setShowAddTabSheet] = useState(false);
+
+  const allPossibleTabs: TabType[] = ["deratizace", "dezinsekce", "postrik"];
+  const addableTabs = allPossibleTabs.filter(
+    (t) => !dynamicTabs.includes(t),
+  );
+
+  const defaultTab = dynamicTabs[0] || "deratizace";
 
   // Compute statistiky
   const deratStatistiky = deratData
@@ -532,10 +548,10 @@ export function ProtokolFormView({
       )}
 
       {/* Tabs — only shown if more than 1 tab available */}
-      {availableTabs.length > 1 ? (
+      {dynamicTabs.length > 1 ? (
         <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList className="w-full">
-            {availableTabs.map((tab) => (
+            {dynamicTabs.map((tab) => (
               <TabsTrigger
                 key={tab}
                 value={tab}
@@ -546,19 +562,19 @@ export function ProtokolFormView({
             ))}
           </TabsList>
 
-          {availableTabs.includes("deratizace") && (
+          {dynamicTabs.includes("deratizace") && (
             <TabsContent value="deratizace">
               {renderDeratFormView()}
             </TabsContent>
           )}
 
-          {availableTabs.includes("dezinsekce") && (
+          {dynamicTabs.includes("dezinsekce") && (
             <TabsContent value="dezinsekce">
               {renderDezinsFormView()}
             </TabsContent>
           )}
 
-          {availableTabs.includes("postrik") && (
+          {dynamicTabs.includes("postrik") && (
             <TabsContent value="postrik">
               {renderPostrikFormView()}
             </TabsContent>
@@ -571,6 +587,33 @@ export function ProtokolFormView({
           {defaultTab === "postrik" && renderPostrikFormView()}
         </div>
       )}
+
+      {/* Přidat typ zásahu (technik/admin, editable) */}
+      {!isReadonly && addableTabs.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {addableTabs.map((tab) => (
+            <Button
+              key={tab}
+              type="button"
+              variant="outline"
+              size="sm"
+              className="min-h-[44px] border-dashed text-sm"
+              onClick={() => {
+                setDynamicTabs((prev) => [...prev, tab]);
+              }}
+            >
+              + {TAB_LABELS[tab]}
+            </Button>
+          ))}
+        </div>
+      )}
+
+      {/* Živá kalkulace ceny */}
+      <LivePriceWidget
+        protokolId={protokol.id}
+        bodCountTrigger={bodCountTrigger}
+        isReadonly={isReadonly}
+      />
 
       {/* Statistiky */}
       <StatistikySection
@@ -700,14 +743,14 @@ export function ProtokolFormView({
       />
 
       {/* PDF sekce */}
-      {(availableTabs.includes("postrik") || availableTabs.includes("deratizace") || availableTabs.includes("dezinsekce")) &&
+      {(dynamicTabs.includes("postrik") || dynamicTabs.includes("deratizace") || dynamicTabs.includes("dezinsekce")) &&
         ["ke_schvaleni", "schvaleny", "odeslany"].includes(protokol.status) && (
           <PdfSection
             protokolId={protokol.id}
             cisloProtokolu={protokol.cislo_protokolu}
-            hasPostrik={availableTabs.includes("postrik")}
-            hasDeratBody={availableTabs.includes("deratizace")}
-            hasDezinsBody={availableTabs.includes("dezinsekce")}
+            hasPostrik={dynamicTabs.includes("postrik")}
+            hasDeratBody={dynamicTabs.includes("deratizace")}
+            hasDezinsBody={dynamicTabs.includes("dezinsekce")}
           />
         )}
 
@@ -763,6 +806,55 @@ export function ProtokolFormView({
           <Card>
             <CardContent className="space-y-2 py-4">
               <p className="text-sm font-medium">Fakturace</p>
+
+              {/* Sync price before invoicing */}
+              {!fakturaCreated && (
+                <div className="space-y-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="min-h-[44px] w-full text-sm"
+                    onClick={async () => {
+                      setSyncingPrice(true);
+                      setSyncPriceResult(null);
+                      try {
+                        const res = await syncProtocolPriceToZakazkaAction(
+                          protokol.id,
+                        );
+                        if (res.success) {
+                          setSyncPriceResult("Cena zakázky aktualizována dle protokolu ✓");
+                          setBodCountTrigger((p) => p + 1);
+                        } else {
+                          setSyncPriceResult(
+                            res.error || "Chyba synchronizace",
+                          );
+                        }
+                      } catch {
+                        setSyncPriceResult("Nepodařilo se synchronizovat cenu");
+                      } finally {
+                        setSyncingPrice(false);
+                      }
+                    }}
+                    disabled={syncingPrice}
+                  >
+                    {syncingPrice
+                      ? "Přepočítávám..."
+                      : "🔄 Přepočítat cenu zakázky z protokolu"}
+                  </Button>
+                  {syncPriceResult && (
+                    <p
+                      className={`text-center text-xs ${
+                        syncPriceResult.includes("✓")
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {syncPriceResult}
+                    </p>
+                  )}
+                </div>
+              )}
+
               {fakturaCreated ? (
                 <p className="text-sm text-green-600">
                   Faktura byla vystavena ve Fakturoidu.

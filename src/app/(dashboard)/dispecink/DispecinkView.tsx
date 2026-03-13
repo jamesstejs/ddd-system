@@ -10,10 +10,17 @@ import { DispecinkScheduleSheet } from "./DispecinkScheduleSheet";
 import { getDispecinkDataAction } from "./actions";
 import type { DispecinkData } from "./types";
 
+type SkudceItem = {
+  id: string;
+  nazev: string;
+  typ: string;
+};
+
 type Props = {
   initialData: DispecinkData;
   initialPobocka: Pobocka;
   initialWeekStart: string;
+  skudciList: SkudceItem[];
 };
 
 /** Get Monday of the current week */
@@ -30,6 +37,7 @@ export function DispecinkView({
   initialData,
   initialPobocka,
   initialWeekStart,
+  skudciList,
 }: Props) {
   const [pobocka, setPobocka] = useState<Pobocka>(initialPobocka);
   const [weekStart, setWeekStart] = useState(initialWeekStart);
@@ -146,6 +154,7 @@ export function DispecinkView({
         casOd={scheduleSheet.casOd}
         casDo={scheduleSheet.casDo}
         onCreated={handleCreated}
+        skudciList={skudciList}
       />
     </div>
   );

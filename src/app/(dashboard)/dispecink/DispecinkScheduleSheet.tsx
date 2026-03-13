@@ -20,6 +20,7 @@ import {
 import { getCenaOdhadAction } from "./actions";
 import type { CenaOdhadResult } from "./types";
 import { KlientSearchInput, type KlientResult } from "./KlientSearchInput";
+import { SkudceMultiSelect } from "@/components/modules/SkudceMultiSelect";
 
 type Props = {
   open: boolean;
@@ -30,6 +31,7 @@ type Props = {
   casOd: string;
   casDo: string;
   onCreated: () => void;
+  skudciList: { id: string; nazev: string; typ: string }[];
 };
 
 type ObjektOption = {
@@ -67,6 +69,7 @@ export function DispecinkScheduleSheet({
   casOd,
   casDo,
   onCreated,
+  skudciList,
 }: Props) {
   // State
   const [selectedKlient, setSelectedKlient] = useState<KlientResult | null>(
@@ -74,10 +77,14 @@ export function DispecinkScheduleSheet({
   );
   const [objekty, setObjekty] = useState<ObjektOption[]>([]);
   const [selectedObjektId, setSelectedObjektId] = useState<string | null>(null);
+  const [typZakazky, setTypZakazky] = useState<"jednorazova" | "smluvni">(
+    "jednorazova",
+  );
+  const [jePrvniNavsteva, setJePrvniNavsteva] = useState(true);
   const [typyZasahu, setTypyZasahu] = useState<string[]>([
     "vnitrni_deratizace",
   ]);
-  const [skudci, setSkudci] = useState("");
+  const [selectedSkudci, setSelectedSkudci] = useState<string[]>([]);
   const [poznamka, setPoznamka] = useState("");
   const [showNewKlient, setShowNewKlient] = useState(false);
   const [newKlient, setNewKlient] = useState({
@@ -89,14 +96,24 @@ export function DispecinkScheduleSheet({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
+  // Derived: je deratizace?
+  const hasDeratizace = typyZasahu.some(
+    (t) => t === "vnitrni_deratizace" || t === "vnejsi_deratizace",
+  );
+
+  // Selected object data
+  const selectedObj = objekty.find((o) => o.id === selectedObjektId);
+
   // Reset on open
   useEffect(() => {
     if (open) {
       setSelectedKlient(null);
       setObjekty([]);
       setSelectedObjektId(null);
+      setTypZakazky("jednorazova");
+      setJePrvniNavsteva(true);
       setTypyZasahu(["vnitrni_deratizace"]);
-      setSkudci("");
+      setSelectedSkudci([]);
       setPoznamka("");
       setShowNewKlient(false);
       setNewKlient({ jmeno: "", telefon: "", adresa: "" });
@@ -131,23 +148,21 @@ export function DispecinkScheduleSheet({
       setCenaResult(null);
       return;
     }
-    const selectedObj = objekty.find((o) => o.id === selectedObjektId);
     const plocha = selectedObj?.plocha_m2 || 100;
+    const typObjektu = selectedObj?.typ_objektu || "gastro";
 
     const timer = setTimeout(async () => {
       try {
         const result = await getCenaOdhadAction({
-          typ_zakazky: "jednorazova",
+          typ_zakazky: typZakazky,
           typy_zasahu: typyZasahu,
-          skudci: skudci
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean),
+          skudci: selectedSkudci,
           plocha_m2: plocha,
           doprava_km: 0,
-          je_prvni_navsteva: true,
+          je_prvni_navsteva: jePrvniNavsteva,
           je_vikend: [0, 6].includes(new Date(datum).getDay()),
           je_nocni: false,
+          typ_objektu: typObjektu,
         });
         setCenaResult(result);
       } catch {
@@ -156,7 +171,17 @@ export function DispecinkScheduleSheet({
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [typyZasahu, skudci, selectedObjektId, objekty, datum]);
+  }, [
+    typyZasahu,
+    selectedSkudci,
+    selectedObjektId,
+    objekty,
+    datum,
+    typZakazky,
+    jePrvniNavsteva,
+    selectedObj?.plocha_m2,
+    selectedObj?.typ_objektu,
+  ]);
 
   const handleCreateKlient = async () => {
     if (!newKlient.jmeno || !newKlient.telefon) return;
@@ -193,12 +218,9 @@ export function DispecinkScheduleSheet({
       try {
         await quickCreateZakazkaWithZasahAction({
           objekt_id: selectedObjektId,
-          typ: "jednorazova",
+          typ: typZakazky,
           typy_zasahu: typyZasahu,
-          skudci: skudci
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean),
+          skudci: selectedSkudci,
           poznamka: poznamka || undefined,
           technik_id: technikId,
           datum,
@@ -348,10 +370,86 @@ export function DispecinkScheduleSheet({
                 {objekty.map((o) => (
                   <SelectItem key={o.id} value={o.id}>
                     {o.nazev} — {o.adresa}
+                    {o.plocha_m2 ? ` (${o.plocha_m2} m²)` : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {/* Show object info when selected */}
+            {selectedObj && (
+              <div className="flex gap-2 text-xs text-muted-foreground">
+                <span>Typ: {selectedObj.typ_objektu}</span>
+                {selectedObj.plocha_m2 && (
+                  <span>· Plocha: {selectedObj.plocha_m2} m²</span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Typ zakázky — jednorázová / smluvní */}
+        <div className="space-y-1.5">
+          <Label className="text-sm font-medium">Typ zakázky</Label>
+          <div className="flex gap-1.5">
+            {(
+              [
+                { value: "jednorazova", label: "Jednorázová" },
+                { value: "smluvni", label: "Smluvní (monitoring)" },
+              ] as const
+            ).map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setTypZakazky(opt.value)}
+                className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                  typZakazky === opt.value
+                    ? "bg-blue-600 text-white"
+                    : "bg-muted text-foreground active:bg-muted/70"
+                }`}
+                style={{ minHeight: 44 }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Zavedení / Kontrola — only for smluvní */}
+        {typZakazky === "smluvni" && (
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium">Typ návštěvy</Label>
+            <div className="flex gap-1.5">
+              <button
+                type="button"
+                onClick={() => setJePrvniNavsteva(true)}
+                className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                  jePrvniNavsteva
+                    ? "bg-amber-500 text-white"
+                    : "bg-muted text-foreground active:bg-muted/70"
+                }`}
+                style={{ minHeight: 44 }}
+              >
+                Zavedení bodů
+                <span className="block text-[10px] font-normal opacity-80">
+                  první návštěva — cena staniček
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setJePrvniNavsteva(false)}
+                className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                  !jePrvniNavsteva
+                    ? "bg-amber-500 text-white"
+                    : "bg-muted text-foreground active:bg-muted/70"
+                }`}
+                style={{ minHeight: 44 }}
+              >
+                Kontrola
+                <span className="block text-[10px] font-normal opacity-80">
+                  follow-up — jen náplň
+                </span>
+              </button>
+            </div>
           </div>
         )}
 
@@ -389,11 +487,10 @@ export function DispecinkScheduleSheet({
         {/* Škůdci */}
         <div className="space-y-1.5">
           <Label className="text-sm font-medium">Škůdci</Label>
-          <Input
-            placeholder="např. Potkan, Myš"
-            value={skudci}
-            onChange={(e) => setSkudci(e.target.value)}
-            className="min-h-[44px] text-base"
+          <SkudceMultiSelect
+            skudciList={skudciList}
+            selected={selectedSkudci}
+            onSelectedChange={setSelectedSkudci}
           />
         </div>
 
@@ -408,20 +505,90 @@ export function DispecinkScheduleSheet({
           />
         </div>
 
-        {/* Price estimate */}
+        {/* Price estimate — full breakdown */}
         {cenaResult && (
-          <div className="rounded-lg bg-green-50 p-2.5">
+          <div className="space-y-2 rounded-lg bg-green-50 p-3">
+            {/* Header */}
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-green-800">
+              <span className="text-sm font-semibold text-green-800">
                 Odhad ceny
               </span>
               <span className="text-lg font-bold text-green-900">
                 {formatCena(cenaResult.cena_s_dph)}
               </span>
             </div>
-            <div className="mt-0.5 text-xs text-green-700">
-              Základ: {formatCena(cenaResult.cena_zaklad)} + DPH{" "}
-              {cenaResult.dph_sazba}%
+
+            {/* Monitorovací body info — for smluvní deratizace */}
+            {typZakazky === "smluvni" &&
+              hasDeratizace &&
+              cenaResult.pocty_bodu &&
+              (cenaResult.pocty_bodu.mys > 0 ||
+                cenaResult.pocty_bodu.potkan > 0 ||
+                cenaResult.pocty_bodu.zivolovna_mys > 0) && (
+                <div className="rounded-md bg-blue-50 p-2 text-xs">
+                  <div className="mb-1 font-medium text-blue-800">
+                    Kalkulačka bodů ({selectedObj?.typ_objektu || "—"},{" "}
+                    {selectedObj?.plocha_m2 || 100} m²)
+                  </div>
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-blue-700">
+                    {cenaResult.pocty_bodu.mys > 0 && (
+                      <span>Myš: {cenaResult.pocty_bodu.mys}×</span>
+                    )}
+                    {cenaResult.pocty_bodu.potkan > 0 && (
+                      <span>Potkan: {cenaResult.pocty_bodu.potkan}×</span>
+                    )}
+                    {cenaResult.pocty_bodu.zivolovna_mys > 0 && (
+                      <span>
+                        Živolovná: {cenaResult.pocty_bodu.zivolovna_mys}×
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-1 text-[10px] text-blue-600">
+                    {jePrvniNavsteva
+                      ? "Zavedení = cena staniček × počet"
+                      : "Kontrola = 99 Kč/bod (náplň)"}
+                  </div>
+                </div>
+              )}
+
+            {/* Line items */}
+            <div className="space-y-0.5 border-t border-green-200 pt-1.5">
+              {cenaResult.polozky.map((p, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between text-xs"
+                >
+                  <span className="text-green-800">
+                    {p.nazev}
+                    {p.pocet && p.pocet > 1 && p.cena_za_kus ? (
+                      <span className="ml-1 text-green-600">
+                        ({p.pocet}× {formatCena(p.cena_za_kus)})
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="font-medium text-green-900">
+                    {formatCena(p.cena)}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Totals */}
+            <div className="border-t border-green-200 pt-1.5">
+              <div className="flex items-center justify-between text-xs text-green-700">
+                <span>Základ</span>
+                <span className="font-medium">
+                  {formatCena(cenaResult.cena_zaklad)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm font-bold">
+                <span className="text-green-800">
+                  Celkem s DPH ({cenaResult.dph_sazba}%)
+                </span>
+                <span className="text-green-900">
+                  {formatCena(cenaResult.cena_s_dph)}
+                </span>
+              </div>
             </div>
           </div>
         )}

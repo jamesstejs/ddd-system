@@ -5,6 +5,7 @@ import type { AppRole } from "@/lib/auth";
 import { POBOCKY, type Pobocka } from "@/types/pobocky";
 import { getTechniciByPobocka, getZasahyForTechniciRange } from "@/lib/supabase/queries/zasahy";
 import { getDostupnostForTechniciRange } from "@/lib/supabase/queries/dostupnost";
+import { getSkudci } from "@/lib/supabase/queries/skudci";
 import { DispecinkView } from "./DispecinkView";
 import type { DispecinkData } from "./types";
 
@@ -51,10 +52,17 @@ export default async function DispecinkPage() {
   );
   const technikIds = (technici || []).map((t) => t.id);
 
-  const [dostupnostRes, zasahyRes] = await Promise.all([
+  const [dostupnostRes, zasahyRes, skudciRes] = await Promise.all([
     getDostupnostForTechniciRange(supabase, technikIds, weekStart, weekEnd),
     getZasahyForTechniciRange(supabase, technikIds, weekStart, weekEnd),
+    getSkudci(supabase),
   ]);
+
+  const skudciList = (skudciRes.data || []).map((s) => ({
+    id: s.id,
+    nazev: s.nazev,
+    typ: s.typ,
+  }));
 
   const initialData: DispecinkData = {
     technici: (technici || []).map((t) => ({
@@ -93,6 +101,7 @@ export default async function DispecinkPage() {
         initialData={initialData}
         initialPobocka={defaultPobocka}
         initialWeekStart={weekStart}
+        skudciList={skudciList}
       />
     </div>
   );

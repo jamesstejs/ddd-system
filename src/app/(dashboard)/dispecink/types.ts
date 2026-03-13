@@ -49,8 +49,17 @@ export type DispecinkData = {
 };
 
 export type CenaOdhadResult = {
-  polozky: { nazev: string; cena: number }[];
+  polozky: { nazev: string; pocet?: number; cena_za_kus?: number; cena: number }[];
   cena_zaklad: number;
   cena_s_dph: number;
   dph_sazba: number;
+  /** Výsledky kalkulačky bodů per typ zásahu (pouze pro smluvní deratizaci) */
+  body_vypocet?: Record<string, { bod_s_mys: number; bod_l_potkan: number; zivolovna: number } | null>;
+  /** Celkové počty bodů použité pro výpočet */
+  pocty_bodu?: {
+    mys: number;
+    potkan: number;
+    zivolovna_mys: number;
+    zivolovna_potkan: number;
+  };
 };

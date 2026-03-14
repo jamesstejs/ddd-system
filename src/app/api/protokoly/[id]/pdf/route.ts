@@ -162,7 +162,29 @@ export async function GET(
     deratBody,
     dezinsBody,
     bezpecnostniListy: pripravekNames,
-    dalsiZasah: null, // TODO: populate from next scheduled zasah
+    dalsiZasah: await (async () => {
+      const zakazkaId = zakazky?.id as string | undefined;
+      const zasahDatum = (zasahy?.datum as string) || "";
+      if (!zakazkaId || !zasahDatum) return null;
+      const { data: dalsiZasahy } = await supabase
+        .from("zasahy")
+        .select("datum")
+        .eq("zakazka_id", zakazkaId)
+        .gt("datum", zasahDatum)
+        .is("deleted_at", null)
+        .order("datum", { ascending: true })
+        .limit(1);
+      if (dalsiZasahy && dalsiZasahy.length > 0) {
+        const d = new Date(dalsiZasahy[0].datum);
+        const dEnd = new Date(d);
+        dEnd.setDate(dEnd.getDate() + 7);
+        return {
+          od: d.toLocaleDateString("cs-CZ"),
+          do: dEnd.toLocaleDateString("cs-CZ"),
+        };
+      }
+      return null;
+    })()
   });
 
   // Resolve logo path

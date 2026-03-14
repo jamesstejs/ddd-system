@@ -1206,7 +1206,28 @@ export async function sendProtokolEmailAction(
       deratBody,
       dezinsBody,
       bezpecnostniListy: bezpecnostniListyNames,
-      dalsiZasah: null,
+      dalsiZasah: await (async () => {
+        const zakazkaId = zakazky?.id as string | undefined;
+        if (!zakazkaId || !datumZasahu) return null;
+        const { data: dalsiZasahy } = await supabase
+          .from("zasahy")
+          .select("datum")
+          .eq("zakazka_id", zakazkaId)
+          .gt("datum", datumZasahu)
+          .is("deleted_at", null)
+          .order("datum", { ascending: true })
+          .limit(1);
+        if (dalsiZasahy && dalsiZasahy.length > 0) {
+          const d = new Date(dalsiZasahy[0].datum);
+          const dEnd = new Date(d);
+          dEnd.setDate(dEnd.getDate() + 7);
+          return {
+            od: d.toLocaleDateString("cs-CZ"),
+            do: dEnd.toLocaleDateString("cs-CZ"),
+          };
+        }
+        return null;
+      })()
     });
 
     const logoPath = pathModule.join(process.cwd(), "public", "logo.png");
@@ -1328,7 +1349,7 @@ export async function createFakturaAction(
     const [
       { getFakturaByProtokol, createFaktura, updateKlientFakturoidId },
       { getPolozkyForZakazka },
-      { findOrCreateSubject, buildInvoiceLines, createInvoice },
+      { findOrCreateSubject, buildInvoiceLines, createInvoice, getEffectiveVatRate },
     ] = await Promise.all([
       import("@/lib/supabase/queries/faktury"),
       import("@/lib/supabase/queries/zakazka_polozky"),
@@ -1395,14 +1416,17 @@ export async function createFakturaAction(
       };
     }
 
-    // 3. DPH sazba a výpočet
-    const dphSazba =
+    // 3. DPH sazba — respektuje Fakturoid nastavení (plátce / neplátce DPH)
+    const desiredDphSazba =
       (zakazky.dph_sazba_snapshot as number) ||
       (klienti.dph_sazba as number) ||
       21;
+    const dphSazba = await getEffectiveVatRate(desiredDphSazba);
     const cenaZaklad =
       (zakazky.cena_po_sleve as number) || (zakazky.cena_zaklad as number) || 0;
-    const cenaSdph = (zakazky.cena_s_dph as number) || cenaZaklad * (1 + dphSazba / 100);
+    const cenaSdph = dphSazba > 0
+      ? ((zakazky.cena_s_dph as number) || cenaZaklad * (1 + dphSazba / 100))
+      : cenaZaklad;
 
     // 4. Build invoice lines
     const lines = buildInvoiceLines(polozky, dphSazba);

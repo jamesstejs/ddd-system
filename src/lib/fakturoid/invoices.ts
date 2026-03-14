@@ -170,6 +170,18 @@ export async function getEffectiveVatRate(
 // ---------------------------------------------------------------
 
 /**
+ * Determine proper unit name for a Fakturoid line based on item name.
+ */
+function getUnitName(nazev: string): string {
+  const lower = nazev.toLowerCase();
+  if (lower.includes("doprava") || lower.includes("km")) return "km";
+  if (lower.includes("m²") || lower.includes("plocha")) return "m²";
+  if (lower.includes("hodina") || lower.includes("hod")) return "hod";
+  if (lower.includes("práce technika") || lower.includes("výjezd")) return "ks";
+  return "ks";
+}
+
+/**
  * Build Fakturoid invoice lines from zakazka_polozky.
  */
 export function buildInvoiceLines(
@@ -185,7 +197,7 @@ export function buildInvoiceLines(
     quantity: p.pocet,
     unit_price: p.cena_za_kus,
     vat_rate: dphSazba,
-    unit_name: "ks",
+    unit_name: getUnitName(p.nazev),
   }));
 }
 
